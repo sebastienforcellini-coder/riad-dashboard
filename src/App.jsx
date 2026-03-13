@@ -1,6 +1,21 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import * as XLSX from "xlsx";
+import { initializeApp } from "firebase/app";
+import { getFirestore, doc, setDoc, onSnapshot } from "firebase/firestore";
+
+// ── Firebase config ───────────────────────────────────────────────────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyCcNPo3-u0tAQjZdvJ7ns1pIpz-Puc6p7Q",
+  authDomain: "riad-dashboard.firebaseapp.com",
+  projectId: "riad-dashboard",
+  storageBucket: "riad-dashboard.firebasestorage.app",
+  messagingSenderId: "1057977040208",
+  appId: "1:1057977040208:web:48f77a326d8cbbb777c055",
+};
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
+const DOC_REF = doc(db, "riad", "data");
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // PARSERS
@@ -71,6 +86,9 @@ function loadStorage() {
 }
 function saveStorage(data) {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch {}
+}
+async function saveCloud(data) {
+  try { await setDoc(DOC_REF, data); } catch(e) { console.warn("Cloud save failed", e); }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -163,6 +181,40 @@ export default function RiadDashboard() {
 
   useEffect(() => {
     saveStorage({ bookings, blocked, expenses, year, nextId, currency, rate, recurring });
+  }, [bookings, blocked, expenses, year, nextId, currency, rate, recurring]);
+
+  // ── Cloud sync (Firestore) ───────────────────────────────────────────────────
+  const [cloudStatus, setCloudStatus] = useState(""); // "", "saving", "saved", "error"
+  const saveTimer = useRef(null);
+
+  // Listen to Firestore on mount — sync from cloud to local
+  useEffect(() => {
+    const unsub = onSnapshot(DOC_REF, (snap) => {
+      if (snap.exists()) {
+        const data = snap.data();
+        if (data.bookings)  setBookings(data.bookings);
+        if (data.blocked)   setBlocked(data.blocked);
+        if (data.expenses)  setExpenses(data.expenses);
+        if (data.recurring) setRecurring(data.recurring);
+        if (data.rate)      setRate(data.rate);
+        if (data.currency)  setCurrency(data.currency);
+        // Also mirror to localStorage as fallback
+        saveStorage(data);
+        setCloudStatus("saved");
+      }
+    }, () => setCloudStatus("error"));
+    return () => unsub();
+  }, []);
+
+  // Debounced save to Firestore on data change
+  useEffect(() => {
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    setCloudStatus("saving");
+    saveTimer.current = setTimeout(() => {
+      saveCloud({ bookings, blocked, expenses, year, nextId, currency, rate, recurring })
+        .then(() => setCloudStatus("saved"))
+        .catch(() => setCloudStatus("error"));
+    }, 1500);
   }, [bookings, blocked, expenses, year, nextId, currency, rate, recurring]);
 
   const showToast = (msg) => { setToast(msg); setTimeout(()=>setToast(""), 3500); };
@@ -365,7 +417,7 @@ export default function RiadDashboard() {
         <div>
           <h1 style={{margin:0,fontSize:22,fontWeight:500}}>Kasbah Blanca Marrakech</h1>
           <p style={{margin:"4px 0 0",fontSize:13,color:"var(--color-text-secondary)"}}>
-            Tableau de bord locatif · données sauvegardées automatiquement
+            Tableau de bord locatif · {cloudStatus==="saving" ? "⏳ Sauvegarde..." : cloudStatus==="saved" ? "☁️ Synchronisé" : cloudStatus==="error" ? "⚠️ Hors ligne" : ""}
           </p>
         </div>
         <div style={{display:"flex",gap:8,alignItems:"center"}}>
