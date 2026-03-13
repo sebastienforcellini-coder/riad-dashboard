@@ -139,9 +139,12 @@ export default function RiadDashboard() {
   const [nextId,    setNextId]    = useState(300);
   const [bForm, setBForm] = useState({checkIn:"",checkOut:"",phone:"",platform:"Airbnb",amount:""});
   const [eForm, setEForm] = useState({date:today(),category:"Ménage",description:"",amount:""});
-  const [currency, setCurrency] = useState("MAD"); // "MAD" ou "EUR"
-  const [rate,     setRate]     = useState(DEFAULT_RATE); // 1 EUR = X MAD
-  const [showRate, setShowRate] = useState(false);
+  const [currency,   setCurrency]   = useState("MAD");
+  const [rate,       setRate]       = useState(DEFAULT_RATE);
+  const [showRate,   setShowRate]   = useState(false);
+  const [recurring,  setRecurring]  = useState([]); // [{id,category,description,amount,months:[0..11]}]
+  const [showAddR,   setShowAddR]   = useState(false);
+  const [rForm,      setRForm]      = useState({category:"Ménage",description:"",amount:"",months:[]});
 
   // ── Persistance ─────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -154,12 +157,13 @@ export default function RiadDashboard() {
       if (saved.nextId)    setNextId(saved.nextId);
       if (saved.currency)  setCurrency(saved.currency);
       if (saved.rate)      setRate(saved.rate);
+      if (saved.recurring) setRecurring(saved.recurring);
     }
   }, []);
 
   useEffect(() => {
-    saveStorage({ bookings, blocked, expenses, year, nextId, currency, rate });
-  }, [bookings, blocked, expenses, year, nextId, currency, rate]);
+    saveStorage({ bookings, blocked, expenses, year, nextId, currency, rate, recurring });
+  }, [bookings, blocked, expenses, year, nextId, currency, rate, recurring]);
 
   const showToast = (msg) => { setToast(msg); setTimeout(()=>setToast(""), 3500); };
 
@@ -239,7 +243,7 @@ export default function RiadDashboard() {
 
   // ── Export / Import JSON ─────────────────────────────────────────────────────
   const exportJSON = () => {
-    const data = { bookings, blocked, expenses, rate, currency, exportedAt: new Date().toISOString(), version: 1 };
+    const data = { bookings, blocked, expenses, rate, currency, recurring, exportedAt: new Date().toISOString(), version: 1 };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement("a");
@@ -257,6 +261,7 @@ export default function RiadDashboard() {
         if (data.bookings)  setBookings(data.bookings);
         if (data.blocked)   setBlocked(data.blocked);
         if (data.expenses)  setExpenses(data.expenses);
+        if (data.recurring) setRecurring(data.recurring);
         if (data.rate)      setRate(data.rate);
         if (data.currency)  setCurrency(data.currency);
         showToast(`✅ Sauvegarde restaurée · ${data.bookings?.length||0} réservations · ${data.expenses?.length||0} dépenses`);
@@ -312,6 +317,25 @@ export default function RiadDashboard() {
     setNextId(n=>n+1); setEForm({date:today(),category:"Ménage",description:"",amount:""}); setShowAddE(false);
     showToast("✅ Dépense ajoutée");
   };
+  const addRecurring = () => {
+    if (!rForm.description||!rForm.amount) return;
+    setRecurring(prev=>[...prev,{...rForm,id:"REC-"+nextId,amount:parseFloat(rForm.amount)}]);
+    setNextId(n=>n+1); setRForm({category:"Ménage",description:"",amount:"",months:[]}); setShowAddR(false);
+    showToast("✅ Dépense récurrente ajoutée");
+  };
+  const generateRecurring = (rec) => {
+    const newExp = rec.months.map(m => {
+      const date = `${year}-${String(m+1).padStart(2,"0")}-01`;
+      return { id: nextId+m, category:rec.category, description:rec.description+" 🔄", amount:rec.amount, date, recurringId:rec.id };
+    });
+    const alreadyDone = newExp.filter(ne => expenses.some(e=>e.recurringId===rec.id && new Date(e.date).getMonth()===new Date(ne.date).getMonth() && new Date(e.date).getFullYear()===year));
+    const toAdd = newExp.filter(ne => !expenses.some(e=>e.recurringId===rec.id && new Date(e.date).getMonth()===new Date(ne.date).getMonth() && new Date(e.date).getFullYear()===year));
+    setExpenses(prev=>[...prev,...toAdd]);
+    setNextId(n=>n+toAdd.length);
+    if (toAdd.length===0) showToast("⚠️ Ces mois sont déjà générés");
+    else showToast("✅ " + toAdd.length + " dépense" + (toAdd.length>1?"s":"") + " générée" + (toAdd.length>1?"s":"") + " pour " + year);
+  };
+  const toggleMonth = (m) => setRForm(f=>({...f,months:f.months.includes(m)?f.months.filter(x=>x!==m):[...f.months,m].sort((a,b)=>a-b)}));
 
   // ── Styles ────────────────────────────────────────────────────────────────────
   const rc  = {background:"var(--color-background-primary)",border:"0.5px solid var(--color-border-tertiary)",borderRadius:"var(--border-radius-lg)",padding:"1rem 1.25rem"};
@@ -554,6 +578,51 @@ export default function RiadDashboard() {
       {/* ── DÉPENSES ───────────────────────────────────────────────────────── */}
       {tab==="expenses" && (
         <div>
+          {/* ── Récurrentes ── */}
+          <div style={{...rc,marginBottom:"1.25rem",borderLeft:"3px solid #378ADD"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:recurring.length>0?"1rem":0,flexWrap:"wrap",gap:8}}>
+              <p style={{margin:0,fontSize:14,fontWeight:500}}>🔄 Dépenses récurrentes</p>
+              <button onClick={()=>setShowAddR(!showAddR)}>+ Ajouter ↗</button>
+            </div>
+            {showAddR && (
+              <div style={{background:"var(--color-background-secondary)",borderRadius:8,padding:"1rem",marginBottom:"1rem"}}>
+                <p style={{margin:"0 0 12px",fontSize:13,fontWeight:500}}>Nouvelle dépense récurrente</p>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0 16px"}}>
+                  <div><label style={{fontSize:12,color:"var(--color-text-secondary)"}}>Catégorie</label><select style={inp} value={rForm.category} onChange={e=>setRForm(f=>({...f,category:e.target.value}))}>{EXPENSE_CATS.map(c=><option key={c}>{c}</option>)}</select></div>
+                  <div><label style={{fontSize:12,color:"var(--color-text-secondary)"}}>Montant (MAD)</label><input type="number" placeholder="500" style={inp} value={rForm.amount} onChange={e=>setRForm(f=>({...f,amount:e.target.value}))} /></div>
+                  <div style={{gridColumn:"1 / -1"}}><label style={{fontSize:12,color:"var(--color-text-secondary)"}}>Description</label><input type="text" placeholder="Ex : Abonnement Internet" style={inp} value={rForm.description} onChange={e=>setRForm(f=>({...f,description:e.target.value}))} /></div>
+                </div>
+                <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:12}}>
+                  {MONTHS.map((m,i)=>(
+                    <button key={m} onClick={()=>toggleMonth(i)} style={{padding:"4px 10px",fontSize:12,borderRadius:99,border:"0.5px solid var(--color-border-secondary)",background:rForm.months.includes(i)?"#378ADD":"var(--color-background-secondary)",color:rForm.months.includes(i)?"#fff":"var(--color-text-secondary)",cursor:"pointer"}}>{m}</button>
+                  ))}
+                </div>
+                <div style={{display:"flex",gap:8}}>
+                  <button onClick={addRecurring}>Enregistrer</button>
+                  <button onClick={()=>setShowAddR(false)} style={{color:"var(--color-text-secondary)"}}>Annuler</button>
+                </div>
+              </div>
+            )}
+            {recurring.length>0 && (
+              <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                {recurring.map(rec=>(
+                  <div key={rec.id} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 10px",background:"var(--color-background-secondary)",borderRadius:8,flexWrap:"wrap"}}>
+                    <span style={{fontSize:11,padding:"2px 8px",borderRadius:99,background:"var(--color-background-warning)",color:"var(--color-text-warning)",fontWeight:500,flexShrink:0}}>{rec.category}</span>
+                    <span style={{fontSize:13,flex:1,minWidth:120}}>{rec.description}</span>
+                    <span style={{fontSize:13,fontWeight:500,color:"var(--color-text-danger)",flexShrink:0}}>{fmtBoth(rec.amount,rate)}</span>
+                    <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+                      {MONTHS.map((m,i)=>(
+                        <span key={m} style={{fontSize:11,padding:"2px 6px",borderRadius:99,background:rec.months.includes(i)?"#378ADD22":"transparent",color:rec.months.includes(i)?"#378ADD":"var(--color-text-tertiary)",fontWeight:rec.months.includes(i)?600:400}}>{m}</span>
+                      ))}
+                    </div>
+                    <button onClick={()=>generateRecurring(rec)} style={{fontSize:12,padding:"4px 12px",background:"#378ADD",color:"#fff",border:"none",borderRadius:6,cursor:"pointer",flexShrink:0}}>Générer {year} ↗</button>
+                    <button onClick={()=>{setRecurring(prev=>prev.filter(r=>r.id!==rec.id));showToast("Récurrente supprimée");}} style={{fontSize:11,color:"var(--color-text-danger)",border:"none",background:"none",cursor:"pointer",padding:"2px 4px"}}>✕</button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1rem",flexWrap:"wrap",gap:8}}>
             <p style={{margin:0,fontSize:14,color:"var(--color-text-secondary)"}}>{yearExpenses.length} dépenses · {fmtBoth(totalExp,rate)}</p>
             <button onClick={()=>setShowAddE(!showAddE)}>+ Ajouter ↗</button>
