@@ -237,6 +237,34 @@ export default function RiadDashboard() {
     showToast("✅ Export Excel téléchargé");
   };
 
+  // ── Export / Import JSON ─────────────────────────────────────────────────────
+  const exportJSON = () => {
+    const data = { bookings, blocked, expenses, rate, currency, exportedAt: new Date().toISOString(), version: 1 };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement("a");
+    a.href = url; a.download = `riad_backup_${new Date().toISOString().slice(0,10)}.json`;
+    a.click(); URL.revokeObjectURL(url);
+    showToast("✅ Sauvegarde JSON téléchargée");
+  };
+
+  const importJSON = (file) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = JSON.parse(e.target.result);
+        if (!data.version) throw new Error("Format invalide");
+        if (data.bookings)  setBookings(data.bookings);
+        if (data.blocked)   setBlocked(data.blocked);
+        if (data.expenses)  setExpenses(data.expenses);
+        if (data.rate)      setRate(data.rate);
+        if (data.currency)  setCurrency(data.currency);
+        showToast(`✅ Sauvegarde restaurée · ${data.bookings?.length||0} réservations · ${data.expenses?.length||0} dépenses`);
+      } catch { showToast("❌ Fichier JSON invalide"); }
+    };
+    reader.readAsText(file);
+  };
+
   // ── Computed ─────────────────────────────────────────────────────────────────
   const yearBookings = useMemo(()=>bookings.filter(b=>new Date(b.checkIn).getFullYear()===year),[bookings,year]);
   const yearExpenses = useMemo(()=>expenses.filter(e=>new Date(e.date).getFullYear()===year),[expenses,year]);
@@ -327,6 +355,11 @@ export default function RiadDashboard() {
             ))}
           </div>
           <button onClick={()=>setShowRate(r=>!r)} title="Taux de conversion" style={{padding:"4px 10px",fontSize:13,background:"none",border:"0.5px solid var(--color-border-secondary)",borderRadius:6}}>1€ = {rate} MAD</button>
+          <button onClick={exportJSON} title="Sauvegarder toutes les données" style={{padding:"4px 10px",fontSize:13,background:"none",border:"0.5px solid var(--color-border-secondary)",borderRadius:6}}>💾 Backup</button>
+          <label title="Restaurer une sauvegarde" style={{padding:"4px 10px",fontSize:13,background:"none",border:"0.5px solid var(--color-border-secondary)",borderRadius:6,cursor:"pointer",display:"inline-flex",alignItems:"center"}}>
+            📂 Restore
+            <input type="file" accept=".json" style={{display:"none"}} onChange={e=>{if(e.target.files[0]){importJSON(e.target.files[0]);e.target.value="";}}} />
+          </label>
         </div>
       </div>
       {showRate && (
