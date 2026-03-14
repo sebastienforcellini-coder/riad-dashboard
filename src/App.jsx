@@ -301,23 +301,99 @@ export default function RiadDashboard() {
   // ── Export Excel ──────────────────────────────────────────────────────────────
   const exportExcel = () => {
     const wb = XLSX.utils.book_new();
-    const bRows = [["Code","Nom","Arrivée","Départ","Nuits","Plateforme","Tél.","Montant (MAD)","Montant (€)"]];
-    [...yearBookings].sort((a,b)=>new Date(a.checkIn)-new Date(b.checkIn)).forEach(b =>
-      bRows.push([b.id, b.name||"", b.checkIn, b.checkOut, b.nights, b.platform, b.phone, b.amount, +(b.amount/rate).toFixed(2)])
-    );
-    bRows.push([]); bRows.push(["TOTAL","","","",totalNights+" nuits","","",totalRevenue,+(totalRevenue/rate).toFixed(2)]);
+
+    // ── Feuille 1 : Réservations détaillées ──
+    const bRows = [[
+      "Code","Nom","Plateforme","Arrivée","Départ","Nuits","Occupants",
+      "Tarif/nuit brut (MAD)","Tarif/nuit net (MAD)","Tarif/nuit net (€)",
+      "Total brut (MAD)","Commission (MAD)","Total net (MAD)","Total net (€)"
+    ]];
+    [...yearBookings].sort((a,b)=>new Date(a.checkIn)-new Date(b.checkIn)).forEach(b => {
+      const gross     = b.amount;
+      const netNight  = b.platform==="Airbnb" ? gross*(1-commission) : gross;
+      const totalGrossB = gross * b.nights;
+      const commAmt   = b.platform==="Airbnb" ? totalGrossB * commission : 0;
+      const totalNetB = totalGrossB - commAmt;
+      bRows.push([
+        b.id, b.name||"", b.platform, b.checkIn, b.checkOut, b.nights, b.guests||"",
+        gross, +netNight.toFixed(2), +(netNight/rate).toFixed(2),
+        totalGrossB, +commAmt.toFixed(2), +totalNetB.toFixed(2), +(totalNetB/rate).toFixed(2)
+      ]);
+    });
+    bRows.push([]);
+    bRows.push(["TOTAL","","","","",totalNights+" nuits","",
+      "","","",
+      +totalGross.toFixed(2),
+      +(totalGross-totalRevenue).toFixed(2),
+      +totalRevenue.toFixed(2),
+      +(totalRevenue/rate).toFixed(2)
+    ]);
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(bRows), "Réservations");
 
+    // ── Feuille 2 : Dépenses détaillées ──
     const eRows = [["Date","Catégorie","Description","Montant (MAD)","Montant (€)"]];
     [...yearExpenses].sort((a,b)=>new Date(a.date)-new Date(b.date)).forEach(e =>
       eRows.push([e.date, e.category, e.description, e.amount, +(e.amount/rate).toFixed(2)])
     );
-    eRows.push([]); eRows.push(["TOTAL","","",totalExp,+(totalExp/rate).toFixed(2)]);
+    eRows.push([]);
+    eRows.push(["TOTAL","","",+totalExp.toFixed(2),+(totalExp/rate).toFixed(2)]);
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(eRows), "Dépenses");
 
-    const mRows = [["Mois","Revenus (MAD)","Dépenses (MAD)","Bénéfice (MAD)","Revenus (€)","Dépenses (€)","Bénéfice (€)"]];
-    monthlyData.forEach(d => mRows.push([d.name, d.Revenus, d.Dépenses, d.Bénéfice, Math.round(d.Revenus/rate), Math.round(d.Dépenses/rate), Math.round(d.Bénéfice/rate)]));
-    mRows.push([]); mRows.push(["TOTAL", totalRevenue, totalExp, netProfit, Math.round(totalRevenue/rate), Math.round(totalExp/rate), Math.round(netProfit/rate)]);
+    // ── Feuille 3 : Dépenses par catégorie ──
+    const catRows = [["Catégorie","Nb entrées","Total (MAD)","Total (€)","% du total"]];
+    expByCat.forEach(([cat,amt]) => {
+      const count = yearExpenses.filter(e=>e.category===cat).length;
+      const pct   = totalExp ? Math.round((amt/totalExp)*100) : 0;
+      catRows.push([cat, count, +amt.toFixed(2), +(amt/rate).toFixed(2), pct+"%"]);
+    });
+    catRows.push([]);
+    catRows.push(["TOTAL", yearExpenses.length, +totalExp.toFixed(2), +(totalExp/rate).toFixed(2), "100%"]);
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(catRows), "Dépenses par catégorie");
+
+    // ── Feuille 4 : Récapitulatif par plateforme ──
+    const platforms = [...new Set(yearBookings.map(b=>b.platform))];
+    const pRows = [["Plateforme","Nb réservations","Nuits","Total brut (MAD)","Commission (MAD)","Total net (MAD)","Total net (€)","Moy./nuit net (MAD)"]];
+    platforms.forEach(p => {
+      const bs       = yearBookings.filter(b=>b.platform===p);
+      const nights   = bs.reduce((s,b)=>s+b.nights,0);
+      const gross    = bs.reduce((s,b)=>s+b.amount*b.nights,0);
+      const comm     = p==="Airbnb" ? gross*commission : 0;
+      const net      = gross - comm;
+      const avgNightP = nights ? Math.round(net/nights) : 0;
+      pRows.push([p, bs.length, nights, +gross.toFixed(2), +comm.toFixed(2), +net.toFixed(2), +(net/rate).toFixed(2), avgNightP]);
+    });
+    pRows.push([]);
+    pRows.push(["TOTAL", yearBookings.filter(b=>b.platform!=="Perso").length, totalNights,
+      +totalGross.toFixed(2),
+      +(totalGross-totalRevenue).toFixed(2),
+      +totalRevenue.toFixed(2),
+      +(totalRevenue/rate).toFixed(2),
+      avgNight
+    ]);
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(pRows), "Par plateforme");
+
+    // ── Feuille 5 : Bilan mensuel ──
+    const mRows = [["Mois","Revenus bruts (MAD)","Commission (MAD)","Revenus nets (MAD)","Revenus nets (€)","Dépenses (MAD)","Dépenses (€)","Bénéfice (MAD)","Bénéfice (€)"]];
+    monthlyData.forEach((d,i) => {
+      const mBookings = yearBookings.filter(b=>new Date(b.checkIn).getMonth()===i);
+      const mGross    = mBookings.reduce((s,b)=>s+b.amount*b.nights,0);
+      const mComm     = mBookings.filter(b=>b.platform==="Airbnb").reduce((s,b)=>s+b.amount*b.nights*commission,0);
+      const mNet      = mGross - mComm;
+      const mBenef    = mNet - d.Dépenses;
+      mRows.push([d.name,
+        +mGross.toFixed(2), +mComm.toFixed(2), +mNet.toFixed(2), +(mNet/rate).toFixed(2),
+        d.Dépenses, +(d.Dépenses/rate).toFixed(2),
+        +mBenef.toFixed(2), +(mBenef/rate).toFixed(2)
+      ]);
+    });
+    mRows.push([]);
+    mRows.push(["TOTAL",
+      +totalGross.toFixed(2),
+      +(totalGross-totalRevenue).toFixed(2),
+      +totalRevenue.toFixed(2), +(totalRevenue/rate).toFixed(2),
+      +totalExp.toFixed(2), +(totalExp/rate).toFixed(2),
+      +netProfit.toFixed(2), +(netProfit/rate).toFixed(2)
+    ]);
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(mRows), "Bilan mensuel");
 
     XLSX.writeFile(wb, `Riad_${year}.xlsx`);
