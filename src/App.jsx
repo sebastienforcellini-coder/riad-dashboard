@@ -38,24 +38,29 @@ function parseIcs(text) {
     const code    = codeM ? codeM[1] : uid.split("@")[0].slice(-8).toUpperCase();
     const phone   = phoneM ? "…"+phoneM[1] : "";
     const isRes   = /reserved/i.test(summary) && !/not available/i.test(summary);
-    if (isRes) bookings.push({ id:code, checkIn, checkOut, nights, platform:"Airbnb", phone, amount:0, uid });
-    else       blocked.push({ start:checkIn, end:checkOut, label:"Indisponible" });
+    // Essai extraction du nom depuis SUMMARY (ex: "John D (Airbnb)") ou DESCRIPTION
+    let name = "";
+    const nameFromSummary = summary.replace(/airbnb/i,"").replace(/reserved/i,"").replace(/\(.*?\)/g,"").trim();
+    if (nameFromSummary.length > 1 && nameFromSummary.length < 50) name = nameFromSummary;
+    if (!name) {
+      const nameM = desc.match(/(?:Name|Guest|Nom)[:\s]+([A-ZÀ-Ú][a-zà-ú]+(?: [A-ZÀ-Ú][a-zà-ú]+)+)/);
+      if (nameM) name = nameM[1];
+    }
+    if (isRes) bookings.push({ id:code, checkIn, checkOut, nights, platform:"Airbnb", phone, name, amount:0, uid });
+    else       blocked.push({ start:checkIn, end:checkOut, label:"Indisponible", type:"airbnb" });
   }
   return { bookings, blocked };
 }
 
 function parseCsvAirbnb(text) {
-  // Airbnb transaction history CSV
   const lines = text.trim().split(/\r?\n/);
   if (lines.length < 2) return {};
   const headers = lines[0].split(",").map(h => h.replace(/"/g,"").trim().toLowerCase());
   const amounts = {};
   for (const line of lines.slice(1)) {
-    // handle quoted fields
     const cols = line.match(/(".*?"|[^,]+|(?<=,)(?=,)|^(?=,)|(?<=,)$)/g) || line.split(",");
     const clean = cols.map(c => c.replace(/^"|"$/g,"").trim());
     const row   = Object.fromEntries(headers.map((h,i) => [h, clean[i]||""]));
-    // Airbnb CSV uses different column names across locales — try several
     const code  = row["confirmation code"] || row["code de confirmation"] || row["reservation code"] || "";
     const gross = row["gross earnings"] || row["amount"] || row["montant"] || row["total"] || row["payout"] || "";
     const val   = parseFloat(gross.replace(/[^0-9.-]/g,""));
@@ -69,10 +74,17 @@ function parseCsvAirbnb(text) {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const EXPENSE_CATS = ["Ménage","Frais Airbnb","Maintenance","Fournitures","Taxes/CFE","Internet","Eau/Électricité","Assurance","Autre"];
-const PLATFORMS    = ["Airbnb","Booking.com","Direct","Autre"];
+const PLATFORMS    = ["Direct","Airbnb","Booking.com","Autre"];
 const MONTHS       = ["Jan","Fév","Mar","Avr","Mai","Jun","Jul","Aoû","Sep","Oct","Nov","Déc"];
 const STORAGE_KEY  = "riad_dashboard_v1";
-const DEFAULT_RATE = 10.83; // 1 EUR = X MAD — Xe.com, 12 mars 2026
+const DEFAULT_RATE = 10.83;
+
+// Couleurs calendrier
+const C_RESERVED = "#c0392b";   // rouge  — réservé (Airbnb ou direct)
+const C_BLOCKED  = "#2980b9";   // bleu   — bloqué perso (vacances)
+const C_AVAIL    = "#e8f5e9";   // vert clair — disponible
+const C_TODAY_BG = "#fff3cd";   // ambre  — aujourd'hui
+const C_TODAY_FG = "#856404";
 
 const fmtMAD  = (n) => new Intl.NumberFormat("fr-MA",{minimumFractionDigits:0,maximumFractionDigits:0}).format(Math.round(n)) + " MAD";
 const fmtEUR  = (n) => new Intl.NumberFormat("fr-FR",{style:"currency",currency:"EUR",maximumFractionDigits:0}).format(Math.round(n));
@@ -96,24 +108,26 @@ async function saveCloud(data) {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function MonthCalendar({ year, month, bookings, blocked }) {
-  const offset = (new Date(year,month,1).getDay()+6)%7;
-  const days   = new Date(year,month+1,0).getDate();
+  const offset  = (new Date(year,month,1).getDay()+6)%7;
+  const days    = new Date(year,month+1,0).getDate();
   const inRange = (d, s, e) => { const day=new Date(year,month,d); return day>=new Date(s) && day<new Date(e); };
-  const cells  = [...Array(offset).fill(null), ...Array.from({length:days},(_,i)=>i+1)];
+  const cells   = [...Array(offset).fill(null), ...Array.from({length:days},(_,i)=>i+1)];
   return (
     <div style={{flex:"1 1 210px",minWidth:190}}>
       <p style={{margin:"0 0 8px",fontWeight:500,fontSize:13,textAlign:"center"}}>{MONTHS[month]} {year}</p>
       <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:2}}>
         {["L","M","M","J","V","S","D"].map((d,i)=><div key={i} style={{textAlign:"center",fontSize:10,color:"var(--color-text-tertiary)",padding:"2px 0"}}>{d}</div>)}
         {cells.map((d,i)=>{
-          const booked  = d && bookings.some(b=>inRange(d,b.checkIn,b.checkOut));
-          const block   = d && blocked.some(b=>inRange(d,b.start,b.end));
-          const now     = d && (() => { const t=new Date(); return t.getFullYear()===year&&t.getMonth()===month&&t.getDate()===d; })();
-          let bg="transparent", color="var(--color-text-primary)";
-          if (booked)     { bg="#2e7d32"; color="#fff"; }
-          else if (block) { bg="var(--color-background-danger)"; color="var(--color-text-danger)"; }
-          else if (now)   { bg="var(--color-background-info)"; color="var(--color-text-info)"; }
-          return <div key={i} style={{textAlign:"center",fontSize:12,padding:"5px 2px",background:bg,color,borderRadius:"var(--border-radius-md)",fontWeight:now?500:400}}>{d||""}</div>;
+          const isReserved = d && bookings.some(b=>inRange(d,b.checkIn,b.checkOut));
+          const isBlocked  = d && blocked.some(b=>inRange(d,b.start,b.end));
+          const isToday    = d && (() => { const t=new Date(); return t.getFullYear()===year&&t.getMonth()===month&&t.getDate()===d; })();
+          let bg, color, fw=400;
+          if      (isReserved) { bg=C_RESERVED; color="#fff"; fw=500; }
+          else if (isBlocked)  { bg=C_BLOCKED;  color="#fff"; fw=500; }
+          else if (isToday)    { bg=C_TODAY_BG; color=C_TODAY_FG; fw=600; }
+          else if (d)          { bg=C_AVAIL;    color="#2e7d32"; }
+          else                 { bg="transparent"; color="var(--color-text-primary)"; }
+          return <div key={i} style={{textAlign:"center",fontSize:12,padding:"5px 2px",background:bg,color,borderRadius:"var(--border-radius-md)",fontWeight:fw}}>{d||""}</div>;
         })}
       </div>
     </div>
@@ -152,19 +166,29 @@ export default function RiadDashboard() {
   const [toast,     setToast]     = useState("");
   const [showAddB,  setShowAddB]  = useState(false);
   const [showAddE,  setShowAddE]  = useState(false);
+  const [showAddBl, setShowAddBl] = useState(false);
   const [editId,    setEditId]    = useState(null);
   const [editAmt,   setEditAmt]   = useState("");
   const [nextId,    setNextId]    = useState(300);
-  const [bForm, setBForm] = useState({checkIn:"",checkOut:"",phone:"",platform:"Airbnb",amount:""});
-  const [eForm, setEForm] = useState({date:today(),category:"Ménage",description:"",amount:""});
-  const [currency,   setCurrency]   = useState("MAD");
-  const [rate,       setRate]       = useState(DEFAULT_RATE);
-  const [showRate,   setShowRate]   = useState(false);
-  const [recurring,  setRecurring]  = useState([]); // [{id,category,description,amount,months:[0..11]}]
-  const [showAddR,   setShowAddR]   = useState(false);
-  const [rForm,      setRForm]      = useState({category:"Ménage",description:"",amount:"",months:[]});
+  const [bForm, setBForm]   = useState({checkIn:"",checkOut:"",name:"",phone:"",platform:"Direct",amount:""});
+  const [eForm, setEForm]   = useState({date:today(),category:"Ménage",description:"",amount:""});
+  const [blForm, setBlForm] = useState({start:"",end:"",label:"Vacances perso"});
+  const [currency,  setCurrency]  = useState("MAD");
+  const [rate,      setRate]      = useState(DEFAULT_RATE);
+  const [showRate,  setShowRate]  = useState(false);
+  const [recurring, setRecurring] = useState([]);
+  const [showAddR,  setShowAddR]  = useState(false);
+  const [rForm,     setRForm]     = useState({category:"Ménage",description:"",amount:"",months:[]});
 
-  // ── Persistance ─────────────────────────────────────────────────────────────
+  // Mobile detection
+  const [isMobile, setIsMobile] = useState(typeof window!=="undefined" && window.innerWidth < 640);
+  useEffect(() => {
+    const h = () => setIsMobile(window.innerWidth < 640);
+    window.addEventListener("resize", h);
+    return () => window.removeEventListener("resize", h);
+  }, []);
+
+  // ── Persistance localStorage ─────────────────────────────────────────────────
   useEffect(() => {
     const saved = loadStorage();
     if (saved) {
@@ -184,10 +208,9 @@ export default function RiadDashboard() {
   }, [bookings, blocked, expenses, year, nextId, currency, rate, recurring]);
 
   // ── Cloud sync (Firestore) ───────────────────────────────────────────────────
-  const [cloudStatus, setCloudStatus] = useState(""); // "", "saving", "saved", "error"
+  const [cloudStatus, setCloudStatus] = useState("");
   const saveTimer = useRef(null);
 
-  // Listen to Firestore on mount — sync from cloud to local
   useEffect(() => {
     const unsub = onSnapshot(DOC_REF, (snap) => {
       if (snap.exists()) {
@@ -198,7 +221,6 @@ export default function RiadDashboard() {
         if (data.recurring) setRecurring(data.recurring);
         if (data.rate)      setRate(data.rate);
         if (data.currency)  setCurrency(data.currency);
-        // Also mirror to localStorage as fallback
         saveStorage(data);
         setCloudStatus("saved");
       }
@@ -206,7 +228,6 @@ export default function RiadDashboard() {
     return () => unsub();
   }, []);
 
-  // Debounced save to Firestore on data change
   useEffect(() => {
     if (saveTimer.current) clearTimeout(saveTimer.current);
     setCloudStatus("saving");
@@ -219,7 +240,7 @@ export default function RiadDashboard() {
 
   const showToast = (msg) => { setToast(msg); setTimeout(()=>setToast(""), 3500); };
 
-  // ── Import iCal ─────────────────────────────────────────────────────────────
+  // ── Import iCal — préserve les réservations manuelles ────────────────────────
   const handleIcs = (file) => {
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -227,21 +248,29 @@ export default function RiadDashboard() {
         const { bookings: newB, blocked: newBl } = parseIcs(e.target.result);
         if (!newB.length && !newBl.length) { showToast("❌ Aucun événement trouvé dans ce fichier."); return; }
         setBookings(prev => {
-          const existing = Object.fromEntries(prev.map(b=>[b.id,b.amount]));
-          return newB.map(b=>({...b, amount: existing[b.id] ?? 0}));
+          // Conserver les réservations manuelles (id commençant par "MAN-")
+          const manuals = prev.filter(b => b.id.startsWith("MAN-"));
+          // Préserver montants et noms des réservations Airbnb existantes
+          const existing = Object.fromEntries(prev.map(b=>[b.id,{amount:b.amount,name:b.name||""}]));
+          const airbnb   = newB.map(b=>({...b, amount:existing[b.id]?.amount??0, name:existing[b.id]?.name??""}));
+          return [...airbnb, ...manuals];
         });
-        setBlocked(newBl);
+        // Conserver les blocages personnels, remplacer uniquement ceux d'Airbnb
+        setBlocked(prev => {
+          const personal = prev.filter(b => b.type === "personal");
+          return [...newBl, ...personal];
+        });
         if (newB.length) {
           const years = newB.map(b=>new Date(b.checkIn).getFullYear());
           setYear(years.sort((a,b)=>years.filter(v=>v===b).length-years.filter(v=>v===a).length)[0]);
         }
-        showToast(`✅ ${newB.length} réservation${newB.length>1?"s":""} importée${newB.length>1?"s":""} · ${newBl.length} période${newBl.length>1?"s":""} bloquée${newBl.length>1?"s":""}`);
+        showToast(`✅ ${newB.length} réservation${newB.length>1?"s":""} Airbnb importée${newB.length>1?"s":""}`);
       } catch { showToast("❌ Erreur de lecture du fichier .ics"); }
     };
     reader.readAsText(file);
   };
 
-  // ── Import CSV Airbnb ────────────────────────────────────────────────────────
+  // ── Import CSV ───────────────────────────────────────────────────────────────
   const handleCsv = (file) => {
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -260,40 +289,33 @@ export default function RiadDashboard() {
     reader.readAsText(file, "utf-8");
   };
 
-  // ── Export Excel ─────────────────────────────────────────────────────────────
+  // ── Export Excel ──────────────────────────────────────────────────────────────
   const exportExcel = () => {
     const wb = XLSX.utils.book_new();
-
-    // Feuille réservations
-    const bRows = [["Code","Arrivée","Départ","Nuits","Plateforme","Tél.","Montant (€)"]];
+    const bRows = [["Code","Nom","Arrivée","Départ","Nuits","Plateforme","Tél.","Montant (MAD)","Montant (€)"]];
     [...yearBookings].sort((a,b)=>new Date(a.checkIn)-new Date(b.checkIn)).forEach(b =>
-      bRows.push([b.id, b.checkIn, b.checkOut, b.nights, b.platform, b.phone, b.amount])
+      bRows.push([b.id, b.name||"", b.checkIn, b.checkOut, b.nights, b.platform, b.phone, b.amount, +(b.amount/rate).toFixed(2)])
     );
-    bRows.push([]);
-    bRows.push(["TOTAL","","","",totalNights+" nuits","",totalRevenue]);
+    bRows.push([]); bRows.push(["TOTAL","","","",totalNights+" nuits","","",totalRevenue,+(totalRevenue/rate).toFixed(2)]);
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(bRows), "Réservations");
 
-    // Feuille dépenses
     const eRows = [["Date","Catégorie","Description","Montant (MAD)","Montant (€)"]];
     [...yearExpenses].sort((a,b)=>new Date(a.date)-new Date(b.date)).forEach(e =>
       eRows.push([e.date, e.category, e.description, e.amount, +(e.amount/rate).toFixed(2)])
     );
-    eRows.push([]);
-    eRows.push(["TOTAL","","",totalExp]);
+    eRows.push([]); eRows.push(["TOTAL","","",totalExp,+(totalExp/rate).toFixed(2)]);
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(eRows), "Dépenses");
 
-    // Feuille bilan
     const mRows = [["Mois","Revenus (MAD)","Dépenses (MAD)","Bénéfice (MAD)","Revenus (€)","Dépenses (€)","Bénéfice (€)"]];
     monthlyData.forEach(d => mRows.push([d.name, d.Revenus, d.Dépenses, d.Bénéfice, Math.round(d.Revenus/rate), Math.round(d.Dépenses/rate), Math.round(d.Bénéfice/rate)]));
-    mRows.push([]);
-    mRows.push(["TOTAL", totalRevenue, totalExp, netProfit, Math.round(totalRevenue/rate), Math.round(totalExp/rate), Math.round(netProfit/rate)]);
+    mRows.push([]); mRows.push(["TOTAL", totalRevenue, totalExp, netProfit, Math.round(totalRevenue/rate), Math.round(totalExp/rate), Math.round(netProfit/rate)]);
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(mRows), "Bilan mensuel");
 
     XLSX.writeFile(wb, `Riad_${year}.xlsx`);
     showToast("✅ Export Excel téléchargé");
   };
 
-  // ── Export / Import JSON ─────────────────────────────────────────────────────
+  // ── Export / Import JSON ──────────────────────────────────────────────────────
   const exportJSON = () => {
     const data = { bookings, blocked, expenses, rate, currency, recurring, exportedAt: new Date().toISOString(), version: 1 };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
@@ -322,7 +344,7 @@ export default function RiadDashboard() {
     reader.readAsText(file);
   };
 
-  // ── Computed ─────────────────────────────────────────────────────────────────
+  // ── Computed ──────────────────────────────────────────────────────────────────
   const yearBookings = useMemo(()=>bookings.filter(b=>new Date(b.checkIn).getFullYear()===year),[bookings,year]);
   const yearExpenses = useMemo(()=>expenses.filter(e=>new Date(e.date).getFullYear()===year),[expenses,year]);
   const totalRevenue = useMemo(()=>yearBookings.reduce((s,b)=>s+b.amount,0),[yearBookings]);
@@ -351,7 +373,7 @@ export default function RiadDashboard() {
     return r;
   },[]);
 
-  // ── CRUD ─────────────────────────────────────────────────────────────────────
+  // ── CRUD ──────────────────────────────────────────────────────────────────────
   const saveAmount = (id) => {
     setBookings(prev=>prev.map(b=>b.id===id?{...b,amount:parseFloat(editAmt)||0}:b));
     setEditId(null); setEditAmt(""); showToast("✅ Montant enregistré");
@@ -360,7 +382,7 @@ export default function RiadDashboard() {
     if (!bForm.checkIn||!bForm.checkOut) return;
     const nights=Math.round((new Date(bForm.checkOut)-new Date(bForm.checkIn))/86400000);
     setBookings(prev=>[...prev,{...bForm,id:"MAN-"+nextId,nights,amount:parseFloat(bForm.amount)||0}]);
-    setNextId(n=>n+1); setBForm({checkIn:"",checkOut:"",phone:"",platform:"Airbnb",amount:""}); setShowAddB(false);
+    setNextId(n=>n+1); setBForm({checkIn:"",checkOut:"",name:"",phone:"",platform:"Direct",amount:""}); setShowAddB(false);
     showToast("✅ Réservation ajoutée");
   };
   const addExpense = () => {
@@ -368,6 +390,12 @@ export default function RiadDashboard() {
     setExpenses(prev=>[...prev,{...eForm,id:nextId,amount:parseFloat(eForm.amount)}]);
     setNextId(n=>n+1); setEForm({date:today(),category:"Ménage",description:"",amount:""}); setShowAddE(false);
     showToast("✅ Dépense ajoutée");
+  };
+  const addBlocked = () => {
+    if (!blForm.start||!blForm.end) return;
+    setBlocked(prev=>[...prev,{...blForm,type:"personal"}]);
+    setBlForm({start:"",end:"",label:"Vacances perso"}); setShowAddBl(false);
+    showToast("✅ Période bloquée ajoutée");
   };
   const addRecurring = () => {
     if (!rForm.description||!rForm.amount) return;
@@ -380,7 +408,6 @@ export default function RiadDashboard() {
       const date = `${year}-${String(m+1).padStart(2,"0")}-01`;
       return { id: nextId+m, category:rec.category, description:rec.description+" 🔄", amount:rec.amount, date, recurringId:rec.id };
     });
-    const alreadyDone = newExp.filter(ne => expenses.some(e=>e.recurringId===rec.id && new Date(e.date).getMonth()===new Date(ne.date).getMonth() && new Date(e.date).getFullYear()===year));
     const toAdd = newExp.filter(ne => !expenses.some(e=>e.recurringId===rec.id && new Date(e.date).getMonth()===new Date(ne.date).getMonth() && new Date(e.date).getFullYear()===year));
     setExpenses(prev=>[...prev,...toAdd]);
     setNextId(n=>n+toAdd.length);
@@ -420,7 +447,7 @@ export default function RiadDashboard() {
             Tableau de bord locatif · {cloudStatus==="saving" ? "⏳ Sauvegarde..." : cloudStatus==="saved" ? "☁️ Synchronisé" : cloudStatus==="error" ? "⚠️ Hors ligne" : ""}
           </p>
         </div>
-        <div style={{display:"flex",gap:8,alignItems:"center"}}>
+        <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
           <select value={year} onChange={e=>setYear(+e.target.value)} style={{width:"auto"}}>
             {[2024,2025,2026,2027].map(y=><option key={y}>{y}</option>)}
           </select>
@@ -430,9 +457,9 @@ export default function RiadDashboard() {
               <button key={c} onClick={()=>setCurrency(c)} style={{border:"none",borderRadius:6,padding:"4px 12px",fontSize:13,fontWeight:currency===c?600:400,background:currency===c?"var(--color-background-primary)":"transparent",cursor:"pointer",color:currency===c?"var(--color-text-primary)":"var(--color-text-secondary)",boxShadow:currency===c?"0 1px 4px rgba(0,0,0,0.12)":"none",transition:"all .15s"}}>{c}</button>
             ))}
           </div>
-          <button onClick={()=>setShowRate(r=>!r)} title="Taux de conversion" style={{padding:"4px 10px",fontSize:13,background:"none",border:"0.5px solid var(--color-border-secondary)",borderRadius:6}}>1€ = {rate} MAD</button>
-          <button onClick={exportJSON} title="Sauvegarder toutes les données" style={{padding:"4px 10px",fontSize:13,background:"none",border:"0.5px solid var(--color-border-secondary)",borderRadius:6}}>💾 Backup</button>
-          <label title="Restaurer une sauvegarde" style={{padding:"4px 10px",fontSize:13,background:"none",border:"0.5px solid var(--color-border-secondary)",borderRadius:6,cursor:"pointer",display:"inline-flex",alignItems:"center"}}>
+          <button onClick={()=>setShowRate(r=>!r)} style={{padding:"4px 10px",fontSize:13,background:"none",border:"0.5px solid var(--color-border-secondary)",borderRadius:6}}>1€ = {rate} MAD</button>
+          <button onClick={exportJSON} style={{padding:"4px 10px",fontSize:13,background:"none",border:"0.5px solid var(--color-border-secondary)",borderRadius:6}}>💾 Backup</button>
+          <label style={{padding:"4px 10px",fontSize:13,background:"none",border:"0.5px solid var(--color-border-secondary)",borderRadius:6,cursor:"pointer",display:"inline-flex",alignItems:"center"}}>
             📂 Restore
             <input type="file" accept=".json" style={{display:"none"}} onChange={e=>{if(e.target.files[0]){importJSON(e.target.files[0]);e.target.value="";}}} />
           </label>
@@ -444,26 +471,14 @@ export default function RiadDashboard() {
           <span style={{fontWeight:500}}>1 EUR =</span>
           <input type="number" value={rate} onChange={e=>setRate(parseFloat(e.target.value)||DEFAULT_RATE)} step="0.01" min="1" style={{width:90,padding:"4px 8px",fontSize:13}} />
           <span style={{fontWeight:500}}>MAD</span>
-          <span style={{color:"var(--color-text-tertiary)"}}>· Source : Xe.com · mis à jour le 12 mars 2026</span>
+          <span style={{color:"var(--color-text-tertiary)"}}>· Xe.com · 12 mars 2026</span>
         </div>
       )}
 
       {/* Import zones */}
       <div style={{display:"flex",gap:12,marginBottom:"1.5rem",flexWrap:"wrap"}}>
-        <DropZone
-          label="📅 Calendrier Airbnb (.ics)"
-          sub="Glissez-déposez ou cliquez · réservations & blocages"
-          accept=".ics"
-          onFile={handleIcs}
-          color="var(--color-text-success)"
-        />
-        <DropZone
-          label="💶 Historique finances (.csv)"
-          sub="Export Airbnb → Finances → Transactions · montants auto"
-          accept=".csv"
-          onFile={handleCsv}
-          color="var(--color-text-info)"
-        />
+        <DropZone label="📅 Calendrier Airbnb (.ics)" sub="Glissez-déposez ou cliquez · réservations & blocages" accept=".ics" onFile={handleIcs} color={C_RESERVED} />
+        <DropZone label="💶 Historique finances (.csv)" sub="Export Airbnb → Finances → Transactions · montants auto" accept=".csv" onFile={handleCsv} color="var(--color-text-info)" />
       </div>
 
       {/* KPIs */}
@@ -501,13 +516,24 @@ export default function RiadDashboard() {
       {/* ── CALENDRIER ─────────────────────────────────────────────────────── */}
       {tab==="calendar" && (
         <div>
-          <div style={{display:"flex",gap:16,marginBottom:"1rem",flexWrap:"wrap"}}>
-            {[{bg:"#2e7d32",label:"Réservé"},{bg:"var(--color-background-danger)",label:"Bloqué"},{bg:"var(--color-background-info)",label:"Aujourd'hui"}].map(l=>(
+          {/* Légende */}
+          <div style={{display:"flex",gap:16,marginBottom:"1rem",flexWrap:"wrap",alignItems:"center"}}>
+            {[
+              {bg:C_AVAIL,    fg:"#2e7d32", label:"Disponible"},
+              {bg:C_RESERVED, fg:"#fff",    label:"Réservé (client)"},
+              {bg:C_BLOCKED,  fg:"#fff",    label:"Bloqué (perso)"},
+              {bg:C_TODAY_BG, fg:C_TODAY_FG,label:"Aujourd'hui"},
+            ].map(l=>(
               <div key={l.label} style={{display:"flex",alignItems:"center",gap:6,fontSize:12,color:"var(--color-text-secondary)"}}>
-                <div style={{width:14,height:14,borderRadius:3,background:l.bg,flexShrink:0}} />{l.label}
+                <div style={{width:20,height:20,borderRadius:4,background:l.bg,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                  <span style={{fontSize:9,fontWeight:700,color:l.fg}}>14</span>
+                </div>
+                {l.label}
               </div>
             ))}
           </div>
+
+          {/* Grilles mensuelles */}
           <div style={{...rc,marginBottom:"1.25rem"}}>
             <p style={{margin:"0 0 1.25rem",fontSize:14,fontWeight:500}}>4 prochains mois</p>
             {bookings.length===0
@@ -515,20 +541,57 @@ export default function RiadDashboard() {
               : <div style={{display:"flex",gap:24,flexWrap:"wrap"}}>{calMonths.map(({year:y,month:m})=><MonthCalendar key={`${y}-${m}`} year={y} month={m} bookings={bookings} blocked={blocked} />)}</div>
             }
           </div>
-          {blocked.length>0 && (
-            <div style={rc}>
-              <p style={{margin:"0 0 12px",fontSize:14,fontWeight:500}}>Périodes bloquées</p>
-              <div style={{display:"flex",flexDirection:"column",gap:8}}>
-                {blocked.map((b,i)=>{
-                  const n=Math.round((new Date(b.end)-new Date(b.start))/86400000);
-                  return <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 12px",background:"var(--color-background-danger)",borderRadius:"var(--border-radius-md)"}}>
-                    <span style={{fontSize:13,color:"var(--color-text-danger)"}}>{fmtDate(b.start)} → {fmtDate(b.end)}</span>
-                    <span style={{fontSize:12,color:"var(--color-text-danger)"}}>{n} jour{n>1?"s":""}</span>
-                  </div>;
-                })}
-              </div>
+
+          {/* Périodes bloquées perso */}
+          <div style={rc}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1rem",flexWrap:"wrap",gap:8}}>
+              <p style={{margin:0,fontSize:14,fontWeight:500}}>🔵 Périodes bloquées (vacances perso)</p>
+              <button onClick={()=>setShowAddBl(!showAddBl)}>+ Bloquer dates ↗</button>
             </div>
-          )}
+            {showAddBl && (
+              <div style={{background:"var(--color-background-secondary)",borderRadius:8,padding:"1rem",marginBottom:"1rem"}}>
+                <p style={{margin:"0 0 12px",fontSize:13,fontWeight:500}}>Nouvelle période bloquée</p>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0 16px"}}>
+                  <div><label style={{fontSize:13,color:"var(--color-text-secondary)"}}>Du</label><input type="date" style={inp} value={blForm.start} onChange={e=>setBlForm(f=>({...f,start:e.target.value}))} /></div>
+                  <div><label style={{fontSize:13,color:"var(--color-text-secondary)"}}>Au</label><input type="date" style={inp} value={blForm.end} onChange={e=>setBlForm(f=>({...f,end:e.target.value}))} /></div>
+                  <div style={{gridColumn:"1 / -1"}}><label style={{fontSize:13,color:"var(--color-text-secondary)"}}>Motif</label><input type="text" placeholder="Vacances perso" style={inp} value={blForm.label} onChange={e=>setBlForm(f=>({...f,label:e.target.value}))} /></div>
+                </div>
+                <div style={{display:"flex",gap:8}}>
+                  <button onClick={addBlocked}>Enregistrer</button>
+                  <button onClick={()=>setShowAddBl(false)} style={{color:"var(--color-text-secondary)"}}>Annuler</button>
+                </div>
+              </div>
+            )}
+            {blocked.filter(b=>b.type==="personal").length===0 && !showAddBl
+              ? <p style={{color:"var(--color-text-tertiary)",fontSize:13,margin:0}}>Aucune période personnelle bloquée.</p>
+              : <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                  {blocked.filter(b=>b.type==="personal").map((b,i)=>{
+                    const n=Math.round((new Date(b.end)-new Date(b.start))/86400000);
+                    return <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 12px",background:"#2980b922",borderRadius:"var(--border-radius-md)",flexWrap:"wrap",gap:8}}>
+                      <span style={{fontSize:13,color:C_BLOCKED,fontWeight:500}}>{b.label||"Bloqué"}</span>
+                      <span style={{fontSize:13,color:"var(--color-text-secondary)"}}>{fmtDate(b.start)} → {fmtDate(b.end)}</span>
+                      <span style={{fontSize:12,color:"var(--color-text-tertiary)"}}>{n} jour{n>1?"s":""}</span>
+                      <button onClick={()=>{setBlocked(prev=>prev.filter(x=>x!==b));showToast("Période supprimée");}} style={{fontSize:11,color:"var(--color-text-danger)",border:"none",background:"none",cursor:"pointer"}}>✕</button>
+                    </div>;
+                  })}
+                </div>
+            }
+            {/* Indispo Airbnb */}
+            {blocked.filter(b=>b.type==="airbnb").length>0 && (
+              <div style={{marginTop:"1rem",paddingTop:"1rem",borderTop:"0.5px solid var(--color-border-tertiary)"}}>
+                <p style={{margin:"0 0 8px",fontSize:12,color:"var(--color-text-tertiary)"}}>Indisponibilités Airbnb ({blocked.filter(b=>b.type==="airbnb").length})</p>
+                <div style={{display:"flex",flexDirection:"column",gap:4}}>
+                  {blocked.filter(b=>b.type==="airbnb").map((b,i)=>{
+                    const n=Math.round((new Date(b.end)-new Date(b.start))/86400000);
+                    return <div key={i} style={{display:"flex",justifyContent:"space-between",fontSize:12,color:"var(--color-text-tertiary)",padding:"4px 8px",background:"var(--color-background-secondary)",borderRadius:6}}>
+                      <span>{fmtDate(b.start)} → {fmtDate(b.end)}</span>
+                      <span>{n}j</span>
+                    </div>;
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
@@ -545,13 +608,14 @@ export default function RiadDashboard() {
 
           {showAddB && (
             <div style={{...rc,marginBottom:"1.25rem",background:"var(--color-background-secondary)",border:"none"}}>
-              <p style={{margin:"0 0 12px",fontSize:14,fontWeight:500}}>Réservation manuelle</p>
+              <p style={{margin:"0 0 12px",fontSize:14,fontWeight:500}}>Réservation directe (hors Airbnb)</p>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0 16px"}}>
                 <div><label style={{fontSize:13,color:"var(--color-text-secondary)"}}>Arrivée</label><input type="date" style={inp} value={bForm.checkIn} onChange={e=>setBForm(f=>({...f,checkIn:e.target.value}))} /></div>
                 <div><label style={{fontSize:13,color:"var(--color-text-secondary)"}}>Départ</label><input type="date" style={inp} value={bForm.checkOut} onChange={e=>setBForm(f=>({...f,checkOut:e.target.value}))} /></div>
+                <div><label style={{fontSize:13,color:"var(--color-text-secondary)"}}>Nom du client</label><input type="text" placeholder="Jean Dupont" style={inp} value={bForm.name} onChange={e=>setBForm(f=>({...f,name:e.target.value}))} /></div>
                 <div><label style={{fontSize:13,color:"var(--color-text-secondary)"}}>Tél. (4 derniers)</label><input type="text" placeholder="…1234" style={inp} value={bForm.phone} onChange={e=>setBForm(f=>({...f,phone:e.target.value}))} /></div>
                 <div><label style={{fontSize:13,color:"var(--color-text-secondary)"}}>Plateforme</label><select style={inp} value={bForm.platform} onChange={e=>setBForm(f=>({...f,platform:e.target.value}))}>{PLATFORMS.map(p=><option key={p}>{p}</option>)}</select></div>
-                <div style={{gridColumn:"1 / -1"}}><label style={{fontSize:13,color:"var(--color-text-secondary)"}}>Montant perçu (€)</label><input type="number" placeholder="980" style={inp} value={bForm.amount} onChange={e=>setBForm(f=>({...f,amount:e.target.value}))} /></div>
+                <div><label style={{fontSize:13,color:"var(--color-text-secondary)"}}>Montant (MAD)</label><input type="number" placeholder="1500" style={inp} value={bForm.amount} onChange={e=>setBForm(f=>({...f,amount:e.target.value}))} /></div>
               </div>
               <div style={{display:"flex",gap:8}}>
                 <button onClick={addBooking}>Enregistrer</button>
@@ -563,36 +627,68 @@ export default function RiadDashboard() {
           <div style={rc}>
             {yearBookings.length===0
               ? <p style={{color:"var(--color-text-tertiary)",fontSize:13,textAlign:"center",padding:"1.5rem 0"}}>Aucune réservation pour {year}.</p>
-              : <table style={{width:"100%",borderCollapse:"collapse",fontSize:13,tableLayout:"fixed"}}>
-                  <thead>
-                    <tr style={{borderBottom:"0.5px solid var(--color-border-tertiary)"}}>
-                      {["Arrivée","Départ","Code","Tél.","Nuits","Montant",""].map(h=><th key={h} style={{padding:"8px 6px",textAlign:"left",color:"var(--color-text-secondary)",fontWeight:400,fontSize:12,whiteSpace:"nowrap"}}>{h}</th>)}
-                    </tr>
-                  </thead>
-                  <tbody>
+              : isMobile
+                /* ── MOBILE : cartes ── */
+                ? <div style={{display:"flex",flexDirection:"column",gap:10}}>
                     {[...yearBookings].sort((a,b)=>new Date(a.checkIn)-new Date(b.checkIn)).map(b=>(
-                      <tr key={b.id} style={{borderBottom:"0.5px solid var(--color-border-tertiary)"}}>
-                        <td style={{padding:"10px 6px",whiteSpace:"nowrap"}}>{fmtDate(b.checkIn)}</td>
-                        <td style={{padding:"10px 6px",whiteSpace:"nowrap"}}>{fmtDate(b.checkOut)}</td>
-                        <td style={{padding:"10px 6px"}}><span style={{fontSize:11,fontFamily:"var(--font-mono)",color:"var(--color-text-info)",background:"var(--color-background-info)",padding:"2px 6px",borderRadius:"var(--border-radius-md)"}}>{b.id}</span></td>
-                        <td style={{padding:"10px 6px",color:"var(--color-text-secondary)"}}>{b.phone||"—"}</td>
-                        <td style={{padding:"10px 6px",color:"var(--color-text-secondary)"}}>{b.nights}n</td>
-                        <td style={{padding:"10px 6px"}}>
-                          {editId===b.id
-                            ? <span style={{display:"flex",gap:4}}><input type="number" value={editAmt} onChange={e=>setEditAmt(e.target.value)} onKeyDown={e=>e.key==="Enter"&&saveAmount(b.id)} style={{width:80,padding:"2px 6px",fontSize:12}} autoFocus /><button onClick={()=>saveAmount(b.id)} style={{fontSize:11,padding:"2px 8px"}}>OK</button></span>
-                            : <span onClick={()=>{setEditId(b.id);setEditAmt(b.amount||"");}} style={{cursor:"pointer",fontWeight:500,color:b.amount>0?"var(--color-text-success)":"var(--color-text-warning)"}}>
-                                {b.amount>0 ? fmtBoth(b.amount,rate) : <span style={{fontSize:12,textDecoration:"underline dotted"}}>saisir ↗</span>}
-                              </span>
-                          }
-                        </td>
-                        <td style={{padding:"10px 6px",textAlign:"right"}}><button onClick={()=>{setBookings(prev=>prev.filter(x=>x.id!==b.id));showToast("Réservation supprimée");}} style={{fontSize:11,color:"var(--color-text-danger)",border:"none",background:"none",cursor:"pointer",padding:"2px 6px"}}>✕</button></td>
-                      </tr>
+                      <div key={b.id} style={{background:"var(--color-background-secondary)",borderRadius:10,padding:"12px 14px",borderLeft:`3px solid ${C_RESERVED}`}}>
+                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}}>
+                          <div>
+                            {b.name && <p style={{margin:"0 0 2px",fontSize:14,fontWeight:500}}>{b.name}</p>}
+                            <span style={{fontSize:10,fontFamily:"var(--font-mono)",color:"var(--color-text-info)",background:"var(--color-background-info)",padding:"2px 6px",borderRadius:4}}>{b.id}</span>
+                            <span style={{marginLeft:6,fontSize:11,color:"var(--color-text-tertiary)"}}>{b.platform}</span>
+                          </div>
+                          <button onClick={()=>{setBookings(prev=>prev.filter(x=>x.id!==b.id));showToast("Réservation supprimée");}} style={{fontSize:12,color:"var(--color-text-danger)",border:"none",background:"none",cursor:"pointer",padding:"0 4px"}}>✕</button>
+                        </div>
+                        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"3px 8px",fontSize:12,color:"var(--color-text-secondary)",marginBottom:8}}>
+                          <span>📅 {fmtDate(b.checkIn)}</span>
+                          <span>🏠 {fmtDate(b.checkOut)}</span>
+                          <span>🌙 {b.nights} nuit{b.nights>1?"s":""}</span>
+                          {b.phone && <span>📱 {b.phone}</span>}
+                        </div>
+                        {editId===b.id
+                          ? <span style={{display:"flex",gap:6}}><input type="number" value={editAmt} onChange={e=>setEditAmt(e.target.value)} onKeyDown={e=>e.key==="Enter"&&saveAmount(b.id)} style={{flex:1,padding:"5px 8px",fontSize:13,borderRadius:6,border:"1px solid var(--color-border-secondary)"}} autoFocus /><button onClick={()=>saveAmount(b.id)} style={{padding:"5px 14px",fontSize:13}}>OK</button></span>
+                          : <div onClick={()=>{setEditId(b.id);setEditAmt(b.amount||"");}} style={{cursor:"pointer",fontWeight:600,fontSize:14,color:b.amount>0?C_RESERVED:"var(--color-text-warning)"}}>
+                              {b.amount>0 ? fmtBoth(b.amount,rate) : <span style={{fontSize:13,textDecoration:"underline dotted"}}>Saisir montant ↗</span>}
+                            </div>
+                        }
+                      </div>
                     ))}
-                  </tbody>
-                  <tfoot>
-                    <tr><td colSpan={5} style={{padding:"10px 6px",fontWeight:500}}>Total</td><td style={{padding:"10px 6px",fontWeight:500,color:"var(--color-text-success)"}}>{fmtBoth(totalRevenue,rate)}</td><td /></tr>
-                  </tfoot>
-                </table>
+                    <div style={{padding:"10px 0",fontWeight:500,fontSize:13,borderTop:"0.5px solid var(--color-border-tertiary)",color:"var(--color-text-success)"}}>
+                      Total : {fmtBoth(totalRevenue,rate)}
+                    </div>
+                  </div>
+                /* ── DESKTOP : tableau ── */
+                : <table style={{width:"100%",borderCollapse:"collapse",fontSize:13,tableLayout:"fixed"}}>
+                    <thead>
+                      <tr style={{borderBottom:"0.5px solid var(--color-border-tertiary)"}}>
+                        {["Arrivée","Départ","Code","Nom","Nuits","Montant",""].map(h=><th key={h} style={{padding:"8px 6px",textAlign:"left",color:"var(--color-text-secondary)",fontWeight:400,fontSize:12,whiteSpace:"nowrap"}}>{h}</th>)}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[...yearBookings].sort((a,b)=>new Date(a.checkIn)-new Date(b.checkIn)).map(b=>(
+                        <tr key={b.id} style={{borderBottom:"0.5px solid var(--color-border-tertiary)"}}>
+                          <td style={{padding:"10px 6px",whiteSpace:"nowrap"}}>{fmtDate(b.checkIn)}</td>
+                          <td style={{padding:"10px 6px",whiteSpace:"nowrap"}}>{fmtDate(b.checkOut)}</td>
+                          <td style={{padding:"6px"}}><span style={{fontSize:11,fontFamily:"var(--font-mono)",color:"var(--color-text-info)",background:"var(--color-background-info)",padding:"2px 6px",borderRadius:4}}>{b.id}</span></td>
+                          <td style={{padding:"10px 6px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{b.name||<span style={{color:"var(--color-text-tertiary)"}}>—</span>}</td>
+                          <td style={{padding:"10px 6px",color:"var(--color-text-secondary)"}}>{b.nights}n</td>
+                          <td style={{padding:"10px 6px"}}>
+                            {editId===b.id
+                              ? <span style={{display:"flex",gap:4}}><input type="number" value={editAmt} onChange={e=>setEditAmt(e.target.value)} onKeyDown={e=>e.key==="Enter"&&saveAmount(b.id)} style={{width:80,padding:"2px 6px",fontSize:12}} autoFocus /><button onClick={()=>saveAmount(b.id)} style={{fontSize:11,padding:"2px 8px"}}>OK</button></span>
+                              : <span onClick={()=>{setEditId(b.id);setEditAmt(b.amount||"");}} style={{cursor:"pointer",fontWeight:500,color:b.amount>0?"var(--color-text-success)":"var(--color-text-warning)"}}>
+                                  {b.amount>0 ? fmtBoth(b.amount,rate) : <span style={{fontSize:12,textDecoration:"underline dotted"}}>saisir ↗</span>}
+                                </span>
+                            }
+                          </td>
+                          <td style={{padding:"10px 6px",textAlign:"right"}}><button onClick={()=>{setBookings(prev=>prev.filter(x=>x.id!==b.id));showToast("Réservation supprimée");}} style={{fontSize:11,color:"var(--color-text-danger)",border:"none",background:"none",cursor:"pointer",padding:"2px 6px"}}>✕</button></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <tr><td colSpan={5} style={{padding:"10px 6px",fontWeight:500}}>Total</td><td style={{padding:"10px 6px",fontWeight:500,color:"var(--color-text-success)"}}>{fmtBoth(totalRevenue,rate)}</td><td /></tr>
+                    </tfoot>
+                  </table>
             }
           </div>
         </div>
@@ -609,9 +705,9 @@ export default function RiadDashboard() {
                 <XAxis dataKey="name" tick={{fontSize:12,fill:"var(--color-text-secondary)"}} axisLine={false} tickLine={false} />
                 <YAxis tick={{fontSize:11,fill:"var(--color-text-secondary)"}} axisLine={false} tickLine={false} tickFormatter={v=>v===0?"0":currency==="EUR"?`${Math.round(v/rate/1000)}k€`:`${Math.round(v/1000)}k`} />
                 <Tooltip content={<TT />} />
-                <Bar dataKey="Revenus"  fill="#2e7d32" radius={[3,3,0,0]} />
-                <Bar dataKey="Dépenses" fill="#E24B4A" radius={[3,3,0,0]} />
-                <Bar dataKey="Bénéfice" fill="#378ADD" radius={[3,3,0,0]} />
+                <Bar dataKey="Revenus"  fill={C_RESERVED} radius={[3,3,0,0]} />
+                <Bar dataKey="Dépenses" fill="#E24B4A"    radius={[3,3,0,0]} />
+                <Bar dataKey="Bénéfice" fill={C_BLOCKED}  radius={[3,3,0,0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -620,7 +716,7 @@ export default function RiadDashboard() {
             <div style={{display:"flex",flexDirection:"column",gap:8}}>
               {MONTHS.map((m,i)=>{
                 const n=yearBookings.filter(b=>new Date(b.checkIn).getMonth()===i).reduce((s,b)=>s+b.nights,0);
-                return <div key={m}><div style={{display:"flex",justifyContent:"space-between",fontSize:13,marginBottom:4}}><span>{m}</span><span style={{color:"var(--color-text-secondary)"}}>{n} nuit{n>1?"s":""}</span></div><div style={{background:"var(--color-background-secondary)",borderRadius:99,height:6,overflow:"hidden"}}><div style={{width:`${Math.round((n/31)*100)}%`,height:"100%",background:"#2e7d32",borderRadius:99}} /></div></div>;
+                return <div key={m}><div style={{display:"flex",justifyContent:"space-between",fontSize:13,marginBottom:4}}><span>{m}</span><span style={{color:"var(--color-text-secondary)"}}>{n} nuit{n>1?"s":""}</span></div><div style={{background:"var(--color-background-secondary)",borderRadius:99,height:6,overflow:"hidden"}}><div style={{width:`${Math.round((n/31)*100)}%`,height:"100%",background:C_RESERVED,borderRadius:99}} /></div></div>;
               })}
             </div>
           </div>
@@ -630,7 +726,7 @@ export default function RiadDashboard() {
       {/* ── DÉPENSES ───────────────────────────────────────────────────────── */}
       {tab==="expenses" && (
         <div>
-          {/* ── Récurrentes ── */}
+          {/* Récurrentes */}
           <div style={{...rc,marginBottom:"1.25rem",borderLeft:"3px solid #378ADD"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:recurring.length>0?"1rem":0,flexWrap:"wrap",gap:8}}>
               <p style={{margin:0,fontSize:14,fontWeight:500}}>🔄 Dépenses récurrentes</p>
@@ -687,7 +783,7 @@ export default function RiadDashboard() {
                 <div><label style={{fontSize:13,color:"var(--color-text-secondary)"}}>Date</label><input type="date" style={inp} value={eForm.date} onChange={e=>setEForm(f=>({...f,date:e.target.value}))} /></div>
                 <div><label style={{fontSize:13,color:"var(--color-text-secondary)"}}>Catégorie</label><select style={inp} value={eForm.category} onChange={e=>setEForm(f=>({...f,category:e.target.value}))}>{EXPENSE_CATS.map(c=><option key={c}>{c}</option>)}</select></div>
                 <div style={{gridColumn:"1 / -1"}}><label style={{fontSize:13,color:"var(--color-text-secondary)"}}>Description</label><input type="text" placeholder="Ex : Nettoyage fin de séjour" style={inp} value={eForm.description} onChange={e=>setEForm(f=>({...f,description:e.target.value}))} /></div>
-                <div style={{gridColumn:"1 / -1"}}><label style={{fontSize:13,color:"var(--color-text-secondary)"}}>Montant (€)</label><input type="number" placeholder="60" style={inp} value={eForm.amount} onChange={e=>setEForm(f=>({...f,amount:e.target.value}))} /></div>
+                <div style={{gridColumn:"1 / -1"}}><label style={{fontSize:13,color:"var(--color-text-secondary)"}}>Montant (MAD)</label><input type="number" placeholder="600" style={inp} value={eForm.amount} onChange={e=>setEForm(f=>({...f,amount:e.target.value}))} /></div>
               </div>
               <div style={{display:"flex",gap:8}}>
                 <button onClick={addExpense}>Enregistrer</button>
