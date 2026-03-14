@@ -533,12 +533,22 @@ export default function RiadDashboard() {
   const pastRevenue  = pastBookings.reduce((s,b)=>s+netAmount(b),0);
   const futureRevenue = futureBookings.reduce((s,b)=>s+netAmount(b),0);
 
+  // Compter les nuits d'une réservation dans un mois donné (gère le chevauchement)
+  const nightsInMonth = (b, monthIdx) => {
+    const y = year;
+    const monthStart = new Date(y, monthIdx, 1);
+    const monthEnd   = new Date(y, monthIdx+1, 1);
+    const start = new Date(Math.max(new Date(b.checkIn), monthStart));
+    const end   = new Date(Math.min(new Date(b.checkOut), monthEnd));
+    return Math.max(0, Math.round((end-start)/86400000));
+  };
+
   const monthlyData = useMemo(()=>MONTHS.map((m,i)=>({
     name:m,
     Revenus:  payingBookings.filter(b=>new Date(b.checkIn).getMonth()===i).reduce((s,b)=>s+netAmount(b),0),
     Dépenses: yearExpenses.filter(e=>new Date(e.date).getMonth()===i).reduce((s,e)=>s+e.amount,0),
-    NuitsPayantes: payingBookings.filter(b=>new Date(b.checkIn).getMonth()===i).reduce((s,b)=>s+b.nights,0),
-    NuitsPerso:    persoBookings.filter(b=>new Date(b.checkIn).getMonth()===i).reduce((s,b)=>s+b.nights,0),
+    NuitsPayantes: payingBookings.reduce((s,b)=>s+nightsInMonth(b,i),0),
+    NuitsPerso:    persoBookings.reduce((s,b)=>s+nightsInMonth(b,i),0),
   })).map(d=>({...d,Bénéfice:d.Revenus-d.Dépenses})),[payingBookings,persoBookings,yearExpenses,commission]);
 
   const expByCat = useMemo(()=>{
@@ -682,6 +692,10 @@ export default function RiadDashboard() {
   useEffect(() => {
     if (!("Notification" in window) || Notification.permission !== "granted") return;
     setNotifEnabled(true);
+    const lastNotifDate = localStorage.getItem("lastNotifDate");
+    const todayKey = new Date().toISOString().slice(0,10);
+    // Ne notifier qu'une seule fois par jour
+    if (lastNotifDate === todayKey) return;
     const checkNotifs = () => {
       const now = new Date(); now.setHours(0,0,0,0);
       bookings.filter(b => b.platform!=="Perso").forEach(b => {
@@ -695,11 +709,10 @@ export default function RiadDashboard() {
         if (daysOut === 0) new Notification("🔴 Départ aujourd'hui", {body: name+" · "+b.platform, icon:"/apple-touch-icon.png"});
         if (daysOut === 1) new Notification("🟠 Départ demain", {body: name+" · "+b.platform, icon:"/apple-touch-icon.png"});
       });
+      localStorage.setItem("lastNotifDate", todayKey);
     };
     checkNotifs();
-    const interval = setInterval(checkNotifs, 60 * 60 * 1000);
-    return () => clearInterval(interval);
-  }, [bookings]);
+  }, [bookings.length]); // Seulement quand le nombre de réservations change, pas les données
 
   // ── Prévisionnel ─────────────────────────────────────────────────────────────
   const forecast = useMemo(() => {
@@ -798,7 +811,9 @@ export default function RiadDashboard() {
             {!notifEnabled && "Notification" in window && (
               <button onClick={requestNotifPermission} style={{fontSize:11,padding:"3px 10px",borderRadius:6,border:"0.5px solid var(--color-border-secondary)",background:"none",cursor:"pointer",color:"var(--color-text-secondary)"}}>🔔 Activer notifications</button>
             )}
-            {notifEnabled && <span style={{fontSize:11,color:"#2e7d32"}}>🔔 Notifications ON</span>}
+            {notifEnabled && (
+              <button onClick={()=>{setNotifEnabled(false);showToast("🔕 Notifications désactivées");}} style={{fontSize:11,padding:"3px 10px",borderRadius:6,border:"0.5px solid #2e7d32",background:"none",cursor:"pointer",color:"#2e7d32"}}>🔔 Notifs ON · Désactiver</button>
+            )}
           </div>
           {alerts.map((b,i) => {
             const isArr = b.type === "arrival";
@@ -1217,8 +1232,8 @@ export default function RiadDashboard() {
             </div>
             <div style={{display:"flex",flexDirection:"column",gap:10}}>
               {MONTHS.map((m,i)=>{
-                const n = payingBookings.filter(b=>new Date(b.checkIn).getMonth()===i).reduce((s,b)=>s+b.nights,0);
-                const p = persoBookings.filter(b=>new Date(b.checkIn).getMonth()===i).reduce((s,b)=>s+b.nights,0);
+                const n = payingBookings.reduce((s,b)=>s+nightsInMonth(b,i),0);
+                const p = persoBookings.reduce((s,b)=>s+nightsInMonth(b,i),0);
                 const total = n + p;
                 return (
                   <div key={m}>
