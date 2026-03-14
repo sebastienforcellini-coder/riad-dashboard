@@ -746,12 +746,15 @@ export default function RiadDashboard() {
 
       {/* Header */}
       <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:"1.25rem",flexWrap:"wrap",gap:12}}>
-        <div>
-          <h1 style={{margin:0,fontSize:22,fontWeight:500}}>Kasbah Blanca Marrakech</h1>
-          <p style={{margin:"4px 0 0",fontSize:13,color:"var(--color-text-secondary)"}}>
-            Tableau de bord locatif · {cloudStatus==="saving" ? "⏳ Sauvegarde..." : cloudStatus==="saved" ? "☁️ Synchronisé" : cloudStatus==="error" ? "⚠️ Hors ligne" : ""}
-            {icsUrl && <span style={{marginLeft:8}}>{syncStatus==="syncing"?"🔄 Sync...":syncStatus==="ok"?`✅ Airbnb ${lastSync?new Date(lastSync).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"}):""}`:syncStatus==="error"&&!lastSync?"⚠️ Sync échouée":lastSync?`✅ Airbnb ${new Date(lastSync).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}`:""}</span>}
-          </p>
+        <div style={{display:"flex",alignItems:"center",gap:12}}>
+          <img src="/apple-touch-icon.png" alt="Kasbah Blanca" style={{width:48,height:48,borderRadius:12,objectFit:"cover",flexShrink:0,boxShadow:"0 2px 8px rgba(0,0,0,0.12)"}} />
+          <div>
+            <h1 style={{margin:0,fontSize:22,fontWeight:500}}>Kasbah Blanca Marrakech</h1>
+            <p style={{margin:"4px 0 0",fontSize:13,color:"var(--color-text-secondary)"}}>
+              Tableau de bord locatif · {cloudStatus==="saving" ? "⏳ Sauvegarde..." : cloudStatus==="saved" ? "☁️ Synchronisé" : cloudStatus==="error" ? "⚠️ Hors ligne" : ""}
+              {icsUrl && <span style={{marginLeft:8}}>{syncStatus==="syncing"?"🔄 Sync...":syncStatus==="ok"?`✅ Airbnb ${lastSync?new Date(lastSync).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"}):""}`:syncStatus==="error"&&!lastSync?"⚠️ Sync échouée":lastSync?`✅ Airbnb ${new Date(lastSync).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}`:""}</span>}
+            </p>
+          </div>
         </div>
         <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
           <select value={year} onChange={e=>setYear(+e.target.value)} style={{width:"auto"}}>
