@@ -73,7 +73,7 @@ function parseCsvAirbnb(text) {
 // CONSTANTS & UTILS
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const EXPENSE_CATS = ["Ménage","Frais Airbnb","Maintenance","Fournitures","Taxes/CFE","Internet","Eau/Électricité","Assurance","Autre"];
+const EXPENSE_CATS = ["Ménage","Gouvernante","Pisciniste","Frais Airbnb","Maintenance","Fournitures","Taxes/CFE","Internet","Eau/Électricité","Assurance","Autre"];
 const PLATFORMS    = ["Direct","Airbnb","Booking.com","Gens de confiance","Perso","Autre"];
 const MONTHS       = ["Jan","Fév","Mar","Avr","Mai","Jun","Jul","Aoû","Sep","Oct","Nov","Déc"];
 const STORAGE_KEY  = "riad_dashboard_v1";
