@@ -365,6 +365,11 @@ export default function RiadDashboard() {
   const occupancy    = Math.round((totalNights/365)*100);
   const avgNight     = totalNights ? Math.round(totalRevenue/totalNights) : 0;
   const pendingCount = yearBookings.filter(b=>b.amount===0 && b.platform!=="Perso").length;
+  const todayStr     = today();
+  const pastBookings = yearBookings.filter(b=>b.checkOut <= todayStr && b.platform!=="Perso");
+  const futureBookings = yearBookings.filter(b=>b.checkIn > todayStr && b.platform!=="Perso");
+  const pastRevenue  = pastBookings.reduce((s,b)=>s+netAmount(b),0);
+  const futureRevenue = futureBookings.reduce((s,b)=>s+netAmount(b),0);
 
   const monthlyData = useMemo(()=>MONTHS.map((m,i)=>({
     name:m,
@@ -525,6 +530,25 @@ export default function RiadDashboard() {
             <p style={{margin:0,fontSize:12,color:"var(--color-text-tertiary)"}}>{k.sub}</p>
           </div>
         ))}
+      </div>
+
+      {/* Stats échues / à venir */}
+      <div style={{display:"flex",gap:12,flexWrap:"wrap",marginBottom:"1.25rem"}}>
+        <div style={{...mc,borderLeft:`3px solid ${C_RESERVED}`,flex:"1 1 200px"}}>
+          <p style={{margin:0,fontSize:11,color:"var(--color-text-secondary)",textTransform:"uppercase",letterSpacing:"0.05em"}}>Réservations échues</p>
+          <p style={{margin:"6px 0 2px",fontSize:18,fontWeight:500,color:C_RESERVED}}>{fmtBoth(pastRevenue,rate)}</p>
+          <p style={{margin:0,fontSize:12,color:"var(--color-text-tertiary)"}}>{pastBookings.length} séjour{pastBookings.length>1?"s":""} terminé{pastBookings.length>1?"s":""}</p>
+        </div>
+        <div style={{...mc,borderLeft:`3px solid ${C_BLOCKED}`,flex:"1 1 200px"}}>
+          <p style={{margin:0,fontSize:11,color:"var(--color-text-secondary)",textTransform:"uppercase",letterSpacing:"0.05em"}}>Réservations à venir</p>
+          <p style={{margin:"6px 0 2px",fontSize:18,fontWeight:500,color:C_BLOCKED}}>{fmtBoth(futureRevenue,rate)}</p>
+          <p style={{margin:0,fontSize:12,color:"var(--color-text-tertiary)"}}>{futureBookings.length} séjour{futureBookings.length>1?"s":""} à venir</p>
+        </div>
+        <div style={{...mc,borderLeft:"3px solid #BA7517",flex:"1 1 200px"}}>
+          <p style={{margin:0,fontSize:11,color:"var(--color-text-secondary)",textTransform:"uppercase",letterSpacing:"0.05em"}}>CA total {year}</p>
+          <p style={{margin:"6px 0 2px",fontSize:18,fontWeight:500,color:"#BA7517"}}>{fmtBoth(totalRevenue,rate)}</p>
+          <p style={{margin:0,fontSize:12,color:"var(--color-text-tertiary)"}}>{Math.round((pastRevenue/totalRevenue)*100)||0}% encaissé · {Math.round((futureRevenue/totalRevenue)*100)||0}% à venir</p>
+        </div>
       </div>
 
       {/* Tabs */}
