@@ -222,11 +222,13 @@ export default function RiadDashboard() {
   // ── Cloud sync (Firestore) ───────────────────────────────────────────────────
   const [cloudStatus, setCloudStatus] = useState("");
   const saveTimer = useRef(null);
+  const isFromFirebase = useRef(false);
 
   useEffect(() => {
     const unsub = onSnapshot(DOC_REF, (snap) => {
       if (snap.exists()) {
         const data = snap.data();
+        isFromFirebase.current = true;
         if (data.bookings)  setBookings(data.bookings);
         if (data.blocked)   setBlocked(data.blocked);
         if (data.expenses)  setExpenses(data.expenses);
@@ -236,12 +238,16 @@ export default function RiadDashboard() {
         if (data.commission !== undefined) setCommission(data.commission);
         if (data.icsUrl)    setIcsUrl(data.icsUrl);
         if (data.lastSync)  setLastSync(data.lastSync);
+        saveStorage(data);
+        setCloudStatus("saved");
+        setTimeout(() => { isFromFirebase.current = false; }, 200);
       }
     }, () => setCloudStatus("error"));
     return () => unsub();
   }, []);
 
   useEffect(() => {
+    if (isFromFirebase.current) return;
     if (saveTimer.current) clearTimeout(saveTimer.current);
     setCloudStatus("saving");
     saveTimer.current = setTimeout(() => {
