@@ -255,11 +255,24 @@ export default function RiadDashboard() {
   const syncIcs = async (url = icsUrl, silent = false) => {
     if (!url) return;
     setSyncStatus("syncing");
+    const proxies = [
+      `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+      `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
+      `https://thingproxy.freeboard.io/fetch/${url}`,
+    ];
+    let text = null;
+    for (const proxyUrl of proxies) {
+      try {
+        const res = await fetch(proxyUrl, {signal: AbortSignal.timeout(8000)});
+        if (res.ok) { text = await res.text(); if (text.includes("BEGIN:VCALENDAR")) break; text = null; }
+      } catch {}
+    }
+    if (!text) {
+      setSyncStatus("error");
+      if (!silent) showToast("❌ Sync échouée — tous les proxies ont échoué");
+      return;
+    }
     try {
-      const proxyUrl = `https://corsproxy.io/?url=${encodeURIComponent(url)}`;
-      const res = await fetch(proxyUrl);
-      if (!res.ok) throw new Error("HTTP " + res.status);
-      const text = await res.text();
       const { bookings: newB, blocked: newBl } = parseIcs(text);
       if (!newB.length && !newBl.length) throw new Error("Vide");
       setBookings(prev => {
@@ -280,7 +293,7 @@ export default function RiadDashboard() {
       if (!silent) showToast(`✅ Calendrier Airbnb synchronisé · ${newB.length} réservations`);
     } catch(e) {
       setSyncStatus("error");
-      if (!silent) showToast("❌ Erreur de sync — vérifiez l'URL Airbnb");
+      if (!silent) showToast("❌ Erreur de lecture du calendrier");
     }
   };
 
