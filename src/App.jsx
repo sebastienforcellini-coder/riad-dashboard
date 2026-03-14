@@ -170,6 +170,7 @@ export default function RiadDashboard() {
   const [showAddE,  setShowAddE]  = useState(false);
   const [editExpense, setEditExpense] = useState(null);
   const [showAddBl, setShowAddBl] = useState(false);
+  const [statsPanel, setStatsPanel] = useState(null); // "past"|"future"|"all"
   const [editId,    setEditId]    = useState(null);
   const [editAmt,   setEditAmt]   = useState("");
   const [editBooking, setEditBooking] = useState(null); // full booking edit
@@ -806,22 +807,65 @@ export default function RiadDashboard() {
 
       {/* Stats échues / à venir */}
       <div style={{display:"flex",gap:12,flexWrap:"wrap",marginBottom:"1.25rem"}}>
-        <div style={{...mc,borderLeft:`3px solid ${C_RESERVED}`,flex:"1 1 200px"}}>
-          <p style={{margin:0,fontSize:11,color:"var(--color-text-secondary)",textTransform:"uppercase",letterSpacing:"0.05em"}}>Réservations échues</p>
-          <p style={{margin:"6px 0 2px",fontSize:18,fontWeight:500,color:C_RESERVED}}>{fmtBoth(pastRevenue,rate)}</p>
-          <p style={{margin:0,fontSize:12,color:"var(--color-text-tertiary)"}}>{pastBookings.length} séjour{pastBookings.length>1?"s":""} terminé{pastBookings.length>1?"s":""}</p>
-        </div>
-        <div style={{...mc,borderLeft:`3px solid ${C_BLOCKED}`,flex:"1 1 200px"}}>
-          <p style={{margin:0,fontSize:11,color:"var(--color-text-secondary)",textTransform:"uppercase",letterSpacing:"0.05em"}}>Réservations à venir</p>
-          <p style={{margin:"6px 0 2px",fontSize:18,fontWeight:500,color:C_BLOCKED}}>{fmtBoth(futureRevenue,rate)}</p>
-          <p style={{margin:0,fontSize:12,color:"var(--color-text-tertiary)"}}>{futureBookings.length} séjour{futureBookings.length>1?"s":""} à venir</p>
-        </div>
-        <div style={{...mc,borderLeft:"3px solid #BA7517",flex:"1 1 200px"}}>
-          <p style={{margin:0,fontSize:11,color:"var(--color-text-secondary)",textTransform:"uppercase",letterSpacing:"0.05em"}}>CA total {year}</p>
-          <p style={{margin:"6px 0 2px",fontSize:18,fontWeight:500,color:"#BA7517"}}>{fmtBoth(totalRevenue,rate)}</p>
-          <p style={{margin:0,fontSize:12,color:"var(--color-text-tertiary)"}}>{Math.round((pastRevenue/totalRevenue)*100)||0}% encaissé · {Math.round((futureRevenue/totalRevenue)*100)||0}% à venir</p>
-        </div>
+        {[
+          {key:"past",  label:"Réservations échues",  value:fmtBoth(pastRevenue,rate),   sub:pastBookings.length+" séjour"+(pastBookings.length>1?"s":"")+" terminé"+(pastBookings.length>1?"s":""),   color:C_RESERVED},
+          {key:"future",label:"Réservations à venir", value:fmtBoth(futureRevenue,rate),  sub:futureBookings.length+" séjour"+(futureBookings.length>1?"s":"")+" à venir",                              color:C_BLOCKED},
+          {key:"all",   label:`CA total ${year}`,      value:fmtBoth(totalRevenue,rate),  sub:(Math.round((pastRevenue/totalRevenue)*100)||0)+"% encaissé · "+(Math.round((futureRevenue/totalRevenue)*100)||0)+"% à venir", color:"#BA7517"},
+        ].map(card=>(
+          <div key={card.key} onClick={()=>setStatsPanel(statsPanel===card.key?null:card.key)}
+            style={{...mc,borderLeft:`3px solid ${card.color}`,flex:"1 1 200px",cursor:"pointer",transition:"box-shadow 0.15s",boxShadow:statsPanel===card.key?"0 0 0 2px "+card.color+"44":"none"}}>
+            <p style={{margin:0,fontSize:11,color:"var(--color-text-secondary)",textTransform:"uppercase",letterSpacing:"0.05em"}}>{card.label} {statsPanel===card.key?"▲":"▼"}</p>
+            <p style={{margin:"6px 0 2px",fontSize:18,fontWeight:500,color:card.color}}>{card.value}</p>
+            <p style={{margin:0,fontSize:12,color:"var(--color-text-tertiary)"}}>{card.sub}</p>
+          </div>
+        ))}
       </div>
+
+      {/* Panel détail réservations */}
+      {statsPanel && (() => {
+        const list = statsPanel==="past" ? pastBookings : statsPanel==="future" ? futureBookings : payingBookings;
+        const title = statsPanel==="past" ? "Réservations échues" : statsPanel==="future" ? "Réservations à venir" : `CA total ${year}`;
+        const color = statsPanel==="past" ? C_RESERVED : statsPanel==="future" ? C_BLOCKED : "#BA7517";
+        return (
+          <div style={{...rc,marginBottom:"1.25rem",borderLeft:`3px solid ${color}`}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1rem"}}>
+              <p style={{margin:0,fontSize:14,fontWeight:500,color}}>{title}</p>
+              <button onClick={()=>setStatsPanel(null)} style={{fontSize:12,background:"none",border:"none",cursor:"pointer",color:"var(--color-text-secondary)"}}>✕ Fermer</button>
+            </div>
+            {list.length===0
+              ? <p style={{color:"var(--color-text-tertiary)",fontSize:13,margin:0}}>Aucune réservation.</p>
+              : <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
+                  <thead>
+                    <tr style={{borderBottom:"0.5px solid var(--color-border-tertiary)"}}>
+                      {["Paiement","Client","Arrivée","Départ","Nuits","Plateforme","Total net"].map(h=>(
+                        <th key={h} style={{padding:"6px 8px",textAlign:"left",color:"var(--color-text-secondary)",fontWeight:400,fontSize:12,whiteSpace:"nowrap"}}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[...list].sort((a,b)=>new Date(a.checkIn)-new Date(b.checkIn)).map(b=>(
+                      <tr key={b.id} style={{borderBottom:"0.5px solid var(--color-border-tertiary)"}}>
+                        <td style={{padding:"8px"}}><button onClick={()=>togglePaid(b.id)} style={{border:"none",background:"none",cursor:"pointer",fontSize:14}}>{b.paid?"✅":"⏳"}</button></td>
+                        <td style={{padding:"8px",fontWeight:500}}>{b.name||<span style={{color:"var(--color-text-tertiary)"}}>—</span>}</td>
+                        <td style={{padding:"8px",whiteSpace:"nowrap"}}>{fmtDate(b.checkIn)}</td>
+                        <td style={{padding:"8px",whiteSpace:"nowrap"}}>{fmtDate(b.checkOut)}</td>
+                        <td style={{padding:"8px",color:"var(--color-text-secondary)"}}>{b.nights}n</td>
+                        <td style={{padding:"8px"}}><span style={{fontSize:11,padding:"2px 6px",borderRadius:99,background:"var(--color-background-secondary)"}}>{b.platform}</span></td>
+                        <td style={{padding:"8px",fontWeight:500,color:b.paid?"#2e7d32":"var(--color-text-warning)"}}>{b.amount>0?fmtBoth(netAmount(b),rate):<span style={{fontSize:12}}>À saisir</span>}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr>
+                      <td colSpan={6} style={{padding:"8px",fontWeight:500,fontSize:13}}>Total · {list.filter(b=>b.paid).length}/{list.length} payé{list.filter(b=>b.paid).length>1?"s":""}</td>
+                      <td style={{padding:"8px",fontWeight:600,color}}>{fmtBoth(list.reduce((s,b)=>s+netAmount(b),0),rate)}</td>
+                    </tr>
+                  </tfoot>
+                </table>
+            }
+          </div>
+        );
+      })()}
 
       {/* Tabs */}
       <div style={{borderBottom:"0.5px solid var(--color-border-tertiary)",marginBottom:"1.5rem",overflowX:"auto"}}>
