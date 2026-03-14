@@ -168,6 +168,7 @@ export default function RiadDashboard() {
   const [toast,     setToast]     = useState("");
   const [showAddB,  setShowAddB]  = useState(false);
   const [showAddE,  setShowAddE]  = useState(false);
+  const [editExpense, setEditExpense] = useState(null);
   const [showAddBl, setShowAddBl] = useState(false);
   const [editId,    setEditId]    = useState(null);
   const [editAmt,   setEditAmt]   = useState("");
@@ -413,6 +414,12 @@ export default function RiadDashboard() {
     setExpenses(prev=>[...prev,{...eForm,id:nextId,amount:parseFloat(eForm.amount)}]);
     setNextId(n=>n+1); setEForm({date:today(),category:"Ménage",description:"",amount:""}); setShowAddE(false);
     showToast("✅ Dépense ajoutée");
+  };
+  const saveEditExpense = () => {
+    if (!editExpense) return;
+    setExpenses(prev=>prev.map(e=>e.id===editExpense.id?{...editExpense,amount:parseFloat(editExpense.amount)||0}:e));
+    setEditExpense(null);
+    showToast("✅ Dépense mise à jour");
   };
   const addBlocked = () => {
     if (!blForm.start||!blForm.end) return;
@@ -919,6 +926,24 @@ export default function RiadDashboard() {
           {yearExpenses.length===0
             ? <div style={{...rc,textAlign:"center",padding:"2.5rem"}}><p style={{color:"var(--color-text-tertiary)",fontSize:14,margin:0}}>Aucune dépense pour {year}.</p></div>
             : <div style={rc}>
+                {/* Modal édition dépense */}
+                {editExpense && (
+                  <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.4)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:"1rem"}}>
+                    <div style={{background:"var(--color-background-primary)",borderRadius:12,padding:"1.5rem",width:"100%",maxWidth:440,boxShadow:"0 8px 32px rgba(0,0,0,0.2)"}}>
+                      <p style={{margin:"0 0 16px",fontSize:15,fontWeight:500}}>✏️ Modifier la dépense</p>
+                      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0 16px"}}>
+                        <div><label style={{fontSize:12,color:"var(--color-text-secondary)"}}>Date</label><input type="date" style={inp} value={editExpense.date} onChange={e=>setEditExpense(x=>({...x,date:e.target.value}))} /></div>
+                        <div><label style={{fontSize:12,color:"var(--color-text-secondary)"}}>Catégorie</label><select style={inp} value={editExpense.category} onChange={e=>setEditExpense(x=>({...x,category:e.target.value}))}>{EXPENSE_CATS.map(c=><option key={c}>{c}</option>)}</select></div>
+                        <div style={{gridColumn:"1 / -1"}}><label style={{fontSize:12,color:"var(--color-text-secondary)"}}>Description</label><input type="text" style={inp} value={editExpense.description} onChange={e=>setEditExpense(x=>({...x,description:e.target.value}))} /></div>
+                        <div style={{gridColumn:"1 / -1"}}><label style={{fontSize:12,color:"var(--color-text-secondary)"}}>Montant (MAD)</label><input type="number" style={inp} value={editExpense.amount} onChange={e=>setEditExpense(x=>({...x,amount:e.target.value}))} /></div>
+                      </div>
+                      <div style={{display:"flex",gap:8,marginTop:4}}>
+                        <button onClick={saveEditExpense} style={{flex:1}}>Enregistrer</button>
+                        <button onClick={()=>setEditExpense(null)} style={{color:"var(--color-text-secondary)"}}>Annuler</button>
+                      </div>
+                    </div>
+                  </div>
+                )}
                 <table style={{width:"100%",borderCollapse:"collapse",fontSize:13,tableLayout:"fixed"}}>
                   <thead><tr style={{borderBottom:"0.5px solid var(--color-border-tertiary)"}}>{["Date","Catégorie","Description","Montant",""].map(h=><th key={h} style={{padding:"8px 6px",textAlign:"left",color:"var(--color-text-secondary)",fontWeight:400,fontSize:12}}>{h}</th>)}</tr></thead>
                   <tbody>
@@ -928,7 +953,10 @@ export default function RiadDashboard() {
                         <td style={{padding:"10px 6px"}}><span style={{fontSize:11,padding:"2px 8px",borderRadius:99,background:"var(--color-background-warning)",color:"var(--color-text-warning)",fontWeight:500}}>{e.category}</span></td>
                         <td style={{padding:"10px 6px",overflow:"hidden",textOverflow:"ellipsis",color:"var(--color-text-secondary)"}}>{e.description}</td>
                         <td style={{padding:"10px 6px",fontWeight:500,color:"var(--color-text-danger)"}}>{fmtBoth(e.amount,rate)}</td>
-                        <td style={{padding:"10px 6px",textAlign:"right"}}><button onClick={()=>{setExpenses(prev=>prev.filter(x=>x.id!==e.id));showToast("Dépense supprimée");}} style={{fontSize:11,color:"var(--color-text-danger)",border:"none",background:"none",cursor:"pointer",padding:"2px 6px"}}>✕</button></td>
+                        <td style={{padding:"10px 6px",textAlign:"right"}}>
+                          <button onClick={()=>setEditExpense({...e})} style={{fontSize:11,color:"var(--color-text-info)",border:"none",background:"none",cursor:"pointer",padding:"2px 6px"}}>✏️</button>
+                          <button onClick={()=>{setExpenses(prev=>prev.filter(x=>x.id!==e.id));showToast("Dépense supprimée");}} style={{fontSize:11,color:"var(--color-text-danger)",border:"none",background:"none",cursor:"pointer",padding:"2px 6px"}}>✕</button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
