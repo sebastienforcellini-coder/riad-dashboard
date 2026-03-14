@@ -174,7 +174,7 @@ export default function RiadDashboard() {
   const [editAmt,   setEditAmt]   = useState("");
   const [editBooking, setEditBooking] = useState(null); // full booking edit
   const [nextId,    setNextId]    = useState(300);
-  const [bForm, setBForm]   = useState({checkIn:"",checkOut:"",name:"",phone:"",platform:"Direct",amount:"",guests:""});
+  const [bForm, setBForm]   = useState({checkIn:"",checkOut:"",name:"",phone:"",platform:"Direct",amount:"",guests:"",paid:false});
   const [eForm, setEForm]   = useState({date:today(),category:"Ménage",description:"",amount:""});
   const [blForm, setBlForm] = useState({start:"",end:"",label:"Vacances perso"});
   const [currency,  setCurrency]  = useState("MAD");
@@ -184,6 +184,10 @@ export default function RiadDashboard() {
   const [recurring, setRecurring] = useState([]);
   const [showAddR,  setShowAddR]  = useState(false);
   const [rForm,     setRForm]     = useState({category:"Ménage",description:"",amount:"",months:[]});
+  const [icsUrl,    setIcsUrl]    = useState("");
+  const [showIcsUrl,setShowIcsUrl]= useState(false);
+  const [syncStatus,setSyncStatus]= useState(""); // "", "syncing", "ok", "error"
+  const [lastSync,  setLastSync]  = useState(null);
 
   // Mobile detection
   const [isMobile, setIsMobile] = useState(typeof window!=="undefined" && window.innerWidth < 640);
@@ -206,12 +210,14 @@ export default function RiadDashboard() {
       if (saved.rate)        setRate(saved.rate);
       if (saved.commission !== undefined) setCommission(saved.commission);
       if (saved.recurring)   setRecurring(saved.recurring);
+      if (saved.icsUrl)      setIcsUrl(saved.icsUrl);
+      if (saved.lastSync)    setLastSync(saved.lastSync);
     }
   }, []);
 
   useEffect(() => {
-    saveStorage({ bookings, blocked, expenses, year, nextId, currency, rate, commission, recurring });
-  }, [bookings, blocked, expenses, year, nextId, currency, rate, commission, recurring]);
+    saveStorage({ bookings, blocked, expenses, year, nextId, currency, rate, commission, recurring, icsUrl, lastSync });
+  }, [bookings, blocked, expenses, year, nextId, currency, rate, commission, recurring, icsUrl, lastSync]);
 
   // ── Cloud sync (Firestore) ───────────────────────────────────────────────────
   const [cloudStatus, setCloudStatus] = useState("");
@@ -228,7 +234,8 @@ export default function RiadDashboard() {
         if (data.rate)      setRate(data.rate);
         if (data.currency)  setCurrency(data.currency);
         if (data.commission !== undefined) setCommission(data.commission);
-        setCloudStatus("saved");
+        if (data.icsUrl)    setIcsUrl(data.icsUrl);
+        if (data.lastSync)  setLastSync(data.lastSync);
       }
     }, () => setCloudStatus("error"));
     return () => unsub();
@@ -238,13 +245,52 @@ export default function RiadDashboard() {
     if (saveTimer.current) clearTimeout(saveTimer.current);
     setCloudStatus("saving");
     saveTimer.current = setTimeout(() => {
-      saveCloud({ bookings, blocked, expenses, year, nextId, currency, rate, commission, recurring })
+      saveCloud({ bookings, blocked, expenses, year, nextId, currency, rate, commission, recurring, icsUrl, lastSync })
         .then(() => setCloudStatus("saved"))
         .catch(() => setCloudStatus("error"));
     }, 1500);
-  }, [bookings, blocked, expenses, year, nextId, currency, rate, commission, recurring]);
+  }, [bookings, blocked, expenses, year, nextId, currency, rate, commission, recurring, icsUrl, lastSync]);
 
-  const showToast = (msg) => { setToast(msg); setTimeout(()=>setToast(""), 3500); };
+  // ── Sync automatique .ics ────────────────────────────────────────────────────
+  const syncIcs = async (url = icsUrl, silent = false) => {
+    if (!url) return;
+    setSyncStatus("syncing");
+    try {
+      const proxyUrl = `https://corsproxy.io/?url=${encodeURIComponent(url)}`;
+      const res = await fetch(proxyUrl);
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const text = await res.text();
+      const { bookings: newB, blocked: newBl } = parseIcs(text);
+      if (!newB.length && !newBl.length) throw new Error("Vide");
+      setBookings(prev => {
+        const manuals  = prev.filter(b => b.id.startsWith("MAN-"));
+        const existing = Object.fromEntries(prev.map(b=>[b.id,{amount:b.amount,name:b.name||"",guests:b.guests||""}]));
+        const airbnb   = newB.map(b=>({...b, amount:existing[b.id]?.amount??0, name:existing[b.id]?.name??"", guests:existing[b.id]?.guests??""}));
+        return [...airbnb, ...manuals];
+      });
+      setBlocked(prev => {
+        const personal   = prev.filter(b => b.type === "personal");
+        const allManuals = bookings.filter(b => b.id.startsWith("MAN-"));
+        const filtered   = newBl.filter(bl => !allManuals.some(mb => mb.checkIn < bl.end && mb.checkOut > bl.start));
+        return [...filtered, ...personal];
+      });
+      const now = new Date().toISOString();
+      setLastSync(now);
+      setSyncStatus("ok");
+      if (!silent) showToast(`✅ Calendrier Airbnb synchronisé · ${newB.length} réservations`);
+    } catch(e) {
+      setSyncStatus("error");
+      if (!silent) showToast("❌ Erreur de sync — vérifiez l'URL Airbnb");
+    }
+  };
+
+  // Auto-sync toutes les 30 minutes si URL configurée
+  useEffect(() => {
+    if (!icsUrl) return;
+    syncIcs(icsUrl, true); // sync au chargement
+    const interval = setInterval(() => syncIcs(icsUrl, true), 30 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [icsUrl]);
 
   // ── Import iCal — préserve les réservations manuelles ────────────────────────
   const handleIcs = (file) => {
@@ -520,9 +566,72 @@ export default function RiadDashboard() {
     if (toAdd.length===0) showToast("⚠️ Ces mois sont déjà générés");
     else showToast("✅ " + toAdd.length + " dépense" + (toAdd.length>1?"s":"") + " générée" + (toAdd.length>1?"s":"") + " pour " + year);
   };
+  const togglePaid = (id) => {
+    setBookings(prev=>prev.map(b=>b.id===id?{...b,paid:!b.paid}:b));
+    showToast("✅ Statut paiement mis à jour");
+  };
+
   const toggleMonth = (m) => setRForm(f=>({...f,months:f.months.includes(m)?f.months.filter(x=>x!==m):[...f.months,m].sort((a,b)=>a-b)}));
 
-  // ── Styles ────────────────────────────────────────────────────────────────────
+  const printRecap = (b) => {
+    const total  = totalStay(b);
+    const netTot = b.platform==="Airbnb" ? total*(1-commission) : total;
+    const commAmt= b.platform==="Airbnb" ? total*commission : 0;
+    const rows = [
+      ["Client", b.name||"—"],
+      ["Code", b.id],
+      ["Plateforme", b.platform],
+      ["Arrivée", new Date(b.checkIn).toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long",year:"numeric"})],
+      ["Départ",  new Date(b.checkOut).toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long",year:"numeric"})],
+      ["Durée", b.nights+" nuit"+(b.nights>1?"s":"")],
+      ...(b.guests?[["Occupants", b.guests+" personne"+(b.guests>1?"s":"")]]:[] ),
+      ["Tarif / nuit (brut)", b.amount.toLocaleString("fr-MA")+" MAD"],
+      ...(b.platform==="Airbnb"?[["Commission (-"+Math.round(commission*100)+"%)", "-"+Math.round(commAmt).toLocaleString("fr-MA")+" MAD"]]:[] ),
+    ].map(([l,v])=>"<tr><td>"+l+"</td><td>"+v+"</td></tr>").join("");
+    const html = "<!DOCTYPE html><html><head><meta charset='UTF-8'><title>Recap</title>"
+      +"<style>body{font-family:Georgia,serif;max-width:520px;margin:40px auto;padding:0 20px}"
+      +"h1{font-size:22px;margin:0 0 4px}.sub{color:#888;font-size:13px;margin:0 0 28px}"
+      +"table{width:100%;border-collapse:collapse;margin:20px 0}"
+      +"td{padding:10px 0;border-bottom:1px solid #eee;font-size:14px}td:last-child{text-align:right;font-weight:500}"
+      +".total td{border-top:2px solid #1a1a1a;font-weight:700;border-bottom:none}"
+      +".badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600}"
+      +".paid{background:#e8f5e9;color:#2e7d32}.unpaid{background:#fff3cd;color:#856404}"
+      +".footer{margin-top:40px;font-size:11px;color:#aaa;text-align:center}"
+      +"@media print{body{margin:20px}}</style></head><body>"
+      +"<div style='font-size:28px'>🏡</div>"
+      +"<h1>Kasbah Blanca Marrakech</h1>"
+      +"<p class='sub'>Récapitulatif de réservation</p>"
+      +"<table>"+rows
+      +"<tr class='total'><td>Total séjour</td><td>"+Math.round(netTot).toLocaleString("fr-MA")+" MAD · "+Math.round(netTot/rate).toLocaleString("fr-FR")+" €</td></tr>"
+      +"</table>"
+      +"<p>Paiement : <span class='badge "+(b.paid?"paid":"unpaid")+"'>"+(b.paid?"✅ Payé":"⏳ En attente")+"</span></p>"
+      +"<div class='footer'>Kasbah Blanca · "+new Date().toLocaleDateString("fr-FR")+"</div>"
+      +"<scr"+"ipt>window.onload=function(){window.print()}</scr"+"ipt>"
+      +"</body></html>";
+    const w = window.open("","_blank","width=600,height=700");
+    w.document.write(html);
+    w.document.close();
+  };
+
+  // ── Alertes arrivées ─────────────────────────────────────────────────────────
+  const alerts = useMemo(() => {
+    const now = new Date(); now.setHours(0,0,0,0);
+    return bookings.filter(b => b.platform!=="Perso").map(b => {
+      const ci = new Date(b.checkIn); ci.setHours(0,0,0,0);
+      const diff = Math.round((ci-now)/86400000);
+      return {...b, daysUntil: diff};
+    }).filter(b => b.daysUntil >= 0 && b.daysUntil <= 7)
+      .sort((a,b) => a.daysUntil - b.daysUntil);
+  }, [bookings]);
+
+  // ── Prévisionnel ─────────────────────────────────────────────────────────────
+  const forecast = useMemo(() => {
+    const monthsLeft = 12 - new Date().getMonth();
+    const avgMonthly = totalRevenue > 0 ? totalRevenue / Math.max(new Date().getMonth()+1, 1) : 0;
+    const projectedTotal = pastRevenue + futureRevenue + (avgMonthly * Math.max(0, monthsLeft - futureBookings.length));
+    const avgNightRate = totalNights > 0 ? totalRevenue / totalNights : 0;
+    return { projectedTotal, avgMonthly, avgNightRate };
+  }, [totalRevenue, pastRevenue, futureRevenue, totalNights]);
   const rc  = {background:"var(--color-background-primary)",border:"0.5px solid var(--color-border-tertiary)",borderRadius:"var(--border-radius-lg)",padding:"1rem 1.25rem"};
   const mc  = {background:"var(--color-background-secondary)",borderRadius:"var(--border-radius-md)",padding:"1rem",flex:"1 1 130px",minWidth:0};
   const inp = {width:"100%",boxSizing:"border-box",marginTop:4,marginBottom:12};
@@ -551,6 +660,7 @@ export default function RiadDashboard() {
           <h1 style={{margin:0,fontSize:22,fontWeight:500}}>Kasbah Blanca Marrakech</h1>
           <p style={{margin:"4px 0 0",fontSize:13,color:"var(--color-text-secondary)"}}>
             Tableau de bord locatif · {cloudStatus==="saving" ? "⏳ Sauvegarde..." : cloudStatus==="saved" ? "☁️ Synchronisé" : cloudStatus==="error" ? "⚠️ Hors ligne" : ""}
+            {icsUrl && <span style={{marginLeft:8}}>{syncStatus==="syncing"?"🔄 Sync...":syncStatus==="ok"?`✅ Airbnb ${lastSync?new Date(lastSync).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"}):""}`:syncStatus==="error"?"⚠️ Sync échouée":""}</span>}
           </p>
         </div>
         <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
@@ -563,7 +673,9 @@ export default function RiadDashboard() {
               <button key={c} onClick={()=>setCurrency(c)} style={{border:"none",borderRadius:6,padding:"4px 12px",fontSize:13,fontWeight:currency===c?600:400,background:currency===c?"var(--color-background-primary)":"transparent",cursor:"pointer",color:currency===c?"var(--color-text-primary)":"var(--color-text-secondary)",boxShadow:currency===c?"0 1px 4px rgba(0,0,0,0.12)":"none",transition:"all .15s"}}>{c}</button>
             ))}
           </div>
-          <button onClick={()=>setShowRate(r=>!r)} style={{padding:"4px 10px",fontSize:13,background:"none",border:"0.5px solid var(--color-border-secondary)",borderRadius:6}}>1€ = {rate} MAD · Airbnb -{Math.round(commission*100)}%</button>
+          <button onClick={()=>setShowIcsUrl(r=>!r)} style={{padding:"4px 10px",fontSize:13,background:icsUrl?"#e8f5e9":"none",border:`0.5px solid ${icsUrl?"#2e7d32":"var(--color-border-secondary)"}`,borderRadius:6,color:icsUrl?"#2e7d32":"var(--color-text-secondary)"}}>🔄 {icsUrl?"Auto-sync ON":"Configurer sync"}</button>
+          {icsUrl && <button onClick={()=>syncIcs()} style={{padding:"4px 10px",fontSize:13,background:"none",border:"0.5px solid var(--color-border-secondary)",borderRadius:6}}>{syncStatus==="syncing"?"⏳":"↻"} Sync</button>}
+          <button onClick={()=>setShowRate(r=>!r)} style={{padding:"4px 10px",fontSize:13,background:"none",border:"0.5px solid var(--color-border-secondary)",borderRadius:6}}>1€ = {rate} MAD · -{Math.round(commission*100)}%</button>
           <button onClick={exportJSON} style={{padding:"4px 10px",fontSize:13,background:"none",border:"0.5px solid var(--color-border-secondary)",borderRadius:6}}>💾 Backup</button>
           <label style={{padding:"4px 10px",fontSize:13,background:"none",border:"0.5px solid var(--color-border-secondary)",borderRadius:6,cursor:"pointer",display:"inline-flex",alignItems:"center"}}>
             📂 Restore
@@ -571,6 +683,8 @@ export default function RiadDashboard() {
           </label>
         </div>
       </div>
+
+      {/* Panel taux + commission */}
       {showRate && (
         <div style={{background:"var(--color-background-secondary)",borderRadius:8,padding:"10px 14px",marginBottom:"1rem",display:"flex",alignItems:"center",gap:12,flexWrap:"wrap",fontSize:13}}>
           <span style={{color:"var(--color-text-secondary)"}}>Taux de change :</span>
@@ -582,6 +696,42 @@ export default function RiadDashboard() {
           <span style={{color:"var(--color-text-secondary)"}}>Commission conciergerie Airbnb :</span>
           <input type="number" value={Math.round(commission*100)} onChange={e=>setCommission((parseFloat(e.target.value)||0)/100)} step="1" min="0" max="100" style={{width:60,padding:"4px 8px",fontSize:13}} />
           <span style={{fontWeight:500}}>%</span>
+        </div>
+      )}
+
+      {/* Panel sync .ics URL */}
+      {showIcsUrl && (
+        <div style={{background:"var(--color-background-secondary)",borderRadius:8,padding:"12px 14px",marginBottom:"1rem",fontSize:13}}>
+          <p style={{margin:"0 0 8px",fontWeight:500,fontSize:13}}>🔄 Synchronisation automatique Airbnb</p>
+          <p style={{margin:"0 0 10px",fontSize:12,color:"var(--color-text-tertiary)"}}>Airbnb → Calendrier → Lien iCal → copiez l'URL ici. Le calendrier se rafraîchit automatiquement toutes les 30 minutes.</p>
+          <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+            <input type="url" placeholder="https://www.airbnb.fr/calendar/ical/..." value={icsUrl} onChange={e=>setIcsUrl(e.target.value)} style={{flex:1,minWidth:200,padding:"6px 10px",fontSize:12,borderRadius:6,border:"0.5px solid var(--color-border-secondary)"}} />
+            <button onClick={()=>syncIcs()} style={{padding:"6px 14px",fontSize:12,background:C_RESERVED,color:"#fff",border:"none",borderRadius:6,cursor:"pointer"}} disabled={!icsUrl}>↻ Synchroniser maintenant</button>
+            {icsUrl && <button onClick={()=>{setIcsUrl("");setSyncStatus("");setLastSync(null);}} style={{padding:"6px 10px",fontSize:12,background:"none",border:"0.5px solid var(--color-border-secondary)",borderRadius:6,cursor:"pointer",color:"var(--color-text-danger)"}}>✕ Supprimer</button>}
+          </div>
+          {lastSync && <p style={{margin:"8px 0 0",fontSize:11,color:"var(--color-text-tertiary)"}}>Dernière sync : {new Date(lastSync).toLocaleString("fr-FR")}</p>}
+        </div>
+      )}
+
+      {/* Alertes arrivées */}
+      {alerts.length > 0 && (
+        <div style={{marginBottom:"1.25rem",display:"flex",flexDirection:"column",gap:6}}>
+          {alerts.map(b => {
+            const bg   = b.daysUntil===0 ? "#fdecea" : b.daysUntil<=2 ? "#fff3cd" : "#e8f5e9";
+            const col  = b.daysUntil===0 ? C_RESERVED : b.daysUntil<=2 ? "#856404" : "#2e7d32";
+            const icon = b.daysUntil===0 ? "🔴" : b.daysUntil<=2 ? "🟡" : "🟢";
+            const msg  = b.daysUntil===0 ? "Arrivée aujourd'hui !" : b.daysUntil===1 ? "Arrivée demain" : `Arrivée dans ${b.daysUntil} jours`;
+            return (
+              <div key={b.id} style={{background:bg,borderRadius:8,padding:"10px 14px",display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+                <span style={{fontSize:16}}>{icon}</span>
+                <span style={{fontWeight:600,color:col,fontSize:13}}>{msg}</span>
+                <span style={{fontSize:13,color:"var(--color-text-secondary)"}}>—</span>
+                <span style={{fontSize:13,fontWeight:500}}>{b.name||b.id}</span>
+                <span style={{fontSize:12,color:"var(--color-text-secondary)"}}>{fmtDate(b.checkIn)} → {fmtDate(b.checkOut)} · {b.nights}n{b.guests?` · 👥 ${b.guests}`:""}</span>
+                <span style={{marginLeft:"auto",fontSize:12,color:col,fontWeight:500}}>{b.platform}</span>
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -812,8 +962,11 @@ export default function RiadDashboard() {
                             {b.name && <p style={{margin:"0 0 2px",fontSize:14,fontWeight:500}}>{b.name}</p>}
                             <span style={{fontSize:10,fontFamily:"var(--font-mono)",color:"var(--color-text-info)",background:"var(--color-background-info)",padding:"2px 6px",borderRadius:4}}>{b.id}</span>
                             <span style={{marginLeft:6,fontSize:11,color:"var(--color-text-tertiary)"}}>{b.platform}</span>
+                            <span style={{marginLeft:6,fontSize:11,fontWeight:600,color:b.paid?"#2e7d32":"#856404"}}>{b.paid?"✅ Payé":"⏳ En attente"}</span>
                           </div>
-                          <div style={{display:"flex",gap:6}}>
+                          <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                            <button onClick={()=>togglePaid(b.id)} title={b.paid?"Marquer non payé":"Marquer payé"} style={{fontSize:13,border:"none",background:"none",cursor:"pointer",padding:"0 2px"}}>{b.paid?"✅":"⏳"}</button>
+                            <button onClick={()=>printRecap(b)} title="Fiche récap PDF" style={{fontSize:13,border:"none",background:"none",cursor:"pointer",padding:"0 2px"}}>📄</button>
                             <button onClick={()=>setEditBooking({...b})} style={{fontSize:11,color:"var(--color-text-info)",border:"none",background:"none",cursor:"pointer",padding:"0 4px"}}>✏️</button>
                             <button onClick={()=>{setBookings(prev=>prev.filter(x=>x.id!==b.id));showToast("Réservation supprimée");}} style={{fontSize:12,color:"var(--color-text-danger)",border:"none",background:"none",cursor:"pointer",padding:"0 4px"}}>✕</button>
                           </div>
@@ -888,7 +1041,12 @@ export default function RiadDashboard() {
                               : <span style={{fontSize:12,color:"var(--color-text-tertiary)"}}>—</span>
                             }
                           </td>
-                          <td style={{padding:"10px 6px",textAlign:"right"}}><button onClick={()=>setEditBooking({...b})} style={{fontSize:11,color:"var(--color-text-info)",border:"none",background:"none",cursor:"pointer",padding:"2px 6px"}}>✏️</button><button onClick={()=>{setBookings(prev=>prev.filter(x=>x.id!==b.id));showToast("Réservation supprimée");}} style={{fontSize:11,color:"var(--color-text-danger)",border:"none",background:"none",cursor:"pointer",padding:"2px 6px"}}>✕</button></td>
+                          <td style={{padding:"10px 6px",textAlign:"right",whiteSpace:"nowrap"}}>
+                            <button onClick={()=>togglePaid(b.id)} title={b.paid?"Marquer non payé":"Marquer payé"} style={{fontSize:11,border:"none",background:"none",cursor:"pointer",padding:"2px 4px"}}>{b.paid?"✅":"⏳"}</button>
+                            <button onClick={()=>printRecap(b)} title="Fiche récap PDF" style={{fontSize:11,border:"none",background:"none",cursor:"pointer",padding:"2px 4px"}}>📄</button>
+                            <button onClick={()=>setEditBooking({...b})} style={{fontSize:11,color:"var(--color-text-info)",border:"none",background:"none",cursor:"pointer",padding:"2px 4px"}}>✏️</button>
+                            <button onClick={()=>{setBookings(prev=>prev.filter(x=>x.id!==b.id));showToast("Réservation supprimée");}} style={{fontSize:11,color:"var(--color-text-danger)",border:"none",background:"none",cursor:"pointer",padding:"2px 4px"}}>✕</button>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -925,6 +1083,51 @@ export default function RiadDashboard() {
                 const n=yearBookings.filter(b=>new Date(b.checkIn).getMonth()===i).reduce((s,b)=>s+b.nights,0);
                 return <div key={m}><div style={{display:"flex",justifyContent:"space-between",fontSize:13,marginBottom:4}}><span>{m}</span><span style={{color:"var(--color-text-secondary)"}}>{n} nuit{n>1?"s":""}</span></div><div style={{background:"var(--color-background-secondary)",borderRadius:99,height:6,overflow:"hidden"}}><div style={{width:`${Math.round((n/31)*100)}%`,height:"100%",background:C_RESERVED,borderRadius:99}} /></div></div>;
               })}
+            </div>
+          </div>
+
+          {/* Prévisionnel */}
+          <div style={{...rc,marginTop:"1.25rem",borderLeft:"3px solid #BA7517"}}>
+            <p style={{margin:"0 0 1rem",fontSize:14,fontWeight:500}}>📈 Prévisionnel {year}</p>
+            <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
+              <div style={{...mc,flex:"1 1 160px"}}>
+                <p style={{margin:0,fontSize:11,color:"var(--color-text-secondary)",textTransform:"uppercase",letterSpacing:"0.05em"}}>Encaissé à ce jour</p>
+                <p style={{margin:"6px 0 2px",fontSize:18,fontWeight:500,color:C_RESERVED}}>{fmtBoth(pastRevenue,rate)}</p>
+                <p style={{margin:0,fontSize:12,color:"var(--color-text-tertiary)"}}>{pastBookings.length} séjour{pastBookings.length>1?"s":""} terminé{pastBookings.length>1?"s":""}</p>
+              </div>
+              <div style={{...mc,flex:"1 1 160px"}}>
+                <p style={{margin:0,fontSize:11,color:"var(--color-text-secondary)",textTransform:"uppercase",letterSpacing:"0.05em"}}>Confirmé à venir</p>
+                <p style={{margin:"6px 0 2px",fontSize:18,fontWeight:500,color:C_BLOCKED}}>{fmtBoth(futureRevenue,rate)}</p>
+                <p style={{margin:0,fontSize:12,color:"var(--color-text-tertiary)"}}>{futureBookings.length} séjour{futureBookings.length>1?"s":""} réservé{futureBookings.length>1?"s":""}</p>
+              </div>
+              <div style={{...mc,flex:"1 1 160px"}}>
+                <p style={{margin:0,fontSize:11,color:"var(--color-text-secondary)",textTransform:"uppercase",letterSpacing:"0.05em"}}>Projection annuelle</p>
+                <p style={{margin:"6px 0 2px",fontSize:18,fontWeight:500,color:"#BA7517"}}>{fmtBoth(forecast.projectedTotal,rate)}</p>
+                <p style={{margin:0,fontSize:12,color:"var(--color-text-tertiary)"}}>Basé sur {fmtMAD(Math.round(forecast.avgMonthly))}/mois</p>
+              </div>
+              <div style={{...mc,flex:"1 1 160px"}}>
+                <p style={{margin:0,fontSize:11,color:"var(--color-text-secondary)",textTransform:"uppercase",letterSpacing:"0.05em"}}>Taux de remplissage</p>
+                <p style={{margin:"6px 0 2px",fontSize:18,fontWeight:500,color:"var(--color-text-info)"}}>{occupancy}%</p>
+                <p style={{margin:0,fontSize:12,color:"var(--color-text-tertiary)"}}>{totalNights} nuits · objectif 70% = {Math.round(365*0.7)} nuits</p>
+              </div>
+            </div>
+            {/* Barre de progression vers objectif */}
+            <div style={{marginTop:"1rem"}}>
+              <div style={{display:"flex",justifyContent:"space-between",fontSize:12,color:"var(--color-text-secondary)",marginBottom:6}}>
+                <span>Progression CA annuel</span>
+                <span>{Math.round((totalRevenue/forecast.projectedTotal)*100)||0}% de l'objectif projeté</span>
+              </div>
+              <div style={{background:"var(--color-background-secondary)",borderRadius:99,height:10,overflow:"hidden"}}>
+                <div style={{display:"flex",height:"100%",borderRadius:99,overflow:"hidden"}}>
+                  <div style={{width:`${Math.round((pastRevenue/forecast.projectedTotal)*100)||0}%`,background:C_RESERVED,transition:"width 0.5s"}} />
+                  <div style={{width:`${Math.round((futureRevenue/forecast.projectedTotal)*100)||0}%`,background:C_BLOCKED,opacity:0.6,transition:"width 0.5s"}} />
+                </div>
+              </div>
+              <div style={{display:"flex",gap:16,marginTop:6,fontSize:11,color:"var(--color-text-tertiary)"}}>
+                <span style={{color:C_RESERVED}}>■ Encaissé</span>
+                <span style={{color:C_BLOCKED}}>■ Confirmé à venir</span>
+                <span>□ Non encore réservé</span>
+              </div>
             </div>
           </div>
         </div>
