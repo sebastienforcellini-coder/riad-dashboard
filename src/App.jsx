@@ -306,11 +306,18 @@ export default function RiadDashboard() {
   };
 
   // Auto-sync toutes les 30 minutes si URL configurée
+  // On utilise un ref pour éviter de déclencher au premier render avec URL vide
+  const icsUrlRef = useRef(icsUrl);
+  useEffect(() => {
+    icsUrlRef.current = icsUrl;
+  }, [icsUrl]);
+
   useEffect(() => {
     if (!icsUrl) return;
-    syncIcs(icsUrl, true); // sync au chargement
-    const interval = setInterval(() => syncIcs(icsUrl, true), 30 * 60 * 1000);
-    return () => clearInterval(interval);
+    // Attendre 3s que Firebase charge les données avant la première sync
+    const firstSync = setTimeout(() => syncIcs(icsUrl, true), 3000);
+    const interval  = setInterval(() => syncIcs(icsUrlRef.current, true), 30 * 60 * 1000);
+    return () => { clearTimeout(firstSync); clearInterval(interval); };
   }, [icsUrl]);
 
   // ── Import iCal — préserve les réservations manuelles ────────────────────────
