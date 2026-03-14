@@ -761,8 +761,8 @@ export default function RiadDashboard() {
                               : <span onClick={()=>{setEditId(b.id);setEditAmt(b.amount||"");}} style={{cursor:"pointer",color:"var(--color-text-secondary)"}}>
                                   {b.amount>0
                                     ? b.platform==="Airbnb"
-                                      ? <span><span style={{fontSize:11,textDecoration:"line-through",marginRight:4}}>{fmtMAD(b.amount)}</span><span style={{fontWeight:500}}>{fmtMAD(b.amount*(1-commission))}</span><span style={{fontSize:10,color:"var(--color-text-tertiary)"}}>/nuit</span></span>
-                                      : <span>{fmtMAD(b.amount)}<span style={{fontSize:10,color:"var(--color-text-tertiary)"}}>/nuit</span></span>
+                                      ? <span><span style={{fontSize:11,textDecoration:"line-through",marginRight:4}}>{fmtMAD(b.amount)}</span><span style={{fontWeight:500}}>{fmtBoth(b.amount*(1-commission),rate)}</span><span style={{fontSize:10,color:"var(--color-text-tertiary)"}}>/nuit</span></span>
+                                      : <span>{fmtBoth(b.amount,rate)}<span style={{fontSize:10,color:"var(--color-text-tertiary)"}}>/nuit</span></span>
                                     : <span style={{fontSize:12,textDecoration:"underline dotted",color:"var(--color-text-warning)"}}>saisir ↗</span>
                                   }
                                 </span>
