@@ -110,7 +110,7 @@ async function saveCloud(data) {
 function MonthCalendar({ year, month, bookings, blocked }) {
   const offset  = (new Date(year,month,1).getDay()+6)%7;
   const days    = new Date(year,month+1,0).getDate();
-  const inRange = (d, s, e) => { const day=new Date(year,month,d); return day>=new Date(s) && day<new Date(e); };
+  const inRange = (d, s, e) => { const pad=(n)=>String(n).padStart(2,"0"); const ds=`${year}-${pad(month+1)}-${pad(d)}`; return ds>=s && ds<e; };
   const cells   = [...Array(offset).fill(null), ...Array.from({length:days},(_,i)=>i+1)];
   return (
     <div style={{flex:"1 1 210px",minWidth:190}}>
@@ -248,17 +248,20 @@ export default function RiadDashboard() {
         const { bookings: newB, blocked: newBl } = parseIcs(e.target.result);
         if (!newB.length && !newBl.length) { showToast("❌ Aucun événement trouvé dans ce fichier."); return; }
         setBookings(prev => {
-          // Conserver les réservations manuelles (id commençant par "MAN-")
           const manuals = prev.filter(b => b.id.startsWith("MAN-"));
-          // Préserver montants et noms des réservations Airbnb existantes
           const existing = Object.fromEntries(prev.map(b=>[b.id,{amount:b.amount,name:b.name||""}]));
           const airbnb   = newB.map(b=>({...b, amount:existing[b.id]?.amount??0, name:existing[b.id]?.name??""}));
           return [...airbnb, ...manuals];
         });
-        // Conserver les blocages personnels, remplacer uniquement ceux d'Airbnb
+        // Conserver les blocages personnels
+        // Ignorer les blocages Airbnb qui chevauchent une réservation manuelle
         setBlocked(prev => {
           const personal = prev.filter(b => b.type === "personal");
-          return [...newBl, ...personal];
+          const manualBookings = bookings.filter(b => b.id.startsWith("MAN-"));
+          const filteredAirbnb = newBl.filter(bl =>
+            !manualBookings.some(mb => mb.checkIn < bl.end && mb.checkOut > bl.start)
+          );
+          return [...filteredAirbnb, ...personal];
         });
         if (newB.length) {
           const years = newB.map(b=>new Date(b.checkIn).getFullYear());
