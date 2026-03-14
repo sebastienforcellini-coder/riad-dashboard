@@ -657,12 +657,48 @@ export default function RiadDashboard() {
   // ── Alertes arrivées ─────────────────────────────────────────────────────────
   const alerts = useMemo(() => {
     const now = new Date(); now.setHours(0,0,0,0);
-    return bookings.filter(b => b.platform!=="Perso").map(b => {
+    const arrivals = bookings.filter(b => b.platform!=="Perso").map(b => {
       const ci = new Date(b.checkIn); ci.setHours(0,0,0,0);
-      const diff = Math.round((ci-now)/86400000);
-      return {...b, daysUntil: diff};
-    }).filter(b => b.daysUntil >= 0 && b.daysUntil <= 7)
-      .sort((a,b) => a.daysUntil - b.daysUntil);
+      return {...b, type:"arrival", daysUntil: Math.round((ci-now)/86400000)};
+    }).filter(b => b.daysUntil >= 0 && b.daysUntil <= 7);
+    const departures = bookings.filter(b => b.platform!=="Perso").map(b => {
+      const co = new Date(b.checkOut); co.setHours(0,0,0,0);
+      return {...b, type:"departure", daysUntil: Math.round((co-now)/86400000)};
+    }).filter(b => b.daysUntil >= 0 && b.daysUntil <= 7);
+    return [...arrivals, ...departures].sort((a,b) => a.daysUntil - b.daysUntil || a.type.localeCompare(b.type));
+  }, [bookings]);
+
+  // ── Notifications push ────────────────────────────────────────────────────────
+  const [notifEnabled, setNotifEnabled] = useState(false);
+
+  const requestNotifPermission = async () => {
+    if (!("Notification" in window)) { showToast("❌ Notifications non supportées sur ce navigateur"); return; }
+    const perm = await Notification.requestPermission();
+    if (perm === "granted") { setNotifEnabled(true); showToast("✅ Notifications activées !"); }
+    else showToast("❌ Permission refusée");
+  };
+
+  // Vérifier les notifications au chargement et toutes les heures
+  useEffect(() => {
+    if (!("Notification" in window) || Notification.permission !== "granted") return;
+    setNotifEnabled(true);
+    const checkNotifs = () => {
+      const now = new Date(); now.setHours(0,0,0,0);
+      bookings.filter(b => b.platform!=="Perso").forEach(b => {
+        const ci = new Date(b.checkIn); ci.setHours(0,0,0,0);
+        const co = new Date(b.checkOut); co.setHours(0,0,0,0);
+        const daysIn  = Math.round((ci-now)/86400000);
+        const daysOut = Math.round((co-now)/86400000);
+        const name = b.name || b.id;
+        if (daysIn === 0) new Notification("🏡 Arrivée aujourd'hui", {body: name+" · "+b.nights+"n · "+b.platform, icon:"/apple-touch-icon.png"});
+        if (daysIn === 1) new Notification("🟢 Arrivée demain", {body: name+" · "+b.nights+"n · "+b.platform, icon:"/apple-touch-icon.png"});
+        if (daysOut === 0) new Notification("🔴 Départ aujourd'hui", {body: name+" · "+b.platform, icon:"/apple-touch-icon.png"});
+        if (daysOut === 1) new Notification("🟠 Départ demain", {body: name+" · "+b.platform, icon:"/apple-touch-icon.png"});
+      });
+    };
+    checkNotifs();
+    const interval = setInterval(checkNotifs, 60 * 60 * 1000);
+    return () => clearInterval(interval);
   }, [bookings]);
 
   // ── Prévisionnel ─────────────────────────────────────────────────────────────
@@ -754,21 +790,36 @@ export default function RiadDashboard() {
         </div>
       )}
 
-      {/* Alertes arrivées */}
+      {/* Alertes arrivées & départs */}
       {alerts.length > 0 && (
         <div style={{marginBottom:"1.25rem",display:"flex",flexDirection:"column",gap:6}}>
-          {alerts.map(b => {
-            const bg   = b.daysUntil===0 ? "#fdecea" : b.daysUntil<=2 ? "#fff3cd" : "#e8f5e9";
-            const col  = b.daysUntil===0 ? C_RESERVED : b.daysUntil<=2 ? "#856404" : "#2e7d32";
-            const icon = b.daysUntil===0 ? "🔴" : b.daysUntil<=2 ? "🟡" : "🟢";
-            const msg  = b.daysUntil===0 ? "Arrivée aujourd'hui !" : b.daysUntil===1 ? "Arrivée demain" : `Arrivée dans ${b.daysUntil} jours`;
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+            <span style={{fontSize:12,color:"var(--color-text-tertiary)",fontWeight:500}}>ARRIVÉES & DÉPARTS — 7 PROCHAINS JOURS</span>
+            {!notifEnabled && "Notification" in window && (
+              <button onClick={requestNotifPermission} style={{fontSize:11,padding:"3px 10px",borderRadius:6,border:"0.5px solid var(--color-border-secondary)",background:"none",cursor:"pointer",color:"var(--color-text-secondary)"}}>🔔 Activer notifications</button>
+            )}
+            {notifEnabled && <span style={{fontSize:11,color:"#2e7d32"}}>🔔 Notifications ON</span>}
+          </div>
+          {alerts.map((b,i) => {
+            const isArr = b.type === "arrival";
+            const bg    = isArr
+              ? (b.daysUntil===0 ? "#fdecea" : b.daysUntil<=2 ? "#fff3cd" : "#e8f5e9")
+              : (b.daysUntil===0 ? "#fce4ec" : b.daysUntil<=2 ? "#fff8e1" : "#e3f2fd");
+            const col   = isArr
+              ? (b.daysUntil===0 ? C_RESERVED : b.daysUntil<=2 ? "#856404" : "#2e7d32")
+              : (b.daysUntil===0 ? "#880e4f" : b.daysUntil<=2 ? "#ff6f00" : C_BLOCKED);
+            const icon  = isArr
+              ? (b.daysUntil===0 ? "🔴" : b.daysUntil<=2 ? "🟡" : "🟢")
+              : (b.daysUntil===0 ? "🔵" : b.daysUntil<=2 ? "🟠" : "⚪");
+            const msg   = isArr
+              ? (b.daysUntil===0 ? "Arrivée aujourd'hui !" : b.daysUntil===1 ? "Arrivée demain" : `Arrivée dans ${b.daysUntil}j`)
+              : (b.daysUntil===0 ? "Départ aujourd'hui !" : b.daysUntil===1 ? "Départ demain" : `Départ dans ${b.daysUntil}j`);
             return (
-              <div key={b.id} style={{background:bg,borderRadius:8,padding:"10px 14px",display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
-                <span style={{fontSize:16}}>{icon}</span>
-                <span style={{fontWeight:600,color:col,fontSize:13}}>{msg}</span>
-                <span style={{fontSize:13,color:"var(--color-text-secondary)"}}>—</span>
+              <div key={b.id+b.type} style={{background:bg,borderRadius:8,padding:"10px 14px",display:"flex",alignItems:"center",gap:10,flexWrap:"wrap",borderLeft:`3px solid ${col}`}}>
+                <span style={{fontSize:14}}>{icon}</span>
+                <span style={{fontWeight:600,color:col,fontSize:13,minWidth:130}}>{msg}</span>
                 <span style={{fontSize:13,fontWeight:500}}>{b.name||b.id}</span>
-                <span style={{fontSize:12,color:"var(--color-text-secondary)"}}>{fmtDate(b.checkIn)} → {fmtDate(b.checkOut)} · {b.nights}n{b.guests?` · 👥 ${b.guests}`:""}</span>
+                <span style={{fontSize:12,color:"var(--color-text-secondary)"}}>{fmtDate(isArr?b.checkIn:b.checkOut)} · {b.nights}n{b.guests?` · 👥 ${b.guests}`:""}</span>
                 <span style={{marginLeft:"auto",fontSize:12,color:col,fontWeight:500}}>{b.platform}</span>
               </div>
             );
