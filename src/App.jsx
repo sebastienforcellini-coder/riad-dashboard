@@ -723,7 +723,12 @@ export default function RiadDashboard() {
                           : <div onClick={()=>{setEditId(b.id);setEditAmt(b.amount||"");}} style={{cursor:"pointer"}}>
                               {b.amount>0
                                 ? <div>
-                                    <p style={{margin:0,fontSize:12,color:"var(--color-text-tertiary)"}}>{fmtMAD(b.amount)} / nuit</p>
+                                    <p style={{margin:0,fontSize:12,color:"var(--color-text-tertiary)"}}>
+                                      {b.platform==="Airbnb"
+                                        ? <><span style={{textDecoration:"line-through",marginRight:4}}>{fmtMAD(b.amount)}</span>{fmtBoth(b.amount*(1-commission),rate)}</>
+                                        : fmtBoth(b.amount,rate)
+                                      } <span style={{fontSize:10}}>/nuit</span>
+                                    </p>
                                     {b.platform==="Airbnb"
                                       ? <><p style={{margin:0,fontSize:13,color:"var(--color-text-tertiary)",textDecoration:"line-through"}}>{fmtMAD(totalStay(b))}</p><p style={{margin:0,fontSize:14,fontWeight:600,color:C_RESERVED}}>{fmtBoth(netAmount(b),rate)} <span style={{fontSize:11,fontWeight:400}}>(-{Math.round(commission*100)}%)</span></p></>
                                       : <p style={{margin:0,fontSize:14,fontWeight:600,color:C_RESERVED}}>{fmtBoth(totalStay(b),rate)}</p>
