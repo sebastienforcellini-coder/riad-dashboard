@@ -74,7 +74,7 @@ function parseCsvAirbnb(text) {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const EXPENSE_CATS = ["Ménage","Frais Airbnb","Maintenance","Fournitures","Taxes/CFE","Internet","Eau/Électricité","Assurance","Autre"];
-const PLATFORMS    = ["Direct","Airbnb","Booking.com","Autre"];
+const PLATFORMS    = ["Direct","Airbnb","Booking.com","Gens de confiance","Autre"];
 const MONTHS       = ["Jan","Fév","Mar","Avr","Mai","Jun","Jul","Aoû","Sep","Oct","Nov","Déc"];
 const STORAGE_KEY  = "riad_dashboard_v1";
 const DEFAULT_RATE = 10.83;
@@ -169,6 +169,7 @@ export default function RiadDashboard() {
   const [showAddBl, setShowAddBl] = useState(false);
   const [editId,    setEditId]    = useState(null);
   const [editAmt,   setEditAmt]   = useState("");
+  const [editBooking, setEditBooking] = useState(null); // full booking edit
   const [nextId,    setNextId]    = useState(300);
   const [bForm, setBForm]   = useState({checkIn:"",checkOut:"",name:"",phone:"",platform:"Direct",amount:""});
   const [eForm, setEForm]   = useState({date:today(),category:"Ménage",description:"",amount:""});
@@ -176,6 +177,7 @@ export default function RiadDashboard() {
   const [currency,  setCurrency]  = useState("MAD");
   const [rate,      setRate]      = useState(DEFAULT_RATE);
   const [showRate,  setShowRate]  = useState(false);
+  const [commission, setCommission] = useState(0.20); // 20% conciergerie Airbnb
   const [recurring, setRecurring] = useState([]);
   const [showAddR,  setShowAddR]  = useState(false);
   const [rForm,     setRForm]     = useState({category:"Ménage",description:"",amount:"",months:[]});
@@ -197,15 +199,16 @@ export default function RiadDashboard() {
       if (saved.expenses)  setExpenses(saved.expenses);
       if (saved.year)      setYear(saved.year);
       if (saved.nextId)    setNextId(saved.nextId);
-      if (saved.currency)  setCurrency(saved.currency);
-      if (saved.rate)      setRate(saved.rate);
-      if (saved.recurring) setRecurring(saved.recurring);
+      if (saved.currency)    setCurrency(saved.currency);
+      if (saved.rate)        setRate(saved.rate);
+      if (saved.commission !== undefined) setCommission(saved.commission);
+      if (saved.recurring)   setRecurring(saved.recurring);
     }
   }, []);
 
   useEffect(() => {
-    saveStorage({ bookings, blocked, expenses, year, nextId, currency, rate, recurring });
-  }, [bookings, blocked, expenses, year, nextId, currency, rate, recurring]);
+    saveStorage({ bookings, blocked, expenses, year, nextId, currency, rate, commission, recurring });
+  }, [bookings, blocked, expenses, year, nextId, currency, rate, commission, recurring]);
 
   // ── Cloud sync (Firestore) ───────────────────────────────────────────────────
   const [cloudStatus, setCloudStatus] = useState("");
@@ -221,7 +224,7 @@ export default function RiadDashboard() {
         if (data.recurring) setRecurring(data.recurring);
         if (data.rate)      setRate(data.rate);
         if (data.currency)  setCurrency(data.currency);
-        saveStorage(data);
+        if (data.commission !== undefined) setCommission(data.commission);
         setCloudStatus("saved");
       }
     }, () => setCloudStatus("error"));
@@ -232,11 +235,11 @@ export default function RiadDashboard() {
     if (saveTimer.current) clearTimeout(saveTimer.current);
     setCloudStatus("saving");
     saveTimer.current = setTimeout(() => {
-      saveCloud({ bookings, blocked, expenses, year, nextId, currency, rate, recurring })
+      saveCloud({ bookings, blocked, expenses, year, nextId, currency, rate, commission, recurring })
         .then(() => setCloudStatus("saved"))
         .catch(() => setCloudStatus("error"));
     }, 1500);
-  }, [bookings, blocked, expenses, year, nextId, currency, rate, recurring]);
+  }, [bookings, blocked, expenses, year, nextId, currency, rate, commission, recurring]);
 
   const showToast = (msg) => { setToast(msg); setTimeout(()=>setToast(""), 3500); };
 
@@ -350,7 +353,9 @@ export default function RiadDashboard() {
   // ── Computed ──────────────────────────────────────────────────────────────────
   const yearBookings = useMemo(()=>bookings.filter(b=>new Date(b.checkIn).getFullYear()===year),[bookings,year]);
   const yearExpenses = useMemo(()=>expenses.filter(e=>new Date(e.date).getFullYear()===year),[expenses,year]);
-  const totalRevenue = useMemo(()=>yearBookings.reduce((s,b)=>s+b.amount,0),[yearBookings]);
+  const netAmount   = (b) => b.platform==="Airbnb" ? b.amount*(1-commission) : b.amount;
+  const totalRevenue = useMemo(()=>yearBookings.reduce((s,b)=>s+netAmount(b),0),[yearBookings,commission]);
+  const totalGross   = useMemo(()=>yearBookings.reduce((s,b)=>s+b.amount,0),[yearBookings]);
   const totalExp     = useMemo(()=>yearExpenses.reduce((s,e)=>s+e.amount,0),[yearExpenses]);
   const netProfit    = totalRevenue - totalExp;
   const totalNights  = useMemo(()=>yearBookings.reduce((s,b)=>s+b.nights,0),[yearBookings]);
@@ -380,6 +385,13 @@ export default function RiadDashboard() {
   const saveAmount = (id) => {
     setBookings(prev=>prev.map(b=>b.id===id?{...b,amount:parseFloat(editAmt)||0}:b));
     setEditId(null); setEditAmt(""); showToast("✅ Montant enregistré");
+  };
+  const saveEditBooking = () => {
+    if (!editBooking) return;
+    const nights = Math.round((new Date(editBooking.checkOut)-new Date(editBooking.checkIn))/86400000);
+    setBookings(prev=>prev.map(b=>b.id===editBooking.id?{...editBooking,nights}:b));
+    setEditBooking(null);
+    showToast("✅ Réservation mise à jour");
   };
   const addBooking = () => {
     if (!bForm.checkIn||!bForm.checkOut) return;
@@ -460,7 +472,7 @@ export default function RiadDashboard() {
               <button key={c} onClick={()=>setCurrency(c)} style={{border:"none",borderRadius:6,padding:"4px 12px",fontSize:13,fontWeight:currency===c?600:400,background:currency===c?"var(--color-background-primary)":"transparent",cursor:"pointer",color:currency===c?"var(--color-text-primary)":"var(--color-text-secondary)",boxShadow:currency===c?"0 1px 4px rgba(0,0,0,0.12)":"none",transition:"all .15s"}}>{c}</button>
             ))}
           </div>
-          <button onClick={()=>setShowRate(r=>!r)} style={{padding:"4px 10px",fontSize:13,background:"none",border:"0.5px solid var(--color-border-secondary)",borderRadius:6}}>1€ = {rate} MAD</button>
+          <button onClick={()=>setShowRate(r=>!r)} style={{padding:"4px 10px",fontSize:13,background:"none",border:"0.5px solid var(--color-border-secondary)",borderRadius:6}}>1€ = {rate} MAD · Airbnb -{Math.round(commission*100)}%</button>
           <button onClick={exportJSON} style={{padding:"4px 10px",fontSize:13,background:"none",border:"0.5px solid var(--color-border-secondary)",borderRadius:6}}>💾 Backup</button>
           <label style={{padding:"4px 10px",fontSize:13,background:"none",border:"0.5px solid var(--color-border-secondary)",borderRadius:6,cursor:"pointer",display:"inline-flex",alignItems:"center"}}>
             📂 Restore
@@ -475,6 +487,10 @@ export default function RiadDashboard() {
           <input type="number" value={rate} onChange={e=>setRate(parseFloat(e.target.value)||DEFAULT_RATE)} step="0.01" min="1" style={{width:90,padding:"4px 8px",fontSize:13}} />
           <span style={{fontWeight:500}}>MAD</span>
           <span style={{color:"var(--color-text-tertiary)"}}>· Xe.com · 12 mars 2026</span>
+          <span style={{marginLeft:16,color:"var(--color-text-secondary)",fontWeight:500}}>|</span>
+          <span style={{color:"var(--color-text-secondary)"}}>Commission conciergerie Airbnb :</span>
+          <input type="number" value={Math.round(commission*100)} onChange={e=>setCommission((parseFloat(e.target.value)||0)/100)} step="1" min="0" max="100" style={{width:60,padding:"4px 8px",fontSize:13}} />
+          <span style={{fontWeight:500}}>%</span>
         </div>
       )}
 
@@ -487,7 +503,7 @@ export default function RiadDashboard() {
       {/* KPIs */}
       <div style={{display:"flex",gap:12,flexWrap:"wrap",marginBottom:"1.5rem"}}>
         {[
-          {label:"Revenus bruts",  value:fmtBoth(totalRevenue,rate), sub:yearBookings.length+" réservations", color:"var(--color-text-success)"},
+          {label:"Revenus nets",   value:fmtBoth(totalRevenue,rate), sub:`Brut : ${fmtMAD(totalGross)} · Airbnb -${Math.round(commission*100)}%`, color:"var(--color-text-success)"},
           {label:"Dépenses",       value:fmtBoth(totalExp,rate),     sub:yearExpenses.length+" entrées",      color:"var(--color-text-danger)"},
           {label:"Bénéfice net",   value:fmtBoth(netProfit,rate),    sub:"Marge "+(totalRevenue?Math.round((netProfit/totalRevenue)*100):0)+"%", color:netProfit>=0?"var(--color-text-success)":"var(--color-text-danger)"},
           {label:"Occupation",     value:occupancy+"%",               sub:totalNights+" nuits / 365",           color:"var(--color-text-info)"},
@@ -651,6 +667,26 @@ export default function RiadDashboard() {
             </div>
           )}
 
+          {/* Modal édition réservation */}
+          {editBooking && (
+            <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.4)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:"1rem"}}>
+              <div style={{background:"var(--color-background-primary)",borderRadius:12,padding:"1.5rem",width:"100%",maxWidth:440,boxShadow:"0 8px 32px rgba(0,0,0,0.2)"}}>
+                <p style={{margin:"0 0 16px",fontSize:15,fontWeight:500}}>✏️ Modifier la réservation</p>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0 16px"}}>
+                  <div><label style={{fontSize:12,color:"var(--color-text-secondary)"}}>Arrivée</label><input type="date" style={inp} value={editBooking.checkIn} onChange={e=>setEditBooking(b=>({...b,checkIn:e.target.value}))} /></div>
+                  <div><label style={{fontSize:12,color:"var(--color-text-secondary)"}}>Départ</label><input type="date" style={inp} value={editBooking.checkOut} onChange={e=>setEditBooking(b=>({...b,checkOut:e.target.value}))} /></div>
+                  <div style={{gridColumn:"1 / -1"}}><label style={{fontSize:12,color:"var(--color-text-secondary)"}}>Nom du client</label><input type="text" style={inp} value={editBooking.name||""} onChange={e=>setEditBooking(b=>({...b,name:e.target.value}))} /></div>
+                  <div><label style={{fontSize:12,color:"var(--color-text-secondary)"}}>Plateforme</label><select style={inp} value={editBooking.platform} onChange={e=>setEditBooking(b=>({...b,platform:e.target.value}))}>{PLATFORMS.map(p=><option key={p}>{p}</option>)}</select></div>
+                  <div><label style={{fontSize:12,color:"var(--color-text-secondary)"}}>Montant (MAD)</label><input type="number" style={inp} value={editBooking.amount||""} onChange={e=>setEditBooking(b=>({...b,amount:parseFloat(e.target.value)||0}))} /></div>
+                </div>
+                <div style={{display:"flex",gap:8,marginTop:4}}>
+                  <button onClick={saveEditBooking} style={{flex:1}}>Enregistrer</button>
+                  <button onClick={()=>setEditBooking(null)} style={{color:"var(--color-text-secondary)"}}>Annuler</button>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div style={rc}>
             {yearBookings.length===0
               ? <p style={{color:"var(--color-text-tertiary)",fontSize:13,textAlign:"center",padding:"1.5rem 0"}}>Aucune réservation pour {year}.</p>
@@ -665,7 +701,10 @@ export default function RiadDashboard() {
                             <span style={{fontSize:10,fontFamily:"var(--font-mono)",color:"var(--color-text-info)",background:"var(--color-background-info)",padding:"2px 6px",borderRadius:4}}>{b.id}</span>
                             <span style={{marginLeft:6,fontSize:11,color:"var(--color-text-tertiary)"}}>{b.platform}</span>
                           </div>
-                          <button onClick={()=>{setBookings(prev=>prev.filter(x=>x.id!==b.id));showToast("Réservation supprimée");}} style={{fontSize:12,color:"var(--color-text-danger)",border:"none",background:"none",cursor:"pointer",padding:"0 4px"}}>✕</button>
+                          <div style={{display:"flex",gap:6}}>
+                            <button onClick={()=>setEditBooking({...b})} style={{fontSize:11,color:"var(--color-text-info)",border:"none",background:"none",cursor:"pointer",padding:"0 4px"}}>✏️</button>
+                            <button onClick={()=>{setBookings(prev=>prev.filter(x=>x.id!==b.id));showToast("Réservation supprimée");}} style={{fontSize:12,color:"var(--color-text-danger)",border:"none",background:"none",cursor:"pointer",padding:"0 4px"}}>✕</button>
+                          </div>
                         </div>
                         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"3px 8px",fontSize:12,color:"var(--color-text-secondary)",marginBottom:8}}>
                           <span>📅 {fmtDate(b.checkIn)}</span>
@@ -675,8 +714,16 @@ export default function RiadDashboard() {
                         </div>
                         {editId===b.id
                           ? <span style={{display:"flex",gap:6}}><input type="number" value={editAmt} onChange={e=>setEditAmt(e.target.value)} onKeyDown={e=>e.key==="Enter"&&saveAmount(b.id)} style={{flex:1,padding:"5px 8px",fontSize:13,borderRadius:6,border:"1px solid var(--color-border-secondary)"}} autoFocus /><button onClick={()=>saveAmount(b.id)} style={{padding:"5px 14px",fontSize:13}}>OK</button></span>
-                          : <div onClick={()=>{setEditId(b.id);setEditAmt(b.amount||"");}} style={{cursor:"pointer",fontWeight:600,fontSize:14,color:b.amount>0?C_RESERVED:"var(--color-text-warning)"}}>
-                              {b.amount>0 ? fmtBoth(b.amount,rate) : <span style={{fontSize:13,textDecoration:"underline dotted"}}>Saisir montant ↗</span>}
+                          : <div onClick={()=>{setEditId(b.id);setEditAmt(b.amount||"");}} style={{cursor:"pointer"}}>
+                              {b.amount>0
+                                ? <div>
+                                    {b.platform==="Airbnb"
+                                      ? <><p style={{margin:0,fontSize:13,color:"var(--color-text-tertiary)",textDecoration:"line-through"}}>{fmtMAD(b.amount)}</p><p style={{margin:0,fontSize:14,fontWeight:600,color:C_RESERVED}}>{fmtBoth(netAmount(b),rate)} <span style={{fontSize:11,fontWeight:400}}>(-{Math.round(commission*100)}%)</span></p></>
+                                      : <p style={{margin:0,fontSize:14,fontWeight:600,color:C_RESERVED}}>{fmtBoth(b.amount,rate)}</p>
+                                    }
+                                  </div>
+                                : <span style={{fontSize:13,textDecoration:"underline dotted",color:"var(--color-text-warning)"}}>Saisir montant ↗</span>
+                              }
                             </div>
                         }
                       </div>
@@ -703,12 +750,17 @@ export default function RiadDashboard() {
                           <td style={{padding:"10px 6px"}}>
                             {editId===b.id
                               ? <span style={{display:"flex",gap:4}}><input type="number" value={editAmt} onChange={e=>setEditAmt(e.target.value)} onKeyDown={e=>e.key==="Enter"&&saveAmount(b.id)} style={{width:80,padding:"2px 6px",fontSize:12}} autoFocus /><button onClick={()=>saveAmount(b.id)} style={{fontSize:11,padding:"2px 8px"}}>OK</button></span>
-                              : <span onClick={()=>{setEditId(b.id);setEditAmt(b.amount||"");}} style={{cursor:"pointer",fontWeight:500,color:b.amount>0?"var(--color-text-success)":"var(--color-text-warning)"}}>
-                                  {b.amount>0 ? fmtBoth(b.amount,rate) : <span style={{fontSize:12,textDecoration:"underline dotted"}}>saisir ↗</span>}
+                              : <span onClick={()=>{setEditId(b.id);setEditAmt(b.amount||"");}} style={{cursor:"pointer"}}>
+                                  {b.amount>0
+                                    ? b.platform==="Airbnb"
+                                      ? <span><span style={{fontSize:11,color:"var(--color-text-tertiary)",textDecoration:"line-through",marginRight:4}}>{fmtMAD(b.amount)}</span><span style={{fontWeight:500,color:"var(--color-text-success)"}}>{fmtBoth(netAmount(b),rate)}</span></span>
+                                      : <span style={{fontWeight:500,color:"var(--color-text-success)"}}>{fmtBoth(b.amount,rate)}</span>
+                                    : <span style={{fontSize:12,textDecoration:"underline dotted",color:"var(--color-text-warning)"}}>saisir ↗</span>
+                                  }
                                 </span>
                             }
                           </td>
-                          <td style={{padding:"10px 6px",textAlign:"right"}}><button onClick={()=>{setBookings(prev=>prev.filter(x=>x.id!==b.id));showToast("Réservation supprimée");}} style={{fontSize:11,color:"var(--color-text-danger)",border:"none",background:"none",cursor:"pointer",padding:"2px 6px"}}>✕</button></td>
+                          <td style={{padding:"10px 6px",textAlign:"right"}}><button onClick={()=>setEditBooking({...b})} style={{fontSize:11,color:"var(--color-text-info)",border:"none",background:"none",cursor:"pointer",padding:"2px 6px"}}>✏️</button><button onClick={()=>{setBookings(prev=>prev.filter(x=>x.id!==b.id));showToast("Réservation supprimée");}} style={{fontSize:11,color:"var(--color-text-danger)",border:"none",background:"none",cursor:"pointer",padding:"2px 6px"}}>✕</button></td>
                         </tr>
                       ))}
                     </tbody>
