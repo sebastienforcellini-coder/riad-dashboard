@@ -74,7 +74,7 @@ function parseCsvAirbnb(text) {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const EXPENSE_CATS = ["Ménage","Frais Airbnb","Maintenance","Fournitures","Taxes/CFE","Internet","Eau/Électricité","Assurance","Autre"];
-const PLATFORMS    = ["Direct","Airbnb","Booking.com","Gens de confiance","Autre"];
+const PLATFORMS    = ["Direct","Airbnb","Booking.com","Gens de confiance","Perso","Autre"];
 const MONTHS       = ["Jan","Fév","Mar","Avr","Mai","Jun","Jul","Aoû","Sep","Oct","Nov","Déc"];
 const STORAGE_KEY  = "riad_dashboard_v1";
 const DEFAULT_RATE = 10.83;
@@ -118,11 +118,13 @@ function MonthCalendar({ year, month, bookings, blocked }) {
       <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:2}}>
         {["L","M","M","J","V","S","D"].map((d,i)=><div key={i} style={{textAlign:"center",fontSize:10,color:"var(--color-text-tertiary)",padding:"2px 0"}}>{d}</div>)}
         {cells.map((d,i)=>{
-          const isReserved = d && bookings.some(b=>inRange(d,b.checkIn,b.checkOut));
+          const isReserved = d && bookings.some(b=>inRange(d,b.checkIn,b.checkOut) && b.platform!=="Perso");
+          const isPerso    = d && bookings.some(b=>inRange(d,b.checkIn,b.checkOut) && b.platform==="Perso");
           const isBlocked  = d && blocked.some(b=>inRange(d,b.start,b.end));
           const isToday    = d && (() => { const t=new Date(); return t.getFullYear()===year&&t.getMonth()===month&&t.getDate()===d; })();
           let bg, color, fw=400;
           if      (isReserved) { bg=C_RESERVED; color="#fff"; fw=500; }
+          else if (isPerso)    { bg=C_BLOCKED;  color="#fff"; fw=500; }
           else if (isBlocked)  { bg=C_BLOCKED;  color="#fff"; fw=500; }
           else if (isToday)    { bg=C_TODAY_BG; color=C_TODAY_FG; fw=600; }
           else if (d)          { bg=C_AVAIL;    color="#2e7d32"; }
