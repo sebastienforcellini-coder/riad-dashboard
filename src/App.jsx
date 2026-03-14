@@ -129,7 +129,7 @@ function MonthCalendar({ year, month, bookings, blocked }) {
           else if (isToday)    { bg=C_TODAY_BG; color=C_TODAY_FG; fw=600; }
           else if (d)          { bg=C_AVAIL;    color="#2e7d32"; }
           else                 { bg="transparent"; color="var(--color-text-primary)"; }
-          if (isToday) { border="2px solid "+C_TODAY_FG; fw=700; }
+          if (isToday) { border="3px solid #FFD700"; fw=700; }
           return <div key={i} style={{textAlign:"center",fontSize:12,padding:"5px 2px",background:bg,color,borderRadius:"var(--border-radius-md)",fontWeight:fw,border,boxSizing:"border-box"}}>{d||""}</div>;
         })}
       </div>
