@@ -255,8 +255,8 @@ export default function RiadDashboard() {
         if (!newB.length && !newBl.length) { showToast("❌ Aucun événement trouvé dans ce fichier."); return; }
         setBookings(prev => {
           const manuals  = prev.filter(b => b.id.startsWith("MAN-"));
-          const existing = Object.fromEntries(prev.map(b=>[b.id,{amount:b.amount,name:b.name||""}]));
-          const airbnb   = newB.map(b=>({...b, amount:existing[b.id]?.amount??0, name:existing[b.id]?.name??""}));
+          const existing = Object.fromEntries(prev.map(b=>[b.id,{amount:b.amount,name:b.name||"",guests:b.guests||""}]));
+          const airbnb   = newB.map(b=>({...b, amount:existing[b.id]?.amount??0, name:existing[b.id]?.name??"", guests:existing[b.id]?.guests??""}));
           return [...airbnb, ...manuals];
         });
         setBlocked(prev => {
