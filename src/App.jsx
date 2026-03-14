@@ -254,18 +254,18 @@ export default function RiadDashboard() {
         const { bookings: newB, blocked: newBl } = parseIcs(e.target.result);
         if (!newB.length && !newBl.length) { showToast("❌ Aucun événement trouvé dans ce fichier."); return; }
         setBookings(prev => {
-          const manuals = prev.filter(b => b.id.startsWith("MAN-"));
+          const manuals  = prev.filter(b => b.id.startsWith("MAN-"));
           const existing = Object.fromEntries(prev.map(b=>[b.id,{amount:b.amount,name:b.name||""}]));
           const airbnb   = newB.map(b=>({...b, amount:existing[b.id]?.amount??0, name:existing[b.id]?.name??""}));
           return [...airbnb, ...manuals];
         });
-        // Conserver les blocages personnels
-        // Ignorer les blocages Airbnb qui chevauchent une réservation manuelle
         setBlocked(prev => {
           const personal = prev.filter(b => b.type === "personal");
-          const manualBookings = bookings.filter(b => b.id.startsWith("MAN-"));
+          // Récupérer TOUTES les réservations manuelles (état actuel + nouvelles converties)
+          const allManuals = bookings.filter(b => b.id.startsWith("MAN-"));
+          // Exclure les blocages Airbnb qui chevauchent une résa manuelle
           const filteredAirbnb = newBl.filter(bl =>
-            !manualBookings.some(mb => mb.checkIn < bl.end && mb.checkOut > bl.start)
+            !allManuals.some(mb => mb.checkIn < bl.end && mb.checkOut > bl.start)
           );
           return [...filteredAirbnb, ...personal];
         });
