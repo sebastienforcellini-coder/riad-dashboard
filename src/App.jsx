@@ -173,7 +173,7 @@ export default function RiadDashboard() {
   const [editAmt,   setEditAmt]   = useState("");
   const [editBooking, setEditBooking] = useState(null); // full booking edit
   const [nextId,    setNextId]    = useState(300);
-  const [bForm, setBForm]   = useState({checkIn:"",checkOut:"",name:"",phone:"",platform:"Direct",amount:""});
+  const [bForm, setBForm]   = useState({checkIn:"",checkOut:"",name:"",phone:"",platform:"Direct",amount:"",guests:""});
   const [eForm, setEForm]   = useState({date:today(),category:"Ménage",description:"",amount:""});
   const [blForm, setBlForm] = useState({start:"",end:"",label:"Vacances perso"});
   const [currency,  setCurrency]  = useState("MAD");
@@ -355,9 +355,10 @@ export default function RiadDashboard() {
   // ── Computed ──────────────────────────────────────────────────────────────────
   const yearBookings = useMemo(()=>bookings.filter(b=>new Date(b.checkIn).getFullYear()===year),[bookings,year]);
   const yearExpenses = useMemo(()=>expenses.filter(e=>new Date(e.date).getFullYear()===year),[expenses,year]);
-  const netAmount   = (b) => b.platform==="Airbnb" ? b.amount*(1-commission) : b.amount;
+  const totalStay   = (b) => b.amount * b.nights;
+  const netAmount   = (b) => b.platform==="Airbnb" ? totalStay(b)*(1-commission) : totalStay(b);
   const totalRevenue = useMemo(()=>yearBookings.reduce((s,b)=>s+netAmount(b),0),[yearBookings,commission]);
-  const totalGross   = useMemo(()=>yearBookings.reduce((s,b)=>s+b.amount,0),[yearBookings]);
+  const totalGross   = useMemo(()=>yearBookings.reduce((s,b)=>s+totalStay(b),0),[yearBookings]);
   const totalExp     = useMemo(()=>yearExpenses.reduce((s,e)=>s+e.amount,0),[yearExpenses]);
   const netProfit    = totalRevenue - totalExp;
   const totalNights  = useMemo(()=>yearBookings.reduce((s,b)=>s+b.nights,0),[yearBookings]);
@@ -399,7 +400,7 @@ export default function RiadDashboard() {
     if (!bForm.checkIn||!bForm.checkOut) return;
     const nights=Math.round((new Date(bForm.checkOut)-new Date(bForm.checkIn))/86400000);
     setBookings(prev=>[...prev,{...bForm,id:"MAN-"+nextId,nights,amount:parseFloat(bForm.amount)||0}]);
-    setNextId(n=>n+1); setBForm({checkIn:"",checkOut:"",name:"",phone:"",platform:"Direct",amount:""}); setShowAddB(false);
+    setNextId(n=>n+1); setBForm({checkIn:"",checkOut:"",name:"",phone:"",platform:"Direct",amount:"",guests:""}); setShowAddB(false);
     showToast("✅ Réservation ajoutée");
   };
   const addExpense = () => {
@@ -660,6 +661,7 @@ export default function RiadDashboard() {
                 <div><label style={{fontSize:13,color:"var(--color-text-secondary)"}}>Nom du client</label><input type="text" placeholder="Jean Dupont" style={inp} value={bForm.name} onChange={e=>setBForm(f=>({...f,name:e.target.value}))} /></div>
                 <div><label style={{fontSize:13,color:"var(--color-text-secondary)"}}>Tél. (4 derniers)</label><input type="text" placeholder="…1234" style={inp} value={bForm.phone} onChange={e=>setBForm(f=>({...f,phone:e.target.value}))} /></div>
                 <div><label style={{fontSize:13,color:"var(--color-text-secondary)"}}>Plateforme</label><select style={inp} value={bForm.platform} onChange={e=>setBForm(f=>({...f,platform:e.target.value}))}>{PLATFORMS.map(p=><option key={p}>{p}</option>)}</select></div>
+                <div><label style={{fontSize:13,color:"var(--color-text-secondary)"}}>Nb. occupants</label><input type="number" placeholder="2" min="1" style={inp} value={bForm.guests} onChange={e=>setBForm(f=>({...f,guests:e.target.value}))} /></div>
                 <div><label style={{fontSize:13,color:"var(--color-text-secondary)"}}>Montant (MAD)</label><input type="number" placeholder="1500" style={inp} value={bForm.amount} onChange={e=>setBForm(f=>({...f,amount:e.target.value}))} /></div>
               </div>
               <div style={{display:"flex",gap:8}}>
@@ -679,6 +681,7 @@ export default function RiadDashboard() {
                   <div><label style={{fontSize:12,color:"var(--color-text-secondary)"}}>Départ</label><input type="date" style={inp} value={editBooking.checkOut} onChange={e=>setEditBooking(b=>({...b,checkOut:e.target.value}))} /></div>
                   <div style={{gridColumn:"1 / -1"}}><label style={{fontSize:12,color:"var(--color-text-secondary)"}}>Nom du client</label><input type="text" style={inp} value={editBooking.name||""} onChange={e=>setEditBooking(b=>({...b,name:e.target.value}))} /></div>
                   <div><label style={{fontSize:12,color:"var(--color-text-secondary)"}}>Plateforme</label><select style={inp} value={editBooking.platform} onChange={e=>setEditBooking(b=>({...b,platform:e.target.value}))}>{PLATFORMS.map(p=><option key={p}>{p}</option>)}</select></div>
+                  <div><label style={{fontSize:12,color:"var(--color-text-secondary)"}}>Nb. occupants</label><input type="number" min="1" style={inp} value={editBooking.guests||""} onChange={e=>setEditBooking(b=>({...b,guests:e.target.value}))} /></div>
                   <div><label style={{fontSize:12,color:"var(--color-text-secondary)"}}>Montant (MAD)</label><input type="number" style={inp} value={editBooking.amount||""} onChange={e=>setEditBooking(b=>({...b,amount:parseFloat(e.target.value)||0}))} /></div>
                 </div>
                 <div style={{display:"flex",gap:8,marginTop:4}}>
@@ -712,6 +715,7 @@ export default function RiadDashboard() {
                           <span>📅 {fmtDate(b.checkIn)}</span>
                           <span>🏠 {fmtDate(b.checkOut)}</span>
                           <span>🌙 {b.nights} nuit{b.nights>1?"s":""}</span>
+                          {b.guests && <span>👥 {b.guests} occupant{b.guests>1?"s":""}</span>}
                           {b.phone && <span>📱 {b.phone}</span>}
                         </div>
                         {editId===b.id
@@ -719,12 +723,13 @@ export default function RiadDashboard() {
                           : <div onClick={()=>{setEditId(b.id);setEditAmt(b.amount||"");}} style={{cursor:"pointer"}}>
                               {b.amount>0
                                 ? <div>
+                                    <p style={{margin:0,fontSize:12,color:"var(--color-text-tertiary)"}}>{fmtMAD(b.amount)} / nuit</p>
                                     {b.platform==="Airbnb"
-                                      ? <><p style={{margin:0,fontSize:13,color:"var(--color-text-tertiary)",textDecoration:"line-through"}}>{fmtMAD(b.amount)}</p><p style={{margin:0,fontSize:14,fontWeight:600,color:C_RESERVED}}>{fmtBoth(netAmount(b),rate)} <span style={{fontSize:11,fontWeight:400}}>(-{Math.round(commission*100)}%)</span></p></>
-                                      : <p style={{margin:0,fontSize:14,fontWeight:600,color:C_RESERVED}}>{fmtBoth(b.amount,rate)}</p>
+                                      ? <><p style={{margin:0,fontSize:13,color:"var(--color-text-tertiary)",textDecoration:"line-through"}}>{fmtMAD(totalStay(b))}</p><p style={{margin:0,fontSize:14,fontWeight:600,color:C_RESERVED}}>{fmtBoth(netAmount(b),rate)} <span style={{fontSize:11,fontWeight:400}}>(-{Math.round(commission*100)}%)</span></p></>
+                                      : <p style={{margin:0,fontSize:14,fontWeight:600,color:C_RESERVED}}>{fmtBoth(totalStay(b),rate)}</p>
                                     }
                                   </div>
-                                : <span style={{fontSize:13,textDecoration:"underline dotted",color:"var(--color-text-warning)"}}>Saisir montant ↗</span>
+                                : <span style={{fontSize:13,textDecoration:"underline dotted",color:"var(--color-text-warning)"}}>Saisir tarif/nuit ↗</span>
                               }
                             </div>
                         }
@@ -738,7 +743,7 @@ export default function RiadDashboard() {
                 : <table style={{width:"100%",borderCollapse:"collapse",fontSize:13,tableLayout:"fixed"}}>
                     <thead>
                       <tr style={{borderBottom:"0.5px solid var(--color-border-tertiary)"}}>
-                        {["Arrivée","Départ","Code","Nom","Nuits","Montant",""].map(h=><th key={h} style={{padding:"8px 6px",textAlign:"left",color:"var(--color-text-secondary)",fontWeight:400,fontSize:12,whiteSpace:"nowrap"}}>{h}</th>)}
+                        {["Arrivée","Départ","Code","Nom","Nuits","Occupants","Tarif/nuit","Total séjour",""].map(h=><th key={h} style={{padding:"8px 6px",textAlign:"left",color:"var(--color-text-secondary)",fontWeight:400,fontSize:12,whiteSpace:"nowrap"}}>{h}</th>)}
                       </tr>
                     </thead>
                     <tbody>
@@ -749,17 +754,21 @@ export default function RiadDashboard() {
                           <td style={{padding:"6px"}}><span style={{fontSize:11,fontFamily:"var(--font-mono)",color:"var(--color-text-info)",background:"var(--color-background-info)",padding:"2px 6px",borderRadius:4}}>{b.id}</span></td>
                           <td style={{padding:"10px 6px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{b.name||<span style={{color:"var(--color-text-tertiary)"}}>—</span>}</td>
                           <td style={{padding:"10px 6px",color:"var(--color-text-secondary)"}}>{b.nights}n</td>
+                          <td style={{padding:"10px 6px",color:"var(--color-text-secondary)"}}>{b.guests ? `👥 ${b.guests}` : "—"}</td>
                           <td style={{padding:"10px 6px"}}>
                             {editId===b.id
                               ? <span style={{display:"flex",gap:4}}><input type="number" value={editAmt} onChange={e=>setEditAmt(e.target.value)} onKeyDown={e=>e.key==="Enter"&&saveAmount(b.id)} style={{width:80,padding:"2px 6px",fontSize:12}} autoFocus /><button onClick={()=>saveAmount(b.id)} style={{fontSize:11,padding:"2px 8px"}}>OK</button></span>
-                              : <span onClick={()=>{setEditId(b.id);setEditAmt(b.amount||"");}} style={{cursor:"pointer"}}>
-                                  {b.amount>0
-                                    ? b.platform==="Airbnb"
-                                      ? <span><span style={{fontSize:11,color:"var(--color-text-tertiary)",textDecoration:"line-through",marginRight:4}}>{fmtMAD(b.amount)}</span><span style={{fontWeight:500,color:"var(--color-text-success)"}}>{fmtBoth(netAmount(b),rate)}</span></span>
-                                      : <span style={{fontWeight:500,color:"var(--color-text-success)"}}>{fmtBoth(b.amount,rate)}</span>
-                                    : <span style={{fontSize:12,textDecoration:"underline dotted",color:"var(--color-text-warning)"}}>saisir ↗</span>
-                                  }
+                              : <span onClick={()=>{setEditId(b.id);setEditAmt(b.amount||"");}} style={{cursor:"pointer",color:"var(--color-text-secondary)"}}>
+                                  {b.amount>0 ? fmtMAD(b.amount) : <span style={{fontSize:12,textDecoration:"underline dotted",color:"var(--color-text-warning)"}}>saisir ↗</span>}
                                 </span>
+                            }
+                          </td>
+                          <td style={{padding:"10px 6px"}}>
+                            {b.amount>0
+                              ? b.platform==="Airbnb"
+                                ? <span><span style={{fontSize:11,color:"var(--color-text-tertiary)",textDecoration:"line-through",marginRight:4}}>{fmtMAD(b.amount*b.nights)}</span><span style={{fontWeight:500,color:"var(--color-text-success)"}}>{fmtBoth(netAmount({...b,amount:b.amount*b.nights}),rate)}</span></span>
+                                : <span style={{fontWeight:500,color:"var(--color-text-success)"}}>{fmtBoth(b.amount*b.nights,rate)}</span>
+                              : <span style={{fontSize:12,color:"var(--color-text-tertiary)"}}>—</span>
                             }
                           </td>
                           <td style={{padding:"10px 6px",textAlign:"right"}}><button onClick={()=>setEditBooking({...b})} style={{fontSize:11,color:"var(--color-text-info)",border:"none",background:"none",cursor:"pointer",padding:"2px 6px"}}>✏️</button><button onClick={()=>{setBookings(prev=>prev.filter(x=>x.id!==b.id));showToast("Réservation supprimée");}} style={{fontSize:11,color:"var(--color-text-danger)",border:"none",background:"none",cursor:"pointer",padding:"2px 6px"}}>✕</button></td>
@@ -767,7 +776,7 @@ export default function RiadDashboard() {
                       ))}
                     </tbody>
                     <tfoot>
-                      <tr><td colSpan={5} style={{padding:"10px 6px",fontWeight:500}}>Total</td><td style={{padding:"10px 6px",fontWeight:500,color:"var(--color-text-success)"}}>{fmtBoth(totalRevenue,rate)}</td><td /></tr>
+                      <tr><td colSpan={7} style={{padding:"10px 6px",fontWeight:500}}>Total séjours</td><td style={{padding:"10px 6px",fontWeight:500,color:"var(--color-text-success)"}}>{fmtBoth(totalRevenue,rate)}</td><td /></tr>
                     </tfoot>
                   </table>
             }
