@@ -522,7 +522,7 @@ export default function RiadDashboard() {
   const netProfit    = totalRevenue - totalExp;
   const totalNights  = useMemo(()=>payingBookings.reduce((s,b)=>s+b.nights,0),[payingBookings]);
   const persoNights  = useMemo(()=>persoBookings.reduce((s,b)=>s+b.nights,0),[persoBookings]);
-  const occupancy    = Math.round((totalNights/365)*100);
+  const occupancy    = Math.round(((totalNights+persoNights)/365)*100);
   const avgNight     = totalNights ? Math.round(totalRevenue/totalNights) : 0;
   const pendingCount = payingBookings.filter(b=>b.amount===0).length;
   const todayStr     = today();
@@ -786,7 +786,7 @@ export default function RiadDashboard() {
           {label:"Revenus nets",   value:fmtBoth(totalRevenue,rate), sub:`Brut : ${fmtMAD(totalGross)} · Airbnb -${Math.round(commission*100)}%`, color:"var(--color-text-success)"},
           {label:"Dépenses",       value:fmtBoth(totalExp,rate),     sub:yearExpenses.length+" entrées",      color:"var(--color-text-danger)"},
           {label:"Bénéfice net",   value:fmtBoth(netProfit,rate),    sub:"Marge "+(totalRevenue?Math.round((netProfit/totalRevenue)*100):0)+"%", color:netProfit>=0?"var(--color-text-success)":"var(--color-text-danger)"},
-          {label:"Occupation",     value:occupancy+"%",               sub:`${totalNights} nuits payantes${persoNights>0?" · "+persoNights+"n perso":""}`, color:"var(--color-text-info)"},
+          {label:"Occupation",     value:occupancy+"%",               sub:`${totalNights}n payantes + ${persoNights}n perso`, color:"var(--color-text-info)"},
           {label:"Moy. / nuit",    value:avgNight?fmtBoth(avgNight,rate):"—", sub:"sur montants saisis",      color:"var(--color-text-secondary)"},
         ].map(k=>(
           <div key={k.label} style={mc}>
