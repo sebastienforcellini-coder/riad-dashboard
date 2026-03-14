@@ -122,14 +122,15 @@ function MonthCalendar({ year, month, bookings, blocked }) {
           const isPerso    = d && !isReserved && bookings.some(b=>inRange(d,b.checkIn,b.checkOut) && b.platform==="Perso");
           const isBlocked  = d && !isReserved && !isPerso && blocked.some(b=>inRange(d,b.start,b.end));
           const isToday    = d && (() => { const t=new Date(); return t.getFullYear()===year&&t.getMonth()===month&&t.getDate()===d; })();
-          let bg, color, fw=400;
+          let bg, color, fw=400, border="none";
           if      (isReserved) { bg=C_RESERVED; color="#fff"; fw=500; }
           else if (isPerso)    { bg=C_BLOCKED;  color="#fff"; fw=500; }
           else if (isBlocked)  { bg=C_BLOCKED;  color="#fff"; fw=500; }
           else if (isToday)    { bg=C_TODAY_BG; color=C_TODAY_FG; fw=600; }
           else if (d)          { bg=C_AVAIL;    color="#2e7d32"; }
           else                 { bg="transparent"; color="var(--color-text-primary)"; }
-          return <div key={i} style={{textAlign:"center",fontSize:12,padding:"5px 2px",background:bg,color,borderRadius:"var(--border-radius-md)",fontWeight:fw}}>{d||""}</div>;
+          if (isToday) { border="2px solid "+C_TODAY_FG; fw=700; }
+          return <div key={i} style={{textAlign:"center",fontSize:12,padding:"5px 2px",background:bg,color,borderRadius:"var(--border-radius-md)",fontWeight:fw,border,boxSizing:"border-box"}}>{d||""}</div>;
         })}
       </div>
     </div>
