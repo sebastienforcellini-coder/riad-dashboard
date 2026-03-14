@@ -257,16 +257,16 @@ export default function RiadDashboard() {
     setSyncStatus("syncing");
     let text = null;
 
-    // Essai 1 : allorigins JSON (le plus fiable)
+    // Essai 1 : proxy Vercel local (le plus fiable)
     try {
-      const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`);
-      if (res.ok) { const j = await res.json(); if (j?.contents?.includes("BEGIN:VCALENDAR")) text = j.contents; }
+      const res = await fetch(`/api/ical?url=${encodeURIComponent(url)}`);
+      if (res.ok) { const t = await res.text(); if (t.includes("BEGIN:VCALENDAR")) text = t; }
     } catch {}
 
-    // Essai 2 : allorigins raw
+    // Essai 2 : allorigins JSON
     if (!text) try {
-      const res = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`);
-      if (res.ok) { const t = await res.text(); if (t.includes("BEGIN:VCALENDAR")) text = t; }
+      const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`);
+      if (res.ok) { const j = await res.json(); if (j?.contents?.includes("BEGIN:VCALENDAR")) text = j.contents; }
     } catch {}
 
     // Essai 3 : corsproxy.io
@@ -277,7 +277,7 @@ export default function RiadDashboard() {
 
     if (!text) {
       setSyncStatus("error");
-      if (!silent) showToast("❌ Sync échouée — les proxies CORS bloquent Airbnb");
+      if (!silent) showToast("❌ Sync échouée — vérifiez l'URL Airbnb");
       return;
     }
     try {
