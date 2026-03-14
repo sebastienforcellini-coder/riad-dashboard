@@ -455,7 +455,7 @@ export default function RiadDashboard() {
     // ── Feuille 5 : Bilan mensuel ──
     const mRows = [["Mois","Revenus bruts (MAD)","Commission (MAD)","Revenus nets (MAD)","Revenus nets (€)","Dépenses (MAD)","Dépenses (€)","Bénéfice (MAD)","Bénéfice (€)"]];
     monthlyData.forEach((d,i) => {
-      const mBookings = yearBookings.filter(b=>new Date(b.checkIn).getMonth()===i);
+      const mBookings = payingBookings.filter(b=>new Date(b.checkIn).getMonth()===i);
       const mGross    = mBookings.reduce((s,b)=>s+b.amount*b.nights,0);
       const mComm     = mBookings.filter(b=>b.platform==="Airbnb").reduce((s,b)=>s+b.amount*b.nights*commission,0);
       const mNet      = mGross - mComm;
@@ -510,29 +510,34 @@ export default function RiadDashboard() {
   };
 
   // ── Computed ──────────────────────────────────────────────────────────────────
-  const yearBookings = useMemo(()=>bookings.filter(b=>new Date(b.checkIn).getFullYear()===year),[bookings,year]);
-  const yearExpenses = useMemo(()=>expenses.filter(e=>new Date(e.date).getFullYear()===year),[expenses,year]);
+  const yearBookings    = useMemo(()=>bookings.filter(b=>new Date(b.checkIn).getFullYear()===year),[bookings,year]);
+  const payingBookings  = useMemo(()=>yearBookings.filter(b=>b.platform!=="Perso"),[yearBookings]);
+  const persoBookings   = useMemo(()=>yearBookings.filter(b=>b.platform==="Perso"),[yearBookings]);
+  const yearExpenses    = useMemo(()=>expenses.filter(e=>new Date(e.date).getFullYear()===year),[expenses,year]);
   const totalStay   = (b) => b.amount * b.nights;
   const netAmount   = (b) => b.platform==="Airbnb" ? totalStay(b)*(1-commission) : totalStay(b);
-  const totalRevenue = useMemo(()=>yearBookings.reduce((s,b)=>s+netAmount(b),0),[yearBookings,commission]);
-  const totalGross   = useMemo(()=>yearBookings.reduce((s,b)=>s+totalStay(b),0),[yearBookings]);
+  const totalRevenue = useMemo(()=>payingBookings.reduce((s,b)=>s+netAmount(b),0),[payingBookings,commission]);
+  const totalGross   = useMemo(()=>payingBookings.reduce((s,b)=>s+totalStay(b),0),[payingBookings]);
   const totalExp     = useMemo(()=>yearExpenses.reduce((s,e)=>s+e.amount,0),[yearExpenses]);
   const netProfit    = totalRevenue - totalExp;
-  const totalNights  = useMemo(()=>yearBookings.reduce((s,b)=>s+b.nights,0),[yearBookings]);
+  const totalNights  = useMemo(()=>payingBookings.reduce((s,b)=>s+b.nights,0),[payingBookings]);
+  const persoNights  = useMemo(()=>persoBookings.reduce((s,b)=>s+b.nights,0),[persoBookings]);
   const occupancy    = Math.round((totalNights/365)*100);
   const avgNight     = totalNights ? Math.round(totalRevenue/totalNights) : 0;
-  const pendingCount = yearBookings.filter(b=>b.amount===0 && b.platform!=="Perso").length;
+  const pendingCount = payingBookings.filter(b=>b.amount===0).length;
   const todayStr     = today();
-  const pastBookings = yearBookings.filter(b=>b.checkOut <= todayStr && b.platform!=="Perso");
-  const futureBookings = yearBookings.filter(b=>b.checkIn > todayStr && b.platform!=="Perso");
+  const pastBookings   = payingBookings.filter(b=>b.checkOut <= todayStr);
+  const futureBookings = payingBookings.filter(b=>b.checkIn > todayStr);
   const pastRevenue  = pastBookings.reduce((s,b)=>s+netAmount(b),0);
   const futureRevenue = futureBookings.reduce((s,b)=>s+netAmount(b),0);
 
   const monthlyData = useMemo(()=>MONTHS.map((m,i)=>({
     name:m,
-    Revenus:  yearBookings.filter(b=>new Date(b.checkIn).getMonth()===i).reduce((s,b)=>s+b.amount,0),
+    Revenus:  payingBookings.filter(b=>new Date(b.checkIn).getMonth()===i).reduce((s,b)=>s+netAmount(b),0),
     Dépenses: yearExpenses.filter(e=>new Date(e.date).getMonth()===i).reduce((s,e)=>s+e.amount,0),
-  })).map(d=>({...d,Bénéfice:d.Revenus-d.Dépenses})),[yearBookings,yearExpenses]);
+    NuitsPayantes: payingBookings.filter(b=>new Date(b.checkIn).getMonth()===i).reduce((s,b)=>s+b.nights,0),
+    NuitsPerso:    persoBookings.filter(b=>new Date(b.checkIn).getMonth()===i).reduce((s,b)=>s+b.nights,0),
+  })).map(d=>({...d,Bénéfice:d.Revenus-d.Dépenses})),[payingBookings,persoBookings,yearExpenses,commission]);
 
   const expByCat = useMemo(()=>{
     const map={};
@@ -781,7 +786,7 @@ export default function RiadDashboard() {
           {label:"Revenus nets",   value:fmtBoth(totalRevenue,rate), sub:`Brut : ${fmtMAD(totalGross)} · Airbnb -${Math.round(commission*100)}%`, color:"var(--color-text-success)"},
           {label:"Dépenses",       value:fmtBoth(totalExp,rate),     sub:yearExpenses.length+" entrées",      color:"var(--color-text-danger)"},
           {label:"Bénéfice net",   value:fmtBoth(netProfit,rate),    sub:"Marge "+(totalRevenue?Math.round((netProfit/totalRevenue)*100):0)+"%", color:netProfit>=0?"var(--color-text-success)":"var(--color-text-danger)"},
-          {label:"Occupation",     value:occupancy+"%",               sub:totalNights+" nuits / 365",           color:"var(--color-text-info)"},
+          {label:"Occupation",     value:occupancy+"%",               sub:`${totalNights} nuits payantes${persoNights>0?" · "+persoNights+"n perso":""}`, color:"var(--color-text-info)"},
           {label:"Moy. / nuit",    value:avgNight?fmtBoth(avgNight,rate):"—", sub:"sur montants saisis",      color:"var(--color-text-secondary)"},
         ].map(k=>(
           <div key={k.label} style={mc}>
@@ -1112,11 +1117,37 @@ export default function RiadDashboard() {
           </div>
           <div style={rc}>
             <p style={{margin:"0 0 1rem",fontSize:14,fontWeight:500}}>Nuits réservées par mois</p>
-            <div style={{display:"flex",flexDirection:"column",gap:8}}>
+            <div style={{display:"flex",gap:12,marginBottom:"1rem",fontSize:12}}>
+              <span style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:12,height:12,borderRadius:2,background:C_RESERVED}}/> Payantes</span>
+              <span style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:12,height:12,borderRadius:2,background:C_BLOCKED}}/> Perso</span>
+            </div>
+            <div style={{display:"flex",flexDirection:"column",gap:10}}>
               {MONTHS.map((m,i)=>{
-                const n=yearBookings.filter(b=>new Date(b.checkIn).getMonth()===i).reduce((s,b)=>s+b.nights,0);
-                return <div key={m}><div style={{display:"flex",justifyContent:"space-between",fontSize:13,marginBottom:4}}><span>{m}</span><span style={{color:"var(--color-text-secondary)"}}>{n} nuit{n>1?"s":""}</span></div><div style={{background:"var(--color-background-secondary)",borderRadius:99,height:6,overflow:"hidden"}}><div style={{width:`${Math.round((n/31)*100)}%`,height:"100%",background:C_RESERVED,borderRadius:99}} /></div></div>;
+                const n = payingBookings.filter(b=>new Date(b.checkIn).getMonth()===i).reduce((s,b)=>s+b.nights,0);
+                const p = persoBookings.filter(b=>new Date(b.checkIn).getMonth()===i).reduce((s,b)=>s+b.nights,0);
+                const total = n + p;
+                return (
+                  <div key={m}>
+                    <div style={{display:"flex",justifyContent:"space-between",fontSize:13,marginBottom:4}}>
+                      <span>{m}</span>
+                      <span style={{color:"var(--color-text-secondary)"}}>
+                        {n>0 && <span style={{color:C_RESERVED,fontWeight:500}}>{n}n payantes</span>}
+                        {n>0 && p>0 && " · "}
+                        {p>0 && <span style={{color:C_BLOCKED}}>{p}n perso</span>}
+                        {n===0 && p===0 && <span style={{color:"var(--color-text-tertiary)"}}>—</span>}
+                      </span>
+                    </div>
+                    <div style={{background:"var(--color-background-secondary)",borderRadius:99,height:8,overflow:"hidden",display:"flex"}}>
+                      <div style={{width:`${Math.round((n/31)*100)}%`,height:"100%",background:C_RESERVED,borderRadius:99,transition:"width 0.3s"}} />
+                      <div style={{width:`${Math.round((p/31)*100)}%`,height:"100%",background:C_BLOCKED,borderRadius:99,marginLeft:2,transition:"width 0.3s"}} />
+                    </div>
+                  </div>
+                );
               })}
+            </div>
+            <div style={{marginTop:"1rem",paddingTop:"1rem",borderTop:"0.5px solid var(--color-border-tertiary)",display:"flex",gap:24,fontSize:13}}>
+              <span>Total payantes : <strong style={{color:C_RESERVED}}>{totalNights} nuits</strong></span>
+              {persoNights>0 && <span>Total perso : <strong style={{color:C_BLOCKED}}>{persoNights} nuits</strong></span>}
             </div>
           </div>
 
