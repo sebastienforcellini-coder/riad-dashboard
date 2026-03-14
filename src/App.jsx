@@ -567,10 +567,22 @@ export default function RiadDashboard() {
               : <div style={{display:"flex",flexDirection:"column",gap:8}}>
                   {blocked.filter(b=>b.type==="personal").map((b,i)=>{
                     const n=Math.round((new Date(b.end)-new Date(b.start))/86400000);
+                    const convertToBooking = () => {
+                      setBlocked(prev=>prev.filter(x=>x!==b));
+                      setBookings(prev=>[...prev,{
+                        id:"MAN-"+nextId, checkIn:b.start, checkOut:b.end,
+                        nights:n, platform:"Direct", phone:"", name:b.label||"",
+                        amount:0, uid:""
+                      }]);
+                      setNextId(n=>n+1);
+                      setTab("bookings");
+                      showToast("✅ Converti en réservation — saisissez le montant");
+                    };
                     return <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 12px",background:"#2980b922",borderRadius:"var(--border-radius-md)",flexWrap:"wrap",gap:8}}>
                       <span style={{fontSize:13,color:C_BLOCKED,fontWeight:500}}>{b.label||"Bloqué"}</span>
                       <span style={{fontSize:13,color:"var(--color-text-secondary)"}}>{fmtDate(b.start)} → {fmtDate(b.end)}</span>
                       <span style={{fontSize:12,color:"var(--color-text-tertiary)"}}>{n} jour{n>1?"s":""}</span>
+                      <button onClick={convertToBooking} style={{fontSize:12,padding:"4px 12px",background:C_RESERVED,color:"#fff",border:"none",borderRadius:6,cursor:"pointer"}}>→ Réservation</button>
                       <button onClick={()=>{setBlocked(prev=>prev.filter(x=>x!==b));showToast("Période supprimée");}} style={{fontSize:11,color:"var(--color-text-danger)",border:"none",background:"none",cursor:"pointer"}}>✕</button>
                     </div>;
                   })}
