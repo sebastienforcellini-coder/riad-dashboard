@@ -364,7 +364,7 @@ export default function RiadDashboard() {
   const totalNights  = useMemo(()=>yearBookings.reduce((s,b)=>s+b.nights,0),[yearBookings]);
   const occupancy    = Math.round((totalNights/365)*100);
   const avgNight     = totalNights ? Math.round(totalRevenue/totalNights) : 0;
-  const pendingCount = yearBookings.filter(b=>b.amount===0).length;
+  const pendingCount = yearBookings.filter(b=>b.amount===0 && b.platform!=="Perso").length;
 
   const monthlyData = useMemo(()=>MONTHS.map((m,i)=>({
     name:m,
