@@ -589,11 +589,11 @@ export default function RiadDashboard() {
                 </div>
             }
             {/* Indispo Airbnb */}
-            {blocked.filter(b=>b.type==="airbnb").length>0 && (
+            {blocked.filter(b=>b.type==="airbnb"||!b.type).length>0 && (
               <div style={{marginTop:"1rem",paddingTop:"1rem",borderTop:"0.5px solid var(--color-border-tertiary)"}}>
                 <p style={{margin:"0 0 8px",fontSize:12,color:"var(--color-text-tertiary)"}}>Indisponibilités Airbnb — cliquez "→ Réservation" si c'est une résa directe</p>
                 <div style={{display:"flex",flexDirection:"column",gap:6}}>
-                  {blocked.filter(b=>b.type==="airbnb").map((b,i)=>{
+                  {blocked.filter(b=>b.type==="airbnb"||!b.type).map((b,i)=>{
                     const n=Math.round((new Date(b.end)-new Date(b.start))/86400000);
                     const convertToBooking = () => {
                       setBlocked(prev=>prev.filter(x=>x!==b));
