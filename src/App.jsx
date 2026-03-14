@@ -119,8 +119,8 @@ function MonthCalendar({ year, month, bookings, blocked }) {
         {["L","M","M","J","V","S","D"].map((d,i)=><div key={i} style={{textAlign:"center",fontSize:10,color:"var(--color-text-tertiary)",padding:"2px 0"}}>{d}</div>)}
         {cells.map((d,i)=>{
           const isReserved = d && bookings.some(b=>inRange(d,b.checkIn,b.checkOut) && b.platform!=="Perso");
-          const isPerso    = d && bookings.some(b=>inRange(d,b.checkIn,b.checkOut) && b.platform==="Perso");
-          const isBlocked  = d && blocked.some(b=>inRange(d,b.start,b.end));
+          const isPerso    = d && !isReserved && bookings.some(b=>inRange(d,b.checkIn,b.checkOut) && b.platform==="Perso");
+          const isBlocked  = d && !isReserved && !isPerso && blocked.some(b=>inRange(d,b.start,b.end));
           const isToday    = d && (() => { const t=new Date(); return t.getFullYear()===year&&t.getMonth()===month&&t.getDate()===d; })();
           let bg, color, fw=400;
           if      (isReserved) { bg=C_RESERVED; color="#fff"; fw=500; }
@@ -879,17 +879,15 @@ export default function RiadDashboard() {
       {tab==="calendar" && (
         <div>
           {/* Légende */}
-          <div style={{display:"flex",gap:16,marginBottom:"1rem",flexWrap:"wrap",alignItems:"center"}}>
+          <div style={{display:"flex",gap:12,marginBottom:"1rem",flexWrap:"wrap",alignItems:"center"}}>
             {[
-              {bg:C_AVAIL,    fg:"#2e7d32", label:"Disponible"},
-              {bg:C_RESERVED, fg:"#fff",    label:"Réservé (client)"},
-              {bg:C_BLOCKED,  fg:"#fff",    label:"Bloqué (perso)"},
-              {bg:C_TODAY_BG, fg:C_TODAY_FG,label:"Aujourd'hui"},
+              {bg:C_AVAIL,    label:"Disponible"},
+              {bg:C_RESERVED, label:"Réservé"},
+              {bg:C_BLOCKED,  label:"Perso"},
+              {bg:C_TODAY_BG, border:"2px solid "+C_TODAY_FG, label:"Aujourd'hui"},
             ].map(l=>(
               <div key={l.label} style={{display:"flex",alignItems:"center",gap:6,fontSize:12,color:"var(--color-text-secondary)"}}>
-                <div style={{width:20,height:20,borderRadius:4,background:l.bg,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center"}}>
-                  <span style={{fontSize:9,fontWeight:700,color:l.fg}}>14</span>
-                </div>
+                <div style={{width:16,height:16,borderRadius:4,background:l.bg,flexShrink:0,border:l.border||"none"}} />
                 {l.label}
               </div>
             ))}
