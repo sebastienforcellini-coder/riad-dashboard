@@ -759,7 +759,12 @@ export default function RiadDashboard() {
                             {editId===b.id
                               ? <span style={{display:"flex",gap:4}}><input type="number" value={editAmt} onChange={e=>setEditAmt(e.target.value)} onKeyDown={e=>e.key==="Enter"&&saveAmount(b.id)} style={{width:80,padding:"2px 6px",fontSize:12}} autoFocus /><button onClick={()=>saveAmount(b.id)} style={{fontSize:11,padding:"2px 8px"}}>OK</button></span>
                               : <span onClick={()=>{setEditId(b.id);setEditAmt(b.amount||"");}} style={{cursor:"pointer",color:"var(--color-text-secondary)"}}>
-                                  {b.amount>0 ? fmtMAD(b.amount) : <span style={{fontSize:12,textDecoration:"underline dotted",color:"var(--color-text-warning)"}}>saisir ↗</span>}
+                                  {b.amount>0
+                                    ? b.platform==="Airbnb"
+                                      ? <span><span style={{fontSize:11,textDecoration:"line-through",marginRight:4}}>{fmtMAD(b.amount)}</span><span style={{fontWeight:500}}>{fmtMAD(b.amount*(1-commission))}</span><span style={{fontSize:10,color:"var(--color-text-tertiary)"}}>/nuit</span></span>
+                                      : <span>{fmtMAD(b.amount)}<span style={{fontSize:10,color:"var(--color-text-tertiary)"}}>/nuit</span></span>
+                                    : <span style={{fontSize:12,textDecoration:"underline dotted",color:"var(--color-text-warning)"}}>saisir ↗</span>
+                                  }
                                 </span>
                             }
                           </td>
