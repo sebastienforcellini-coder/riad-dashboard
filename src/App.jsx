@@ -688,7 +688,7 @@ export default function RiadDashboard() {
           <h1 style={{margin:0,fontSize:22,fontWeight:500}}>Kasbah Blanca Marrakech</h1>
           <p style={{margin:"4px 0 0",fontSize:13,color:"var(--color-text-secondary)"}}>
             Tableau de bord locatif · {cloudStatus==="saving" ? "⏳ Sauvegarde..." : cloudStatus==="saved" ? "☁️ Synchronisé" : cloudStatus==="error" ? "⚠️ Hors ligne" : ""}
-            {icsUrl && <span style={{marginLeft:8}}>{syncStatus==="syncing"?"🔄 Sync...":syncStatus==="ok"?`✅ Airbnb ${lastSync?new Date(lastSync).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"}):""}`:syncStatus==="error"?"⚠️ Sync échouée":""}</span>}
+            {icsUrl && <span style={{marginLeft:8}}>{syncStatus==="syncing"?"🔄 Sync...":syncStatus==="ok"?`✅ Airbnb ${lastSync?new Date(lastSync).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"}):""}`:syncStatus==="error"&&!lastSync?"⚠️ Sync échouée":lastSync?`✅ Airbnb ${new Date(lastSync).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}`:""}</span>}
           </p>
         </div>
         <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
