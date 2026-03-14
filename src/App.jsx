@@ -591,13 +591,25 @@ export default function RiadDashboard() {
             {/* Indispo Airbnb */}
             {blocked.filter(b=>b.type==="airbnb").length>0 && (
               <div style={{marginTop:"1rem",paddingTop:"1rem",borderTop:"0.5px solid var(--color-border-tertiary)"}}>
-                <p style={{margin:"0 0 8px",fontSize:12,color:"var(--color-text-tertiary)"}}>Indisponibilités Airbnb ({blocked.filter(b=>b.type==="airbnb").length})</p>
-                <div style={{display:"flex",flexDirection:"column",gap:4}}>
+                <p style={{margin:"0 0 8px",fontSize:12,color:"var(--color-text-tertiary)"}}>Indisponibilités Airbnb — cliquez "→ Réservation" si c'est une résa directe</p>
+                <div style={{display:"flex",flexDirection:"column",gap:6}}>
                   {blocked.filter(b=>b.type==="airbnb").map((b,i)=>{
                     const n=Math.round((new Date(b.end)-new Date(b.start))/86400000);
-                    return <div key={i} style={{display:"flex",justifyContent:"space-between",fontSize:12,color:"var(--color-text-tertiary)",padding:"4px 8px",background:"var(--color-background-secondary)",borderRadius:6}}>
+                    const convertToBooking = () => {
+                      setBlocked(prev=>prev.filter(x=>x!==b));
+                      setBookings(prev=>[...prev,{
+                        id:"MAN-"+nextId, checkIn:b.start, checkOut:b.end,
+                        nights:n, platform:"Direct", phone:"", name:"",
+                        amount:0, uid:""
+                      }]);
+                      setNextId(n=>n+1);
+                      setTab("bookings");
+                      showToast("✅ Converti en réservation — saisissez le nom et le montant");
+                    };
+                    return <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",fontSize:12,color:"var(--color-text-secondary)",padding:"8px 10px",background:"var(--color-background-secondary)",borderRadius:6,flexWrap:"wrap",gap:6}}>
                       <span>{fmtDate(b.start)} → {fmtDate(b.end)}</span>
-                      <span>{n}j</span>
+                      <span style={{color:"var(--color-text-tertiary)"}}>{n} jour{n>1?"s":""}</span>
+                      <button onClick={convertToBooking} style={{fontSize:11,padding:"3px 10px",background:C_RESERVED,color:"#fff",border:"none",borderRadius:5,cursor:"pointer"}}>→ Réservation</button>
                     </div>;
                   })}
                 </div>
