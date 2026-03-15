@@ -509,8 +509,9 @@ export default function RiadDashboard() {
         if (data.rate)      setRate(data.rate);
         if (data.currency)  setCurrency(data.currency);
         if (data.commission !== undefined) setCommission(data.commission);
-        if (data.icsUrl)    setIcsUrl(data.icsUrl);
-        if (data.lastSync)  setLastSync(data.lastSync);
+        if (data.icsUrl)       setIcsUrl(data.icsUrl);
+        if (data.lastSync)     setLastSync(data.lastSync);
+        if (data.ignoredBlocks) setIgnoredBlocks(data.ignoredBlocks);
         saveStorage(data);
         setCloudStatus("saved");
         setTimeout(() => { isFromFirebase.current = false; }, 200);
