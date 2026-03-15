@@ -14,7 +14,7 @@ const translations = {
     // ── Sync panel ──
     syncPanelTitle:"🔄 Synchronisation automatique Airbnb",
     syncPanelDesc:"Airbnb → Calendrier → Lien iCal → copiez l'URL ici. Le calendrier se rafraîchit automatiquement tous les jours à 6h.",
-    syncNow:"↻ Synchroniser maintenant",syncDelete:"✕ Supprimer",lastSync:"Dernière sync",
+    syncNow:"↻ Synchroniser maintenant",syncDelete:"✕ Supprimer",lastSync:"Dernière sync",syncDelay:"⚠️ Le flux iCal Airbnb est mis à jour avec 15–30 min de délai. Pour une résa toute récente, importez le .ics manuellement via la zone de dépôt.",
     rateLabel:"Taux de change :",commissionLabel:"Commission conciergerie Airbnb :",
     // ── Alertes ──
     alertsTitle:"ARRIVÉES & DÉPARTS — 7 PROCHAINS JOURS",
@@ -127,7 +127,7 @@ const translations = {
     // ── Sync panel ──
     syncPanelTitle:"🔄 Automatic Airbnb sync",
     syncPanelDesc:"Airbnb → Calendar → iCal link → paste the URL here. Calendar refreshes automatically every day at 6am.",
-    syncNow:"↻ Sync now",syncDelete:"✕ Remove",lastSync:"Last sync",
+    syncNow:"↻ Sync now",syncDelete:"✕ Remove",lastSync:"Last sync",syncDelay:"⚠️ Airbnb's iCal feed updates with a 15–30 min delay. For a brand-new booking, import the .ics file manually via the drop zone.",
     rateLabel:"Exchange rate:",commissionLabel:"Airbnb concierge commission:",
     // ── Alertes ──
     alertsTitle:"ARRIVALS & DEPARTURES — NEXT 7 DAYS",
@@ -556,8 +556,7 @@ export default function RiadDashboard() {
       });
       setBlocked(prev => {
         const personal   = prev.filter(b => b.type === "personal");
-        const allManuals = bookings.filter(b => b.id.startsWith("MAN-"));
-        const filtered   = newBl.filter(bl => !allManuals.some(mb => mb.checkIn < bl.end && mb.checkOut > bl.start));
+        const filtered   = newBl;
         return [...filtered, ...personal];
       });
       const now = new Date().toISOString();
@@ -588,10 +587,7 @@ export default function RiadDashboard() {
         });
         setBlocked(prev => {
           const personal = prev.filter(b => b.type === "personal");
-          const allManuals = bookings.filter(b => b.id.startsWith("MAN-"));
-          const filteredAirbnb = newBl.filter(bl =>
-            !allManuals.some(mb => mb.checkIn < bl.end && mb.checkOut > bl.start)
-          );
+          const filteredAirbnb = newBl;
           return [...filteredAirbnb, ...personal];
         });
         if (newB.length) {
@@ -1067,6 +1063,7 @@ export default function RiadDashboard() {
             {icsUrl && <button onClick={()=>{setIcsUrl("");setSyncStatus("");setLastSync(null);}} style={{padding:"6px 10px",fontSize:12,background:"none",border:"0.5px solid var(--color-border-secondary)",borderRadius:6,cursor:"pointer",color:"var(--color-text-danger)"}}>{t("syncDelete")}</button>}
           </div>
           {lastSync && <p style={{margin:"8px 0 0",fontSize:11,color:"var(--color-text-tertiary)"}}>{t("lastSync")} : {new Date(lastSync).toLocaleString(locale)}</p>}
+          <p style={{margin:"8px 0 0",fontSize:11,color:"var(--color-text-warning)",background:"var(--color-background-warning)",borderRadius:6,padding:"6px 10px"}}>{t("syncDelay")}</p>
         </div>
       )}
 
@@ -1297,8 +1294,7 @@ export default function RiadDashboard() {
             }
             {/* Indispo Airbnb */}
             {(()=>{
-              const manuals = bookings.filter(mb=>mb.id.startsWith("MAN-"));
-              const airbnbBlocked = blocked.filter(b=>(b.type==="airbnb"||!b.type) && !manuals.some(mb=>mb.checkIn < b.end && mb.checkOut > b.start));
+              const airbnbBlocked = blocked.filter(b=>(b.type==="airbnb"||!b.type));
               if (!airbnbBlocked.length) return null;
               return (
                 <div style={{marginTop:"1rem",paddingTop:"1rem",borderTop:"0.5px solid var(--color-border-tertiary)"}}>
