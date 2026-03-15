@@ -404,6 +404,7 @@ export default function RiadDashboard() {
   const [statsPanel, setStatsPanel] = useState(null);
   // calView now uses internal keys: "all" | "upcoming"
   const [calView,    setCalView]    = useState("upcoming");
+  const [selectedMonth, setSelectedMonth] = useState(null); // 0-11 or null
   const [lang,       setLang]       = useState("fr");
   const t = (key) => translations[lang]?.[key] ?? translations.fr[key] ?? key;
   const tCat = (cat) => translations[lang]?.cats?.[cat] ?? cat;
@@ -1489,20 +1490,122 @@ export default function RiadDashboard() {
       {tab==="chart" && (
         <div>
           <div style={{...rc,marginBottom:"1.25rem"}}>
-            <p style={{margin:"0 0 1rem",fontSize:14,fontWeight:500}}>{t("chartTitle")} — {year}</p>
+            <p style={{margin:"0 0 4px",fontSize:14,fontWeight:500}}>{t("chartTitle")} — {year}</p>
+            <p style={{margin:"0 0 1rem",fontSize:12,color:"var(--color-text-tertiary)"}}>{lang==="fr"?"Cliquez sur un mois pour le détail":"Click a month for details"}</p>
             <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={monthlyData} barGap={4} barCategoryGap="30%">
+              <BarChart data={monthlyData} barGap={4} barCategoryGap="30%"
+                onClick={e=>{ if(e&&e.activeTooltipIndex!=null){ const i=e.activeTooltipIndex; setSelectedMonth(selectedMonth===i?null:i); }}}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border-tertiary)" vertical={false} />
-                <XAxis dataKey="name" tick={{fontSize:12,fill:"var(--color-text-secondary)"}} axisLine={false} tickLine={false} />
+                <XAxis dataKey="name" tick={({x,y,payload})=>{
+                  const i=months.indexOf(payload.value);
+                  const active=selectedMonth===i;
+                  return <text x={x} y={y+12} textAnchor="middle" fontSize={12} fill={active?"var(--color-text-primary)":"var(--color-text-secondary)"} fontWeight={active?700:400}>{payload.value}</text>;
+                }} axisLine={false} tickLine={false} />
                 <YAxis tick={{fontSize:11,fill:"var(--color-text-secondary)"}} axisLine={false} tickLine={false} tickFormatter={v=>v===0?"0":currency==="EUR"?`${Math.round(v/rate/1000)}k€`:`${Math.round(v/1000)}k`} />
-                <Tooltip content={<TT />} />
-                {/* name prop = translated label shown in tooltip */}
+                <Tooltip content={<TT />} cursor={{fill:"var(--color-background-secondary)",radius:4}} />
                 <Bar dataKey="Revenus"  name={t("seriesRevenue")}   fill={C_RESERVED} radius={[3,3,0,0]} />
                 <Bar dataKey="Dépenses" name={t("seriesExpenses")}  fill="#E24B4A"    radius={[3,3,0,0]} />
                 <Bar dataKey="Bénéfice" name={t("seriesProfit")}    fill={C_BLOCKED}  radius={[3,3,0,0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
+
+          {/* ── Panneau détail mensuel ── */}
+          {selectedMonth !== null && (() => {
+            const mi = selectedMonth;
+            const mName = months[mi];
+            const mBookings = payingBookings.filter(b => {
+              // Include booking if it overlaps with the month
+              const mStart = new Date(year, mi, 1);
+              const mEnd   = new Date(year, mi+1, 1);
+              return new Date(b.checkIn) < mEnd && new Date(b.checkOut) > mStart;
+            });
+            const mExpenses = yearExpenses.filter(e => new Date(e.date).getMonth() === mi);
+            const mRevenue  = mBookings.reduce((s,b) => s+netAmount(b), 0);
+            const mExp      = mExpenses.reduce((s,e) => s+e.amount, 0);
+            const mProfit   = mRevenue - mExp;
+            const mPast     = mBookings.filter(b => b.checkOut <= todayStr);
+            const mFuture   = mBookings.filter(b => b.checkIn > todayStr);
+            const mPastRev  = mPast.reduce((s,b)=>s+netAmount(b),0);
+            const mFutRev   = mFuture.reduce((s,b)=>s+netAmount(b),0);
+            return (
+              <div style={{...rc,marginBottom:"1.25rem",borderLeft:"3px solid var(--color-text-primary)",animation:"fadeIn 0.2s ease"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1.25rem",flexWrap:"wrap",gap:8}}>
+                  <p style={{margin:0,fontSize:15,fontWeight:600}}>{mName} {year}</p>
+                  <button onClick={()=>setSelectedMonth(null)} style={{fontSize:12,background:"none",border:"none",cursor:"pointer",color:"var(--color-text-secondary)"}}>{t("closeBtn")}</button>
+                </div>
+
+                {/* KPIs du mois */}
+                <div style={{display:"flex",gap:10,flexWrap:"wrap",marginBottom:"1.25rem"}}>
+                  {[
+                    {label:t("netRevenue"),  value:fmtBoth(mRevenue,rate), color:"var(--color-text-success)"},
+                    {label:t("expenses"),    value:fmtBoth(mExp,rate),     color:"var(--color-text-danger)"},
+                    {label:t("netProfit"),   value:fmtBoth(mProfit,rate),  color:mProfit>=0?"var(--color-text-success)":"var(--color-text-danger)"},
+                  ].map(k=>(
+                    <div key={k.label} style={{...mc,flex:"1 1 150px"}}>
+                      <p style={{margin:0,fontSize:10,color:"var(--color-text-secondary)",textTransform:"uppercase",letterSpacing:"0.05em"}}>{k.label}</p>
+                      <p style={{margin:"4px 0 0",fontSize:16,fontWeight:500,color:k.color}}>{k.value.split("·")[0].trim()}</p>
+                      <p style={{margin:0,fontSize:11,color:"var(--color-text-tertiary)"}}>{k.value.split("·")[1]?.trim()}</p>
+                    </div>
+                  ))}
+                  <div style={{...mc,flex:"1 1 150px"}}>
+                    <p style={{margin:0,fontSize:10,color:"var(--color-text-secondary)",textTransform:"uppercase",letterSpacing:"0.05em"}}>{t("collected")} / {t("confirmed")}</p>
+                    <p style={{margin:"4px 0 0",fontSize:14,fontWeight:500,color:C_RESERVED}}>{mPastRev>0?fmtMAD(mPastRev):"—"}</p>
+                    <p style={{margin:0,fontSize:11,color:C_BLOCKED}}>{mFutRev>0?fmtMAD(mFutRev):"—"}</p>
+                  </div>
+                </div>
+
+                {/* Calendrier agrandi */}
+                <div style={{marginBottom:"1.25rem"}}>
+                  <MonthCalendar year={year} month={mi} bookings={bookings} blocked={blocked} monthName={mName} />
+                </div>
+
+                {/* Réservations du mois */}
+                {mBookings.length > 0 && (
+                  <div style={{marginBottom:"1rem"}}>
+                    <p style={{margin:"0 0 8px",fontSize:12,fontWeight:500,color:"var(--color-text-secondary)",textTransform:"uppercase",letterSpacing:"0.05em"}}>{t("tabBookings")} · {mBookings.length}</p>
+                    <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                      {[...mBookings].sort((a,b)=>new Date(a.checkIn)-new Date(b.checkIn)).map(b=>{
+                        const isPast = b.checkOut <= todayStr;
+                        const isFuture = b.checkIn > todayStr;
+                        const tag = isPast ? {label:lang==="fr"?"Échu":"Past",   color:C_RESERVED}
+                                  : isFuture? {label:lang==="fr"?"À venir":"Upcoming", color:C_BLOCKED}
+                                  : {label:lang==="fr"?"En cours":"Ongoing", color:"#BA7517"};
+                        return (
+                          <div key={b.id} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",background:"var(--color-background-secondary)",borderRadius:8,flexWrap:"wrap",borderLeft:`3px solid ${tag.color}`}}>
+                            <span style={{fontSize:11,fontWeight:600,color:tag.color,minWidth:52}}>{tag.label}</span>
+                            <span style={{fontSize:13,fontWeight:500,flex:1,minWidth:80}}>{b.name||b.id}</span>
+                            <span style={{fontSize:12,color:"var(--color-text-secondary)"}}>{fmtDate(b.checkIn,locale)} → {fmtDate(b.checkOut,locale)}</span>
+                            <span style={{fontSize:12,color:"var(--color-text-tertiary)"}}>{b.nights}n</span>
+                            <span style={{fontSize:12,fontWeight:500,color:"var(--color-text-success)",marginLeft:"auto"}}>{b.amount>0?fmtBoth(netAmount(b),rate):"—"}</span>
+                            <span style={{fontSize:11}}>{b.paid?"✅":"⏳"}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+                {mBookings.length === 0 && <p style={{fontSize:13,color:"var(--color-text-tertiary)",margin:"0 0 1rem"}}>{t("noBookings")}</p>}
+
+                {/* Dépenses du mois */}
+                {mExpenses.length > 0 && (
+                  <div>
+                    <p style={{margin:"0 0 8px",fontSize:12,fontWeight:500,color:"var(--color-text-secondary)",textTransform:"uppercase",letterSpacing:"0.05em"}}>{t("tabExpenses")} · {mExpenses.length}</p>
+                    <div style={{display:"flex",flexDirection:"column",gap:4}}>
+                      {[...mExpenses].sort((a,b)=>new Date(a.date)-new Date(b.date)).map(e=>(
+                        <div key={e.id} style={{display:"flex",alignItems:"center",gap:10,padding:"6px 12px",background:"var(--color-background-secondary)",borderRadius:6,flexWrap:"wrap"}}>
+                          <span style={{fontSize:11,padding:"2px 8px",borderRadius:99,background:"var(--color-background-warning)",color:"var(--color-text-warning)",fontWeight:500}}>{tCat(e.category)}</span>
+                          <span style={{fontSize:12,flex:1,color:"var(--color-text-secondary)"}}>{e.description}</span>
+                          <span style={{fontSize:12,fontWeight:500,color:"var(--color-text-danger)"}}>{fmtBoth(e.amount,rate)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {mExpenses.length === 0 && <p style={{fontSize:13,color:"var(--color-text-tertiary)",margin:0}}>{lang==="fr"?"Aucune dépense ce mois.":"No expenses this month."}</p>}
+              </div>
+            );
+          })()}
 
           <div style={rc}>
             <p style={{margin:"0 0 1rem",fontSize:14,fontWeight:500}}>{t("nightsTitle")}</p>
