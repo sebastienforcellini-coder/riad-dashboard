@@ -172,6 +172,7 @@ export default function RiadDashboard() {
   const [editExpense, setEditExpense] = useState(null);
   const [showAddBl, setShowAddBl] = useState(false);
   const [statsPanel, setStatsPanel] = useState(null); // "past"|"future"|"all"
+  const [calView,    setCalView]    = useState("À venir");
   const [editId,    setEditId]    = useState(null);
   const [editAmt,   setEditAmt]   = useState("");
   const [editBooking, setEditBooking] = useState(null); // full booking edit
@@ -575,10 +576,10 @@ export default function RiadDashboard() {
   },[yearExpenses]);
 
   const calMonths = useMemo(()=>{
-    const t=new Date(); const r=[];
-    for(let i=0;i<4;i++){const d=new Date(t.getFullYear(),t.getMonth()+i,1);r.push({year:d.getFullYear(),month:d.getMonth()});}
+    const r=[];
+    for(let i=0;i<12;i++){r.push({year,month:i});}
     return r;
-  },[]);
+  },[year]);
 
   // ── CRUD ──────────────────────────────────────────────────────────────────────
   const saveAmount = (id) => {
@@ -993,10 +994,22 @@ export default function RiadDashboard() {
 
           {/* Grilles mensuelles */}
           <div style={{...rc,marginBottom:"1.25rem"}}>
-            <p style={{margin:"0 0 1.25rem",fontSize:14,fontWeight:500}}>4 prochains mois</p>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1.25rem",flexWrap:"wrap",gap:8}}>
+              <p style={{margin:0,fontSize:14,fontWeight:500}}>Calendrier {year}</p>
+              <div style={{display:"flex",gap:4,background:"var(--color-background-secondary)",borderRadius:8,padding:3}}>
+                {["Tous les mois","À venir"].map(v=>(
+                  <button key={v} onClick={()=>setCalView(v)} style={{border:"none",borderRadius:6,padding:"4px 12px",fontSize:12,fontWeight:calView===v?600:400,background:calView===v?"var(--color-background-primary)":"transparent",cursor:"pointer",color:calView===v?"var(--color-text-primary)":"var(--color-text-secondary)",boxShadow:calView===v?"0 1px 4px rgba(0,0,0,0.12)":"none",transition:"all .15s"}}>{v}</button>
+                ))}
+              </div>
+            </div>
             {bookings.length===0
               ? <p style={{color:"var(--color-text-tertiary)",fontSize:13,textAlign:"center",padding:"1.5rem 0"}}>Importez votre fichier .ics pour afficher le calendrier.</p>
-              : <div style={{display:"flex",gap:24,flexWrap:"wrap"}}>{calMonths.map(({year:y,month:m})=><MonthCalendar key={`${y}-${m}`} year={y} month={m} bookings={bookings} blocked={blocked} />)}</div>
+              : <div style={{display:"flex",gap:24,flexWrap:"wrap"}}>
+                  {(calView==="À venir"
+                    ? calMonths.filter(({month})=>month>=new Date().getMonth())
+                    : calMonths
+                  ).map(({year:y,month:m})=><MonthCalendar key={`${y}-${m}`} year={y} month={m} bookings={bookings} blocked={blocked} />)}
+                </div>
             }
           </div>
 
