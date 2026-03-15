@@ -265,24 +265,31 @@ export default function RiadDashboard() {
   const syncIcs = async (url = icsUrl, silent = false) => {
     if (!url) return;
     setSyncStatus("syncing");
-    let text = null;
 
-    // Essai 1 : proxy Vercel local (le plus fiable)
+    // Essai 1 : endpoint serveur /api/sync (le plus sûr — Firebase déjà chargé côté serveur)
+    try {
+      const res = await fetch("/api/sync", { method: "POST" });
+      if (res.ok) {
+        const j = await res.json();
+        if (j.success) {
+          const now = new Date().toISOString();
+          setLastSync(now);
+          setSyncStatus("ok");
+          if (!silent) showToast(`✅ ${j.message}`);
+          return;
+        }
+      }
+    } catch {}
+
+    // Fallback : proxy client
+    let text = null;
     try {
       const res = await fetch(`/api/ical?url=${encodeURIComponent(url)}`);
       if (res.ok) { const t = await res.text(); if (t.includes("BEGIN:VCALENDAR")) text = t; }
     } catch {}
-
-    // Essai 2 : allorigins JSON
     if (!text) try {
       const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`);
       if (res.ok) { const j = await res.json(); if (j?.contents?.includes("BEGIN:VCALENDAR")) text = j.contents; }
-    } catch {}
-
-    // Essai 3 : corsproxy.io
-    if (!text) try {
-      const res = await fetch(`https://corsproxy.io/?url=${encodeURIComponent(url)}`);
-      if (res.ok) { const t = await res.text(); if (t.includes("BEGIN:VCALENDAR")) text = t; }
     } catch {}
 
     if (!text) {
@@ -297,7 +304,7 @@ export default function RiadDashboard() {
         const manuals  = prev.filter(b => b.id.startsWith("MAN-"));
         const existing = Object.fromEntries(prev.map(b=>[b.id,{amount:b.amount,name:b.name||"",guests:b.guests||"",paid:b.paid||false}]));
         const airbnb   = newB.map(b=>({...b,
-          amount: existing[b.id]?.amount ?? 0,  // jamais écraser un montant existant
+          amount: existing[b.id]?.amount ?? 0,
           name:   existing[b.id]?.name   ?? "",
           guests: existing[b.id]?.guests ?? "",
           paid:   existing[b.id]?.paid   ?? false,
@@ -327,24 +334,8 @@ export default function RiadDashboard() {
     icsUrlRef.current = icsUrl;
   }, [icsUrl]);
 
-  // Auto-sync — démarre uniquement APRÈS que Firebase a chargé les données
-  useEffect(() => {
-    if (!icsUrl) return;
-    // Vérifier toutes les secondes si Firebase est prêt avant de lancer la sync
-    const waitForFirebase = setInterval(() => {
-      if (!firebaseLoaded.current) return; // pas encore prêt
-      clearInterval(waitForFirebase);
-      // Firebase est chargé — on peut maintenant syncer en sécurité
-      const interval = setInterval(() => syncIcs(icsUrlRef.current, true), 30 * 60 * 1000);
-      // Stocker l'interval dans un ref pour le cleanup
-      autoSyncInterval.current = interval;
-    }, 1000);
-    return () => {
-      clearInterval(waitForFirebase);
-      if (autoSyncInterval.current) clearInterval(autoSyncInterval.current);
-    };
-  }, [icsUrl]);
-  const autoSyncInterval = useRef(null);
+  // La sync automatique est gérée côté serveur par le cron Vercel (api/cron.js)
+  // Pas de sync côté client pour éviter tout risque d'écrasement des données
 
   // ── Import iCal — préserve les réservations manuelles ────────────────────────
   const handleIcs = (file) => {
