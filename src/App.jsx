@@ -1025,7 +1025,6 @@ export default function RiadDashboard() {
       * { transition: background-color 0.2s, color 0.2s, border-color 0.2s; }
     `}</style>
     <div style={{fontFamily:"var(--font-sans)",maxWidth:940,margin:"0 auto",padding:"1.5rem 1rem",position:"relative",background:"var(--color-background-primary)",minHeight:"100vh"}}>
-    <div style={{fontFamily:"var(--font-sans)",maxWidth:940,margin:"0 auto",padding:"1.5rem 1rem",position:"relative"}}>
 
       {/* Toast */}
       {toast && (
