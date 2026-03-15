@@ -364,6 +364,7 @@ function MonthCalendar({ year, month, bookings, blocked, monthName }) {
         })}
       </div>
     </div>
+    </>
   );
 }
 
@@ -383,6 +384,7 @@ function DropZone({ label, sub, accept, onFile, color }) {
       <p style={{margin:"0 0 3px",fontWeight:500,fontSize:14,color}}>{label}</p>
       <p style={{margin:0,fontSize:12,color:"var(--color-text-tertiary)"}}>{sub}</p>
     </div>
+    </>
   );
 }
 
@@ -406,6 +408,9 @@ export default function RiadDashboard() {
   const [calView,    setCalView]    = useState("upcoming");
   const [selectedMonth, setSelectedMonth] = useState(null); // 0-11 or null
   const [lang,       setLang]       = useState("fr");
+  const [darkMode,   setDarkMode]   = useState(() => {
+    try { return localStorage.getItem("riad_dark") === "1"; } catch { return false; }
+  });
   const t = (key) => translations[lang]?.[key] ?? translations.fr[key] ?? key;
   const tCat = (cat) => translations[lang]?.cats?.[cat] ?? cat;
   // Locale string derived from lang
@@ -431,6 +436,18 @@ export default function RiadDashboard() {
   const [showIcsUrl,setShowIcsUrl]= useState(false);
   const [syncStatus,setSyncStatus]= useState("");
   const [lastSync,  setLastSync]  = useState(null);
+
+  // ── Dark mode ────────────────────────────────────────────────────────────────
+  useEffect(() => {
+    const root = document.documentElement;
+    if (darkMode) {
+      root.setAttribute("data-theme", "dark");
+      localStorage.setItem("riad_dark", "1");
+    } else {
+      root.removeAttribute("data-theme");
+      localStorage.setItem("riad_dark", "0");
+    }
+  }, [darkMode]);
 
   // Toast helper
   const showToast = (msg) => {
@@ -979,6 +996,37 @@ export default function RiadDashboard() {
 
   // ══════════════════════════════════════════════════════════════════════════════
   return (
+    <>
+    <style>{`
+      [data-theme="dark"] {
+        --color-background-primary: #1a1a1a;
+        --color-background-secondary: #252525;
+        --color-text-primary: #f0f0f0;
+        --color-text-secondary: #a0a0a0;
+        --color-text-tertiary: #666666;
+        --color-border-primary: #333333;
+        --color-border-secondary: #333333;
+        --color-border-tertiary: #2a2a2a;
+        --color-text-success: #4caf50;
+        --color-text-danger: #ef5350;
+        --color-text-warning: #ffa726;
+        --color-text-info: #42a5f5;
+        --color-background-warning: #3a2a0a;
+        --color-background-info: #0a1f3a;
+        --color-background-success: #0a2a0a;
+        color-scheme: dark;
+      }
+      [data-theme="dark"] input,
+      [data-theme="dark"] select,
+      [data-theme="dark"] button {
+        background-color: #252525;
+        color: #f0f0f0;
+        border-color: #333333;
+      }
+      [data-theme="dark"] input::placeholder { color: #555; }
+      * { transition: background-color 0.2s, color 0.2s, border-color 0.2s; }
+    `}</style>
+    <div style={{fontFamily:"var(--font-sans)",maxWidth:940,margin:"0 auto",padding:"1.5rem 1rem",position:"relative",background:"var(--color-background-primary)",minHeight:"100vh"}}>
     <div style={{fontFamily:"var(--font-sans)",maxWidth:940,margin:"0 auto",padding:"1.5rem 1rem",position:"relative"}}>
 
       {/* Toast */}
@@ -1016,6 +1064,7 @@ export default function RiadDashboard() {
               <button key={l} onClick={()=>setLang(l)} style={{border:"none",borderRadius:6,padding:"4px 10px",fontSize:13,fontWeight:lang===l?600:400,background:lang===l?"var(--color-background-primary)":"transparent",cursor:"pointer",color:lang===l?"var(--color-text-primary)":"var(--color-text-secondary)",boxShadow:lang===l?"0 1px 4px rgba(0,0,0,0.12)":"none",transition:"all .15s"}}>{l==="fr"?"🇫🇷":"🇬🇧"}</button>
             ))}
           </div>
+          <button onClick={()=>setDarkMode(d=>!d)} style={{padding:"4px 10px",fontSize:14,background:"none",border:"0.5px solid var(--color-border-secondary)",borderRadius:6,cursor:"pointer"}} title={darkMode?"Light mode":"Dark mode"}>{darkMode?"☀️":"🌙"}</button>
           <button onClick={()=>setShowIcsUrl(r=>!r)} style={{padding:"4px 10px",fontSize:13,background:icsUrl?"#e8f5e9":"none",border:`0.5px solid ${icsUrl?"#2e7d32":"var(--color-border-secondary)"}`,borderRadius:6,color:icsUrl?"#2e7d32":"var(--color-text-secondary)"}}>🔄 {icsUrl?t("autoSyncOn"):t("configSync")}</button>
           {icsUrl && <button onClick={()=>syncIcs()} style={{padding:"4px 10px",fontSize:13,background:"none",border:"0.5px solid var(--color-border-secondary)",borderRadius:6}}>{syncStatus==="syncing"?"⏳":"↻"} {t("sync")}</button>}
           <button onClick={()=>setShowRate(r=>!r)} style={{padding:"4px 10px",fontSize:13,background:"none",border:"0.5px solid var(--color-border-secondary)",borderRadius:6}}>1€ = {rate} MAD · -{Math.round(commission*100)}%</button>
@@ -1818,5 +1867,6 @@ export default function RiadDashboard() {
         </div>
       )}
     </div>
+    </>
   );
 }
