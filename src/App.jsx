@@ -325,12 +325,8 @@ export default function RiadDashboard() {
     icsUrlRef.current = icsUrl;
   }, [icsUrl]);
 
-  useEffect(() => {
-    if (!icsUrl) return;
-    // Pas de sync au démarrage — uniquement toutes les 30 min
-    const interval = setInterval(() => syncIcs(icsUrlRef.current, true), 30 * 60 * 1000);
-    return () => clearInterval(interval);
-  }, [icsUrl]);
+  // Sync uniquement manuelle — pas d'auto-sync pour éviter l'écrasement des données
+  // Utilisez le bouton ↻ Sync pour mettre à jour manuellement
 
   // ── Import iCal — préserve les réservations manuelles ────────────────────────
   const handleIcs = (file) => {
