@@ -1608,7 +1608,7 @@ export default function RiadDashboard() {
               <div style={{background:"var(--color-background-secondary)",borderRadius:8,padding:"1rem",marginBottom:"1rem"}}>
                 <p style={{margin:"0 0 12px",fontSize:13,fontWeight:500}}>{t("newRecurring")}</p>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0 16px"}}>
-                  <div><label style={{fontSize:12,color:"var(--color-text-secondary)"}}>{t("frmCategory")}</label><select style={inp} value={rForm.category} onChange={e=>setRForm(f=>({...f,category:e.target.value}))}>{EXPENSE_CATS.map(c=><option key={c}>{c}</option>)}</select></div>
+                  <div><label style={{fontSize:12,color:"var(--color-text-secondary)"}}>{t("frmCategory")}</label><select style={inp} value={rForm.category} onChange={e=>setRForm(f=>({...f,category:e.target.value}))}>{EXPENSE_CATS.map(c=><option key={c} value={c}>{tCat(c)}</option>)}</select></div>
                   <div><label style={{fontSize:12,color:"var(--color-text-secondary)"}}>{t("frmAmount")}</label><input type="number" placeholder={t("frmPlaceholderAmountRec")} style={inp} value={rForm.amount} onChange={e=>setRForm(f=>({...f,amount:e.target.value}))} /></div>
                   <div style={{gridColumn:"1 / -1"}}><label style={{fontSize:12,color:"var(--color-text-secondary)"}}>{t("frmDesc")}</label><input type="text" placeholder={t("frmDesc2")} style={inp} value={rForm.description} onChange={e=>setRForm(f=>({...f,description:e.target.value}))} /></div>
                 </div>
@@ -1653,7 +1653,7 @@ export default function RiadDashboard() {
               <p style={{margin:"0 0 12px",fontSize:14,fontWeight:500}}>{t("newExpenseTitle")}</p>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0 16px"}}>
                 <div><label style={{fontSize:13,color:"var(--color-text-secondary)"}}>{t("frmDate")}</label><input type="date" style={inp} value={eForm.date} onChange={e=>setEForm(f=>({...f,date:e.target.value}))} /></div>
-                <div><label style={{fontSize:13,color:"var(--color-text-secondary)"}}>{t("frmCategory")}</label><select style={inp} value={eForm.category} onChange={e=>setEForm(f=>({...f,category:e.target.value}))}>{EXPENSE_CATS.map(c=><option key={c}>{c}</option>)}</select></div>
+                <div><label style={{fontSize:13,color:"var(--color-text-secondary)"}}>{t("frmCategory")}</label><select style={inp} value={eForm.category} onChange={e=>setEForm(f=>({...f,category:e.target.value}))}>{EXPENSE_CATS.map(c=><option key={c} value={c}>{tCat(c)}</option>)}</select></div>
                 <div style={{gridColumn:"1 / -1"}}><label style={{fontSize:13,color:"var(--color-text-secondary)"}}>{t("frmDesc")}</label><input type="text" placeholder={t("frmDescExp")} style={inp} value={eForm.description} onChange={e=>setEForm(f=>({...f,description:e.target.value}))} /></div>
                 <div style={{gridColumn:"1 / -1"}}><label style={{fontSize:13,color:"var(--color-text-secondary)"}}>{t("frmAmount")}</label><input type="number" placeholder={t("frmPlaceholderAmountExp")} style={inp} value={eForm.amount} onChange={e=>setEForm(f=>({...f,amount:e.target.value}))} /></div>
               </div>
@@ -1674,7 +1674,7 @@ export default function RiadDashboard() {
                       <p style={{margin:"0 0 16px",fontSize:15,fontWeight:500}}>{t("editExpenseModalTitle")}</p>
                       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0 16px"}}>
                         <div><label style={{fontSize:12,color:"var(--color-text-secondary)"}}>{t("frmDate")}</label><input type="date" style={inp} value={editExpense.date} onChange={e=>setEditExpense(x=>({...x,date:e.target.value}))} /></div>
-                        <div><label style={{fontSize:12,color:"var(--color-text-secondary)"}}>{t("frmCategory")}</label><select style={inp} value={editExpense.category} onChange={e=>setEditExpense(x=>({...x,category:e.target.value}))}>{EXPENSE_CATS.map(c=><option key={c}>{c}</option>)}</select></div>
+                        <div><label style={{fontSize:12,color:"var(--color-text-secondary)"}}>{t("frmCategory")}</label><select style={inp} value={editExpense.category} onChange={e=>setEditExpense(x=>({...x,category:e.target.value}))}>{EXPENSE_CATS.map(c=><option key={c} value={c}>{tCat(c)}</option>)}</select></div>
                         <div style={{gridColumn:"1 / -1"}}><label style={{fontSize:12,color:"var(--color-text-secondary)"}}>{t("frmDesc")}</label><input type="text" style={inp} value={editExpense.description} onChange={e=>setEditExpense(x=>({...x,description:e.target.value}))} /></div>
                         <div style={{gridColumn:"1 / -1"}}><label style={{fontSize:12,color:"var(--color-text-secondary)"}}>{t("frmAmount")}</label><input type="number" style={inp} value={editExpense.amount} onChange={e=>setEditExpense(x=>({...x,amount:e.target.value}))} /></div>
                       </div>
