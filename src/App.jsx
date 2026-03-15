@@ -488,7 +488,7 @@ export default function RiadDashboard() {
 
   useEffect(() => {
     saveStorage({ bookings, blocked, expenses, year, nextId, currency, rate, commission, recurring, icsUrl, lastSync, ignoredBlocks });
-  }, [bookings, blocked, expenses, year, nextId, currency, rate, commission, recurring, icsUrl, lastSync]);
+  }, [bookings, blocked, expenses, year, nextId, currency, rate, commission, recurring, icsUrl, lastSync, ignoredBlocks]);
 
   // ── Cloud sync (Firestore) ───────────────────────────────────────────────────
   const [cloudStatus, setCloudStatus] = useState("");
@@ -529,7 +529,7 @@ export default function RiadDashboard() {
         .then(() => setCloudStatus("saved"))
         .catch(() => setCloudStatus("error"));
     }, 1500);
-  }, [bookings, blocked, expenses, year, nextId, currency, rate, commission, recurring, icsUrl, lastSync]);
+  }, [bookings, blocked, expenses, year, nextId, currency, rate, commission, recurring, icsUrl, lastSync, ignoredBlocks]);
 
   // ── Sync automatique .ics ────────────────────────────────────────────────────
   const syncIcs = async (url = icsUrl, silent = false) => {
