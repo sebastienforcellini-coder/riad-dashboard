@@ -734,7 +734,18 @@ export default function RiadDashboard() {
   );
   const TT=({active,payload,label})=>{
     if(!active||!payload?.length) return null;
-    return <div style={{...rc,padding:"10px 14px",fontSize:13,minWidth:150}}><p style={{margin:"0 0 6px",fontWeight:500}}>{label}</p>{payload.map(p=><p key={p.name} style={{margin:"2px 0",color:p.color}}>{p.name} : {fmt(p.value,rate,currency)}</p>)}</div>;
+    return (
+      <div style={{...rc,padding:"10px 14px",fontSize:13,minWidth:180}}>
+        <p style={{margin:"0 0 8px",fontWeight:600}}>{label}</p>
+        {payload.map(p=>(
+          <div key={p.name} style={{margin:"4px 0"}}>
+            <span style={{color:p.color,fontWeight:500}}>{p.name}</span>
+            <div style={{fontSize:13,fontWeight:500}}>{fmtMAD(p.value)}</div>
+            <div style={{fontSize:11,color:"var(--color-text-tertiary)"}}>{fmtEUR(p.value/rate)}</div>
+          </div>
+        ))}
+      </div>
+    );
   };
 
   // ══════════════════════════════════════════════════════════════════════════════
