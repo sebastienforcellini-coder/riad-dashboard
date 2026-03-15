@@ -1490,8 +1490,15 @@ export default function RiadDashboard() {
       {tab==="chart" && (
         <div>
           <div style={{...rc,marginBottom:"1.25rem"}}>
-            <p style={{margin:"0 0 4px",fontSize:14,fontWeight:500}}>{t("chartTitle")} — {year}</p>
-            <p style={{margin:"0 0 1rem",fontSize:12,color:"var(--color-text-tertiary)"}}>{lang==="fr"?"Cliquez sur un mois pour le détail":"Click a month for details"}</p>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:8,marginBottom:"1rem"}}>
+              <p style={{margin:0,fontSize:14,fontWeight:500}}>{t("chartTitle")} — {year}</p>
+              <div style={{display:"flex",gap:16,alignItems:"center",flexWrap:"wrap"}}>
+                <span style={{display:"flex",alignItems:"center",gap:5,fontSize:12,color:"var(--color-text-secondary)"}}><div style={{width:12,height:12,borderRadius:2,background:C_RESERVED,flexShrink:0}}/>{t("seriesRevenue")}</span>
+                <span style={{display:"flex",alignItems:"center",gap:5,fontSize:12,color:"var(--color-text-secondary)"}}><div style={{width:12,height:12,borderRadius:2,background:"#E8923A",flexShrink:0}}/>{t("seriesExpenses")}</span>
+                <span style={{display:"flex",alignItems:"center",gap:5,fontSize:12,color:"var(--color-text-secondary)"}}><div style={{width:12,height:12,borderRadius:2,background:C_BLOCKED,flexShrink:0}}/>{t("seriesProfit")}</span>
+                <span style={{fontSize:11,color:"var(--color-text-tertiary)"}}>· {lang==="fr"?"cliquez pour le détail":"click for details"}</span>
+              </div>
+            </div>
             <ResponsiveContainer width="100%" height={260}>
               <BarChart data={monthlyData} barGap={4} barCategoryGap="30%"
                 onClick={e=>{ if(e&&e.activeTooltipIndex!=null){ const i=e.activeTooltipIndex; setSelectedMonth(selectedMonth===i?null:i); }}}>
@@ -1503,8 +1510,8 @@ export default function RiadDashboard() {
                 }} axisLine={false} tickLine={false} />
                 <YAxis tick={{fontSize:11,fill:"var(--color-text-secondary)"}} axisLine={false} tickLine={false} tickFormatter={v=>v===0?"0":currency==="EUR"?`${Math.round(v/rate/1000)}k€`:`${Math.round(v/1000)}k`} />
                 <Tooltip content={<TT />} cursor={{fill:"var(--color-background-secondary)",radius:4}} />
-                <Bar dataKey="Revenus"  name={t("seriesRevenue")}   fill={C_RESERVED} radius={[3,3,0,0]} />
-                <Bar dataKey="Dépenses" name={t("seriesExpenses")}  fill="#E24B4A"    radius={[3,3,0,0]} />
+                <Bar dataKey="Revenus"  name={t("seriesRevenue")}   fill="#2e7d32" radius={[3,3,0,0]} />
+                <Bar dataKey="Dépenses" name={t("seriesExpenses")}  fill={C_RESERVED} radius={[3,3,0,0]} />
                 <Bar dataKey="Bénéfice" name={t("seriesProfit")}    fill={C_BLOCKED}  radius={[3,3,0,0]} />
               </BarChart>
             </ResponsiveContainer>
