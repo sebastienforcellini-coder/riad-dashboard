@@ -225,12 +225,14 @@ export default function RiadDashboard() {
   const [cloudStatus, setCloudStatus] = useState("");
   const saveTimer = useRef(null);
   const isFromFirebase = useRef(false);
+  const firebaseLoaded = useRef(false); // true une fois que Firebase a envoyé ses données
 
   useEffect(() => {
     const unsub = onSnapshot(DOC_REF, (snap) => {
       if (snap.exists()) {
         const data = snap.data();
         isFromFirebase.current = true;
+        firebaseLoaded.current = true; // Firebase a bien chargé
         if (data.bookings)  setBookings(data.bookings);
         if (data.blocked)   setBlocked(data.blocked);
         if (data.expenses)  setExpenses(data.expenses);
@@ -325,8 +327,24 @@ export default function RiadDashboard() {
     icsUrlRef.current = icsUrl;
   }, [icsUrl]);
 
-  // Sync uniquement manuelle — pas d'auto-sync pour éviter l'écrasement des données
-  // Utilisez le bouton ↻ Sync pour mettre à jour manuellement
+  // Auto-sync — démarre uniquement APRÈS que Firebase a chargé les données
+  useEffect(() => {
+    if (!icsUrl) return;
+    // Vérifier toutes les secondes si Firebase est prêt avant de lancer la sync
+    const waitForFirebase = setInterval(() => {
+      if (!firebaseLoaded.current) return; // pas encore prêt
+      clearInterval(waitForFirebase);
+      // Firebase est chargé — on peut maintenant syncer en sécurité
+      const interval = setInterval(() => syncIcs(icsUrlRef.current, true), 30 * 60 * 1000);
+      // Stocker l'interval dans un ref pour le cleanup
+      autoSyncInterval.current = interval;
+    }, 1000);
+    return () => {
+      clearInterval(waitForFirebase);
+      if (autoSyncInterval.current) clearInterval(autoSyncInterval.current);
+    };
+  }, [icsUrl]);
+  const autoSyncInterval = useRef(null);
 
   // ── Import iCal — préserve les réservations manuelles ────────────────────────
   const handleIcs = (file) => {
