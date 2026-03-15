@@ -518,7 +518,15 @@ export default function RiadDashboard() {
         const data = JSON.parse(e.target.result);
         if (!data.version) throw new Error("Format invalide");
         if (data.bookings)  setBookings(data.bookings);
-        if (data.blocked)   setBlocked(data.blocked);
+        if (data.blocked) {
+          // Filtrer les blocages Airbnb qui chevauchent des réservations manuelles
+          const manuals = (data.bookings||[]).filter(b => b.id.startsWith("MAN-"));
+          const filtered = (data.blocked||[]).filter(bl =>
+            bl.type === "personal" ||
+            !manuals.some(mb => mb.checkIn < bl.end && mb.checkOut > bl.start)
+          );
+          setBlocked(filtered);
+        }
         if (data.expenses)  setExpenses(data.expenses);
         if (data.recurring) setRecurring(data.recurring);
         if (data.rate)      setRate(data.rate);
