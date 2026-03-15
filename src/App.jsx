@@ -3,7 +3,33 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import * as XLSX from "xlsx";
 import { initializeApp } from "firebase/app";
 import { getFirestore, doc, setDoc, onSnapshot } from "firebase/firestore";
-import { translations } from "./i18n.js";
+
+const translations = {
+  fr: {
+    title:"Kasbah Blanca Marrakech",subtitle:"Tableau de bord locatif",saving:"⏳ Sauvegarde...",synced:"☁️ Synchronisé",offline:"⚠️ Hors ligne",syncOk:"✅ Airbnb",syncFail:"⚠️ Sync échouée",configSync:"Configurer sync",autoSyncOn:"Auto-sync ON",sync:"Sync",backup:"💾 Backup",restore:"📂 Restore",
+    syncPanelTitle:"🔄 Synchronisation automatique Airbnb",syncPanelDesc:"Airbnb → Calendrier → Lien iCal → copiez l'URL ici. Le calendrier se rafraîchit automatiquement tous les jours à 6h.",syncNow:"↻ Synchroniser maintenant",syncDelete:"✕ Supprimer",lastSync:"Dernière sync",rateLabel:"Taux de change :",commissionLabel:"Commission conciergerie Airbnb :",
+    alertsTitle:"ARRIVÉES & DÉPARTS — 7 PROCHAINS JOURS",enableNotif:"🔔 Activer notifications",notifOn:"🔔 Notifs ON · Désactiver",arrivalToday:"Arrivée aujourd'hui !",arrivalTomorrow:"Arrivée demain",arrivalIn:"Arrivée dans",departureToday:"Départ aujourd'hui !",departureTomorrow:"Départ demain",departureIn:"Départ dans",days:"j",
+    netRevenue:"Revenus nets",expenses:"Dépenses",netProfit:"Bénéfice net",occupation:"Occupation",avgNight:"Moy. / nuit",payingNights:"n payantes",persoNights:"n perso",onAmounts:"sur montants saisis",gross:"Brut",margin:"Marge",
+    pastBookings:"Réservations échues",futureBookings:"Réservations à venir",caTotal:"CA total",staysDone:"séjour terminé",staysDonePlural:"séjours terminés",staysAhead:"séjour à venir",staysAheadPlural:"séjours à venir",encaisse:"encaissé",aVenir:"à venir",noBookings:"Aucune réservation.",
+    tabCalendar:"Calendrier",tabBookings:"Réservations",tabChart:"Graphique",tabExpenses:"Dépenses",
+    calendarTitle:"Calendrier",allMonths:"Tous les mois",upcoming:"À venir",available:"Disponible",reserved:"Réservé",perso:"Perso",today:"Aujourd'hui",personalPeriods:"🔵 Périodes bloquées (vacances perso)",noPersonalPeriods:"Aucune période personnelle bloquée.",blockDates:"+ Bloquer dates ↗",airbnbUnavail:"Indisponibilités Airbnb — cliquez \"→ Réservation\" si c'est une résa directe",toBooking:"→ Réservation",
+    addBooking:"+ Ajouter ↗",bookingsSummary:"réservations",noAmountSet:"sans montant",colArrival:"Arrivée",colDeparture:"Départ",colCode:"Code",colName:"Nom",colNights:"Nuits",colGuests:"Occupants",colRate:"Tarif/nuit",colTotal:"Total séjour",editBookingTitle:"Modifier la réservation",save:"Enregistrer",cancel:"Annuler",
+    chartTitle:"Revenus et dépenses",nightsTitle:"Nuits réservées par mois",paying:"Payantes",forecastTitle:"📈 Prévisionnel",collected:"Encaissé",confirmed:"Confirmé à venir",projected:"Projection annuelle",fillRate:"Taux de remplissage",
+    expenseTitle:"Dépenses récurrentes",addExpense:"+ Ajouter ↗",generate:"Générer",colDate:"Date",colCategory:"Catégorie",colDesc:"Description",colAmount:"Montant",total:"Total",byCategory:"Répartition par catégorie",
+  },
+  en: {
+    title:"Kasbah Blanca Marrakech",subtitle:"Rental dashboard",saving:"⏳ Saving...",synced:"☁️ Synced",offline:"⚠️ Offline",syncOk:"✅ Airbnb",syncFail:"⚠️ Sync failed",configSync:"Setup sync",autoSyncOn:"Auto-sync ON",sync:"Sync",backup:"💾 Backup",restore:"📂 Restore",
+    syncPanelTitle:"🔄 Automatic Airbnb sync",syncPanelDesc:"Airbnb → Calendar → iCal link → paste the URL here. Calendar refreshes automatically every day at 6am.",syncNow:"↻ Sync now",syncDelete:"✕ Remove",lastSync:"Last sync",rateLabel:"Exchange rate:",commissionLabel:"Airbnb concierge commission:",
+    alertsTitle:"ARRIVALS & DEPARTURES — NEXT 7 DAYS",enableNotif:"🔔 Enable notifications",notifOn:"🔔 Notifs ON · Disable",arrivalToday:"Arrival today!",arrivalTomorrow:"Arrival tomorrow",arrivalIn:"Arrival in",departureToday:"Departure today!",departureTomorrow:"Departure tomorrow",departureIn:"Departure in",days:"d",
+    netRevenue:"Net revenue",expenses:"Expenses",netProfit:"Net profit",occupation:"Occupancy",avgNight:"Avg. / night",payingNights:"paying nights",persoNights:"personal nights",onAmounts:"based on entered amounts",gross:"Gross",margin:"Margin",
+    pastBookings:"Past bookings",futureBookings:"Upcoming bookings",caTotal:"Total revenue",staysDone:"stay completed",staysDonePlural:"stays completed",staysAhead:"stay ahead",staysAheadPlural:"stays ahead",encaisse:"collected",aVenir:"upcoming",noBookings:"No bookings.",
+    tabCalendar:"Calendar",tabBookings:"Bookings",tabChart:"Chart",tabExpenses:"Expenses",
+    calendarTitle:"Calendar",allMonths:"All months",upcoming:"Upcoming",available:"Available",reserved:"Reserved",perso:"Personal",today:"Today",personalPeriods:"🔵 Blocked periods (personal)",noPersonalPeriods:"No personal periods blocked.",blockDates:"+ Block dates ↗",airbnbUnavail:"Airbnb unavailabilities — click \"→ Booking\" if it's a direct booking",toBooking:"→ Booking",
+    addBooking:"+ Add ↗",bookingsSummary:"bookings",noAmountSet:"no amount",colArrival:"Arrival",colDeparture:"Departure",colCode:"Code",colName:"Name",colNights:"Nights",colGuests:"Guests",colRate:"Rate/night",colTotal:"Total stay",editBookingTitle:"Edit booking",save:"Save",cancel:"Cancel",
+    chartTitle:"Revenue and expenses",nightsTitle:"Booked nights per month",paying:"Paying",forecastTitle:"📈 Forecast",collected:"Collected",confirmed:"Confirmed upcoming",projected:"Annual projection",fillRate:"Fill rate",
+    expenseTitle:"Recurring expenses",addExpense:"+ Add ↗",generate:"Generate",colDate:"Date",colCategory:"Category",colDesc:"Description",colAmount:"Amount",total:"Total",byCategory:"Breakdown by category",
+  }
+};
 
 // ── Firebase config ───────────────────────────────────────────────────────────
 const firebaseConfig = {
