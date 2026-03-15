@@ -1076,7 +1076,10 @@ export default function RiadDashboard() {
                     return <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",fontSize:12,color:"var(--color-text-secondary)",padding:"8px 10px",background:"var(--color-background-secondary)",borderRadius:6,flexWrap:"wrap",gap:6}}>
                       <span>{fmtDate(b.start)} → {fmtDate(b.end)}</span>
                       <span style={{color:"var(--color-text-tertiary)"}}>{n} jour{n>1?"s":""}</span>
-                      <button onClick={convertToBooking} style={{fontSize:11,padding:"3px 10px",background:C_RESERVED,color:"#fff",border:"none",borderRadius:5,cursor:"pointer"}}>→ Réservation</button>
+                      <div style={{display:"flex",gap:6}}>
+                        <button onClick={convertToBooking} style={{fontSize:11,padding:"3px 10px",background:C_RESERVED,color:"#fff",border:"none",borderRadius:5,cursor:"pointer"}}>→ Réservation</button>
+                        <button onClick={()=>{setBlocked(prev=>prev.filter(x=>x!==b));showToast("Blocage supprimé");}} style={{fontSize:11,color:"var(--color-text-danger)",border:"none",background:"none",cursor:"pointer",padding:"2px 6px"}}>✕</button>
+                      </div>
                     </div>;
                   })}
                 </div>
