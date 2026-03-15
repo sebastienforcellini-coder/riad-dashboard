@@ -293,8 +293,13 @@ export default function RiadDashboard() {
       if (!newB.length && !newBl.length) throw new Error("Vide");
       setBookings(prev => {
         const manuals  = prev.filter(b => b.id.startsWith("MAN-"));
-        const existing = Object.fromEntries(prev.map(b=>[b.id,{amount:b.amount,name:b.name||"",guests:b.guests||""}]));
-        const airbnb   = newB.map(b=>({...b, amount:existing[b.id]?.amount??0, name:existing[b.id]?.name??"", guests:existing[b.id]?.guests??""}));
+        const existing = Object.fromEntries(prev.map(b=>[b.id,{amount:b.amount,name:b.name||"",guests:b.guests||"",paid:b.paid||false}]));
+        const airbnb   = newB.map(b=>({...b,
+          amount: existing[b.id]?.amount ?? 0,  // jamais écraser un montant existant
+          name:   existing[b.id]?.name   ?? "",
+          guests: existing[b.id]?.guests ?? "",
+          paid:   existing[b.id]?.paid   ?? false,
+        }));
         return [...airbnb, ...manuals];
       });
       setBlocked(prev => {
@@ -322,15 +327,9 @@ export default function RiadDashboard() {
 
   useEffect(() => {
     if (!icsUrl) return;
-    // Attendre 10s que Firebase charge les données avant la première sync
-    // Ne sync automatiquement que si aucun montant n'a encore été saisi (1ère utilisation)
-    const firstSync = setTimeout(() => {
-      const hasAmounts = bookings.some(b => b.amount > 0);
-      // Si des montants existent déjà, on ne sync qu'en silence sans risque d'écrasement
-      syncIcs(icsUrl, true);
-    }, 10000);
-    const interval  = setInterval(() => syncIcs(icsUrlRef.current, true), 30 * 60 * 1000);
-    return () => { clearTimeout(firstSync); clearInterval(interval); };
+    // Pas de sync au démarrage — uniquement toutes les 30 min
+    const interval = setInterval(() => syncIcs(icsUrlRef.current, true), 30 * 60 * 1000);
+    return () => clearInterval(interval);
   }, [icsUrl]);
 
   // ── Import iCal — préserve les réservations manuelles ────────────────────────
