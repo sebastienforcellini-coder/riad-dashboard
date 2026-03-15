@@ -1282,7 +1282,11 @@ export default function RiadDashboard() {
             }
             {/* Indispo Airbnb */}
             {(()=>{
-              const airbnbBlocked = blocked.filter(b=>(b.type==="airbnb"||!b.type));
+              // Cacher les blocs dont le début est déjà couvert par une réservation existante
+              const airbnbBlocked = blocked.filter(b => {
+                if (b.type !== "airbnb" && b.type) return false;
+                return !bookings.some(bk => bk.checkIn <= b.start && bk.checkOut > b.start);
+              });
               if (!airbnbBlocked.length) return null;
               return (
                 <div style={{marginTop:"1rem",paddingTop:"1rem",borderTop:"0.5px solid var(--color-border-tertiary)"}}>
