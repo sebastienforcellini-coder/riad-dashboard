@@ -405,6 +405,9 @@ export default function RiadDashboard() {
   // calView now uses internal keys: "all" | "upcoming"
   const [calView,    setCalView]    = useState("upcoming");
   const [selectedMonth, setSelectedMonth] = useState(null); // 0-11 or null
+  const [ignoredBlocks, setIgnoredBlocks] = useState(() => {
+    try { const s = localStorage.getItem("riad_ignored_blocks"); return s ? JSON.parse(s) : []; } catch { return []; }
+  });
   const [lang,       setLang]       = useState("fr");
   const [darkMode,   setDarkMode]   = useState(() => {
     try { return localStorage.getItem("riad_dark") === "1"; } catch { return false; }
@@ -480,6 +483,10 @@ export default function RiadDashboard() {
   }, []);
 
   useEffect(() => {
+    try { localStorage.setItem("riad_ignored_blocks", JSON.stringify(ignoredBlocks)); } catch {}
+  }, [ignoredBlocks]);
+
+  useEffect(() => {
     saveStorage({ bookings, blocked, expenses, year, nextId, currency, rate, commission, recurring, icsUrl, lastSync });
   }, [bookings, blocked, expenses, year, nextId, currency, rate, commission, recurring, icsUrl, lastSync]);
 
@@ -549,18 +556,21 @@ export default function RiadDashboard() {
       if (!newB.length && !newBl.length) throw new Error("Empty");
       setBookings(prev => {
         const manuals  = prev.filter(b => b.id.startsWith("MAN-"));
-        const existing = Object.fromEntries(prev.map(b=>[b.id,{amount:b.amount,name:b.name||"",guests:b.guests||"",paid:b.paid||false}]));
+        const existing = Object.fromEntries(prev.map(b=>[b.id,{amount:b.amount,name:b.name||"",guests:b.guests||"",paid:b.paid||false,nameEdited:b.nameEdited||false}]));
         const airbnb   = newB.map(b=>({...b,
           amount: existing[b.id]?.amount ?? 0,
-          name:   existing[b.id]?.name   ?? "",
+          // Preserve manually-edited name — never overwrite with ICS name
+          name:   existing[b.id]?.nameEdited ? existing[b.id].name : (existing[b.id]?.name || b.name || ""),
           guests: existing[b.id]?.guests ?? "",
           paid:   existing[b.id]?.paid   ?? false,
+          nameEdited: existing[b.id]?.nameEdited ?? false,
         }));
         return [...airbnb, ...manuals];
       });
       setBlocked(prev => {
-        const personal   = prev.filter(b => b.type === "personal");
-        const filtered   = newBl;
+        const personal = prev.filter(b => b.type === "personal");
+        const currentIgnored = ignoredBlocks;
+        const filtered = newBl.filter(bl => !currentIgnored.includes(bl.uid || (bl.start+"_"+bl.end)));
         return [...filtered, ...personal];
       });
       const now = new Date().toISOString();
@@ -585,8 +595,13 @@ export default function RiadDashboard() {
         if (!newB.length && !newBl.length) { showToast(t("toastIcsEmpty")); return; }
         setBookings(prev => {
           const manuals  = prev.filter(b => b.id.startsWith("MAN-"));
-          const existing = Object.fromEntries(prev.map(b=>[b.id,{amount:b.amount,name:b.name||"",guests:b.guests||""}]));
-          const airbnb   = newB.map(b=>({...b, amount:existing[b.id]?.amount??0, name:existing[b.id]?.name??"", guests:existing[b.id]?.guests??""}));
+          const existing = Object.fromEntries(prev.map(b=>[b.id,{amount:b.amount,name:b.name||"",guests:b.guests||"",nameEdited:b.nameEdited||false}]));
+          const airbnb   = newB.map(b=>({...b,
+            amount: existing[b.id]?.amount ?? 0,
+            name:   existing[b.id]?.nameEdited ? existing[b.id].name : (existing[b.id]?.name || b.name || ""),
+            guests: existing[b.id]?.guests ?? "",
+            nameEdited: existing[b.id]?.nameEdited ?? false,
+          }));
           return [...airbnb, ...manuals];
         });
         setBlocked(prev => {
@@ -816,7 +831,7 @@ export default function RiadDashboard() {
   const saveEditBooking = () => {
     if (!editBooking) return;
     const nights = Math.round((new Date(editBooking.checkOut)-new Date(editBooking.checkIn))/86400000);
-    setBookings(prev=>prev.map(b=>b.id===editBooking.id?{...editBooking,nights}:b));
+    setBookings(prev=>prev.map(b=>b.id===editBooking.id?{...editBooking,nights,nameEdited:true}:b));
     setEditBooking(null);
     showToast(t("toastBookingUpdated"));
   };
@@ -1330,10 +1345,11 @@ export default function RiadDashboard() {
             {/* Indispo Airbnb */}
             {(()=>{
               // Cacher les blocs dont le début est déjà couvert par une réservation existante
-              const in365Days = new Date(); in365Days.setDate(in365Days.getDate() + 360);
+              const in360Days = new Date(); in360Days.setDate(in360Days.getDate() + 360);
               const airbnbBlocked = blocked.filter(b => {
                 if (b.type !== "airbnb" && b.type) return false;
-                if (new Date(b.start) > in365Days) return false;
+                if (new Date(b.start) > in360Days) return false;
+                if (ignoredBlocks.includes(b.uid || (b.start+"_"+b.end))) return false;
                 return !bookings.some(bk => bk.checkIn <= b.start && bk.checkOut > b.start);
               });
               if (!airbnbBlocked.length) return null;
@@ -1359,7 +1375,12 @@ export default function RiadDashboard() {
                         <span style={{color:"var(--color-text-tertiary)"}}>{n} {n>1?t("dayPlural"):t("daySingle")}</span>
                         <div style={{display:"flex",gap:6}}>
                           <button onClick={convertToBooking} style={{fontSize:11,padding:"3px 10px",background:C_RESERVED,color:"#fff",border:"none",borderRadius:5,cursor:"pointer"}}>{t("toBooking")}</button>
-                          <button onClick={()=>{setBlocked(prev=>prev.filter(x=>x!==b));showToast(t("toastAirbnbDel"));}} style={{fontSize:11,color:"var(--color-text-danger)",border:"none",background:"none",cursor:"pointer",padding:"2px 6px"}}>✕</button>
+                          <button onClick={()=>{
+                            const uid = b.uid || (b.start+"_"+b.end);
+                            setIgnoredBlocks(prev=>[...new Set([...prev, uid])]);
+                            setBlocked(prev=>prev.filter(x=>x!==b));
+                            showToast(t("toastAirbnbDel"));
+                          }} style={{fontSize:11,color:"var(--color-text-danger)",border:"none",background:"none",cursor:"pointer",padding:"2px 6px"}}>✕</button>
                         </div>
                       </div>;
                     })}
