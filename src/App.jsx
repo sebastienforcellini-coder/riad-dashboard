@@ -1493,8 +1493,8 @@ export default function RiadDashboard() {
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:8,marginBottom:"1rem"}}>
               <p style={{margin:0,fontSize:14,fontWeight:500}}>{t("chartTitle")} — {year}</p>
               <div style={{display:"flex",gap:16,alignItems:"center",flexWrap:"wrap"}}>
-                <span style={{display:"flex",alignItems:"center",gap:5,fontSize:12,color:"var(--color-text-secondary)"}}><div style={{width:12,height:12,borderRadius:2,background:C_RESERVED,flexShrink:0}}/>{t("seriesRevenue")}</span>
-                <span style={{display:"flex",alignItems:"center",gap:5,fontSize:12,color:"var(--color-text-secondary)"}}><div style={{width:12,height:12,borderRadius:2,background:"#E8923A",flexShrink:0}}/>{t("seriesExpenses")}</span>
+                <span style={{display:"flex",alignItems:"center",gap:5,fontSize:12,color:"var(--color-text-secondary)"}}><div style={{width:12,height:12,borderRadius:2,background:"#2e7d32",flexShrink:0}}/>{t("seriesRevenue")}</span>
+                <span style={{display:"flex",alignItems:"center",gap:5,fontSize:12,color:"var(--color-text-secondary)"}}><div style={{width:12,height:12,borderRadius:2,background:C_RESERVED,flexShrink:0}}/>{t("seriesExpenses")}</span>
                 <span style={{display:"flex",alignItems:"center",gap:5,fontSize:12,color:"var(--color-text-secondary)"}}><div style={{width:12,height:12,borderRadius:2,background:C_BLOCKED,flexShrink:0}}/>{t("seriesProfit")}</span>
                 <span style={{fontSize:11,color:"var(--color-text-tertiary)"}}>· {lang==="fr"?"cliquez pour le détail":"click for details"}</span>
               </div>
