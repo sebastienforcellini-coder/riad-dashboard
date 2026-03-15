@@ -1128,7 +1128,7 @@ export default function RiadDashboard() {
       {/* Stats échues / à venir */}
       <div style={{display:"flex",gap:12,flexWrap:"wrap",marginBottom:"1.25rem"}}>
         {[
-          {key:"past",  label:t("pastBookings"),  value:fmtBoth(pastRevenue,rate),   sub:pastBookings.length+" "+(pastBookings.length>1?t("staysDonePlural"):t("staysDone")),   color:C_RESERVED},
+          {key:"past",  label:t("pastBookings"),  value:fmtBoth(pastRevenue,rate),   sub:pastBookings.length+" "+(pastBookings.length>1?t("staysDonePlural"):t("staysDone")),   color:"#2e7d32"},
           {key:"future",label:t("futureBookings"), value:fmtBoth(futureRevenue,rate),  sub:futureBookings.length+" "+(futureBookings.length>1?t("staysAheadPlural"):t("staysAhead")), color:C_BLOCKED},
           {key:"all",   label:`${t("caTotal")} ${year}`, value:fmtBoth(totalRevenue,rate), sub:(Math.round((pastRevenue/totalRevenue)*100)||0)+"% "+t("encaisse")+" · "+(Math.round((futureRevenue/totalRevenue)*100)||0)+"% "+t("aVenir"), color:"#BA7517"},
         ].map(card=>(
