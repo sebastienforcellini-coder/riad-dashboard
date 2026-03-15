@@ -511,20 +511,8 @@ export default function RiadDashboard() {
   const syncIcs = async (url = icsUrl, silent = false) => {
     if (!url) return;
     setSyncStatus("syncing");
-    try {
-      const res = await fetch("/api/sync", { method: "POST" });
-      if (res.ok) {
-        const j = await res.json();
-        if (j.success) {
-          const now = new Date().toISOString();
-          setLastSync(now);
-          setSyncStatus("ok");
-          if (!silent) showToast(`✅ ${j.message}`);
-          return;
-        }
-      }
-    } catch {}
 
+    // Toujours sync côté client — le cron Vercel gère l'auto à 6h
     let text = null;
     try {
       const res = await fetch(`/api/ical?url=${encodeURIComponent(url)}`);
