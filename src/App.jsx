@@ -116,6 +116,7 @@ const translations = {
     xlsByPlatform:"Par plateforme",xlsMonthly:"Bilan mensuel",
     // ── Edit modals ──
     editBookingModalTitle:"✏️ Modifier la réservation",editExpenseModalTitle:"✏️ Modifier la dépense",
+    cats:{"Ménage":"Ménage","Gouvernante":"Gouvernante","Pisciniste":"Pisciniste","Frais Airbnb":"Frais Airbnb","Maintenance":"Maintenance","Fournitures":"Fournitures","Taxes/CFE":"Taxes/CFE","Internet":"Internet","Eau/Électricité":"Eau/Électricité","Assurance":"Assurance","Autre":"Autre"},
   },
   en: {
     // ── App ──
@@ -228,6 +229,7 @@ const translations = {
     xlsByPlatform:"By platform",xlsMonthly:"Monthly summary",
     // ── Edit modals ──
     editBookingModalTitle:"✏️ Edit booking",editExpenseModalTitle:"✏️ Edit expense",
+    cats:{"Ménage":"Cleaning","Gouvernante":"Housekeeper","Pisciniste":"Pool technician","Frais Airbnb":"Airbnb fees","Maintenance":"Maintenance","Fournitures":"Supplies","Taxes/CFE":"Taxes/CFE","Internet":"Internet","Eau/Électricité":"Water/Electricity","Assurance":"Insurance","Autre":"Other"},
   }
 };
 
@@ -404,6 +406,7 @@ export default function RiadDashboard() {
   const [calView,    setCalView]    = useState("upcoming");
   const [lang,       setLang]       = useState("fr");
   const t = (key) => translations[lang]?.[key] ?? translations.fr[key] ?? key;
+  const tCat = (cat) => translations[lang]?.cats?.[cat] ?? cat;
   // Locale string derived from lang
   const locale = lang === "fr" ? "fr-FR" : "en-GB";
   // Language-aware month names
@@ -1624,7 +1627,7 @@ export default function RiadDashboard() {
               <div style={{display:"flex",flexDirection:"column",gap:8}}>
                 {recurring.map(rec=>(
                   <div key={rec.id} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 10px",background:"var(--color-background-secondary)",borderRadius:8,flexWrap:"wrap"}}>
-                    <span style={{fontSize:11,padding:"2px 8px",borderRadius:99,background:"var(--color-background-warning)",color:"var(--color-text-warning)",fontWeight:500,flexShrink:0}}>{rec.category}</span>
+                    <span style={{fontSize:11,padding:"2px 8px",borderRadius:99,background:"var(--color-background-warning)",color:"var(--color-text-warning)",fontWeight:500,flexShrink:0}}>{tCat(rec.category)}</span>
                     <span style={{fontSize:13,flex:1,minWidth:120}}>{rec.description}</span>
                     <span style={{fontSize:13,fontWeight:500,color:"var(--color-text-danger)",flexShrink:0}}>{fmtBoth(rec.amount,rate)}</span>
                     <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
@@ -1690,7 +1693,7 @@ export default function RiadDashboard() {
                     {[...yearExpenses].sort((a,b)=>new Date(a.date)-new Date(b.date)).map(e=>(
                       <tr key={e.id} style={{borderBottom:"0.5px solid var(--color-border-tertiary)"}}>
                         <td style={{padding:"10px 6px",whiteSpace:"nowrap"}}>{fmtDate(e.date,locale)}</td>
-                        <td style={{padding:"10px 6px"}}><span style={{fontSize:11,padding:"2px 8px",borderRadius:99,background:"var(--color-background-warning)",color:"var(--color-text-warning)",fontWeight:500}}>{e.category}</span></td>
+                        <td style={{padding:"10px 6px"}}><span style={{fontSize:11,padding:"2px 8px",borderRadius:99,background:"var(--color-background-warning)",color:"var(--color-text-warning)",fontWeight:500}}>{tCat(e.category)}</span></td>
                         <td style={{padding:"10px 6px",overflow:"hidden",textOverflow:"ellipsis",color:"var(--color-text-secondary)"}}>{e.description}</td>
                         <td style={{padding:"10px 6px",fontWeight:500,color:"var(--color-text-danger)"}}>{fmtBoth(e.amount,rate)}</td>
                         <td style={{padding:"10px 6px",textAlign:"right"}}>
@@ -1706,7 +1709,7 @@ export default function RiadDashboard() {
                   <div style={{marginTop:"1.25rem",paddingTop:"1.25rem",borderTop:"0.5px solid var(--color-border-tertiary)"}}>
                     <p style={{margin:"0 0 12px",fontSize:13,fontWeight:500,color:"var(--color-text-secondary)"}}>{t("byCategory")}</p>
                     <div style={{display:"flex",flexDirection:"column",gap:8}}>
-                      {expByCat.map(([cat,amt])=>{const pct=totalExp?Math.round((amt/totalExp)*100):0;return <div key={cat}><div style={{display:"flex",justifyContent:"space-between",fontSize:13,marginBottom:4}}><span>{cat}</span><span style={{color:"var(--color-text-secondary)"}}>{fmtBoth(amt,rate)} · {pct}%</span></div><div style={{background:"var(--color-background-secondary)",borderRadius:99,height:6,overflow:"hidden"}}><div style={{width:`${pct}%`,height:"100%",background:"#BA7517",borderRadius:99}} /></div></div>;})}
+                      {expByCat.map(([cat,amt])=>{const pct=totalExp?Math.round((amt/totalExp)*100):0;return <div key={cat}><div style={{display:"flex",justifyContent:"space-between",fontSize:13,marginBottom:4}}><span>{tCat(cat)}</span><span style={{color:"var(--color-text-secondary)"}}>{fmtBoth(amt,rate)} · {pct}%</span></div><div style={{background:"var(--color-background-secondary)",borderRadius:99,height:6,overflow:"hidden"}}><div style={{width:`${pct}%`,height:"100%",background:"#BA7517",borderRadius:99}} /></div></div>;})}
                     </div>
                   </div>
                 )}
