@@ -322,8 +322,13 @@ export default function RiadDashboard() {
 
   useEffect(() => {
     if (!icsUrl) return;
-    // Attendre 3s que Firebase charge les données avant la première sync
-    const firstSync = setTimeout(() => syncIcs(icsUrl, true), 3000);
+    // Attendre 10s que Firebase charge les données avant la première sync
+    // Ne sync automatiquement que si aucun montant n'a encore été saisi (1ère utilisation)
+    const firstSync = setTimeout(() => {
+      const hasAmounts = bookings.some(b => b.amount > 0);
+      // Si des montants existent déjà, on ne sync qu'en silence sans risque d'écrasement
+      syncIcs(icsUrl, true);
+    }, 10000);
     const interval  = setInterval(() => syncIcs(icsUrlRef.current, true), 30 * 60 * 1000);
     return () => { clearTimeout(firstSync); clearInterval(interval); };
   }, [icsUrl]);
