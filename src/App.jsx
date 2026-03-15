@@ -364,7 +364,6 @@ function MonthCalendar({ year, month, bookings, blocked, monthName }) {
         })}
       </div>
     </div>
-    </>
   );
 }
 
@@ -384,7 +383,6 @@ function DropZone({ label, sub, accept, onFile, color }) {
       <p style={{margin:"0 0 3px",fontWeight:500,fontSize:14,color}}>{label}</p>
       <p style={{margin:0,fontSize:12,color:"var(--color-text-tertiary)"}}>{sub}</p>
     </div>
-    </>
   );
 }
 
