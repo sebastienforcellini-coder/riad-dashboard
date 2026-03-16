@@ -1,6 +1,6 @@
 import { initializeApp, getApps } from "firebase/app";
 import { getFirestore, doc, getDoc, setDoc } from "firebase/firestore";
-
+ 
 const firebaseConfig = {
   apiKey: "AIzaSyCcNPo3-u0tAQjZdvJ7ns1pIpz-Puc6p7Q",
   authDomain: "riad-dashboard.firebaseapp.com",
@@ -9,10 +9,10 @@ const firebaseConfig = {
   messagingSenderId: "1057977040208",
   appId: "1:1057977040208:web:48f77a326d8cbbb777c055",
 };
-
+ 
 const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
 const db  = getFirestore(app);
-
+ 
 function parseIcs(text) {
   const bookings = [], blocked = [];
   for (const raw of text.split("BEGIN:VEVENT").slice(1)) {
@@ -38,24 +38,24 @@ function parseIcs(text) {
   }
   return { bookings, blocked };
 }
-
+ 
 export default async function handler(req, res) {
   // Sécurité : vérifier le token Vercel cron
   const authHeader = req.headers.authorization;
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return res.status(401).json({ error: "Unauthorized" });
   }
-
+ 
   try {
     // 1. Lire les données Firebase actuelles
     const docRef = doc(db, "riad", "data");
     const snap   = await getDoc(docRef);
     if (!snap.exists()) return res.status(404).json({ error: "No data in Firebase" });
-
+ 
     const data    = snap.data();
     const icsUrl  = data.icsUrl;
     if (!icsUrl) return res.status(200).json({ message: "No ICS URL configured" });
-
+ 
     // 2. Récupérer le calendrier Airbnb
     const icsRes = await fetch(icsUrl, {
       headers: { "User-Agent": "Mozilla/5.0 (compatible; riad-sync/1.0)" }
@@ -63,10 +63,10 @@ export default async function handler(req, res) {
     if (!icsRes.ok) throw new Error("ICS fetch failed: " + icsRes.status);
     const text = await icsRes.text();
     if (!text.includes("BEGIN:VCALENDAR")) throw new Error("Invalid ICS");
-
+ 
     // 3. Parser le calendrier
     const { bookings: newB, blocked: newBl } = parseIcs(text);
-
+ 
     // 4. Fusionner intelligemment
     const existing = Object.fromEntries(
       (data.bookings || []).map(b => [b.id, {
@@ -77,7 +77,7 @@ export default async function handler(req, res) {
         nameEdited:  b.nameEdited  || false,  // ← preserve manual name flag
       }])
     );
-
+ 
     const manuals = (data.bookings || []).filter(b => b.id.startsWith("MAN-"));
     const airbnb  = newB.map(b => ({
       ...b,
@@ -90,12 +90,12 @@ export default async function handler(req, res) {
       paid:       existing[b.id]?.paid   ?? false,
       nameEdited: existing[b.id]?.nameEdited ?? false,
     }));
-
+ 
     // 5. Blocages : filtrer selon liste noire (ignoredBlocks) + garder perso
     const ignoredBlocks = data.ignoredBlocks || [];
     const in360Days = new Date();
     in360Days.setDate(in360Days.getDate() + 360);
-
+ 
     const personal = (data.blocked || []).filter(b => b.type === "personal");
     const filteredAirbnb = newBl.filter(bl => {
       // Ignorer les blocs dans la liste noire
@@ -105,10 +105,18 @@ export default async function handler(req, res) {
       if (new Date(bl.start) > in360Days) return false;
       // Ignorer les blocs dont le début est déjà couvert par une réservation
       const allBookings = [...airbnb, ...manuals];
-      if (allBookings.some(bk => bk.checkIn <= bl.start && bk.checkOut > bl.start)) return false;
+      // Vérifier que toute la période est couverte (départ matin = arrivée après-midi OK)
+      let cursor = bl.start;
+      let fullyСovered = true;
+      while (cursor < bl.end) {
+        const covering = allBookings.find(bk => bk.checkIn <= cursor && bk.checkOut > cursor);
+        if (!covering) { fullyСovered = false; break; }
+        cursor = covering.checkOut;
+      }
+      if (fullyСovered) return false;
       return true;
     });
-
+ 
     // 6. Sauvegarder dans Firebase
     const updatedData = {
       ...data,
@@ -116,18 +124,18 @@ export default async function handler(req, res) {
       blocked:  [...filteredAirbnb, ...personal],
       lastSync: new Date().toISOString(),
     };
-
+ 
     await setDoc(docRef, updatedData);
-
+ 
     const added   = newB.filter(b => !existing[b.id]).length;
     const updated = newB.filter(b => existing[b.id]).length;
-
+ 
     return res.status(200).json({
       success: true,
       message: `Sync OK — ${added} nouvelles, ${updated} existantes préservées`,
       timestamp: new Date().toISOString(),
     });
-
+ 
   } catch (e) {
     console.error("Cron sync error:", e);
     return res.status(500).json({ error: e.message });
