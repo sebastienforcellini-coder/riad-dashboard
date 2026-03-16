@@ -749,23 +749,39 @@ export default function RiadDashboard() {
 
   const importJSON = (file) => {
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       try {
         const data = JSON.parse(e.target.result);
         if (!data.version) throw new Error("Invalid format");
-        if (data.bookings)  setBookings(data.bookings);
-        if (data.blocked) {
-          const manuals = (data.bookings||[]).filter(b => b.id.startsWith("MAN-"));
-          const filtered = (data.blocked||[]).filter(bl =>
-            bl.type === "personal" ||
-            !manuals.some(mb => mb.checkIn < bl.end && mb.checkOut > bl.start)
-          );
-          setBlocked(filtered);
-        }
-        if (data.expenses)  setExpenses(data.expenses);
-        if (data.recurring) setRecurring(data.recurring);
-        if (data.rate)      setRate(data.rate);
-        if (data.currency)  setCurrency(data.currency);
+        const manuals = (data.bookings||[]).filter(b => b.id.startsWith("MAN-"));
+        const filteredBlocked = (data.blocked||[]).filter(bl =>
+          bl.type === "personal" ||
+          !manuals.some(mb => mb.checkIn < bl.end && mb.checkOut > bl.start)
+        );
+        // Sauvegarde immédiate dans Firestore pour écraser les mauvaises données
+        const cloudData = {
+          bookings:      data.bookings     || [],
+          blocked:       filteredBlocked,
+          expenses:      data.expenses     || [],
+          recurring:     data.recurring    || [],
+          rate:          data.rate         || DEFAULT_RATE,
+          currency:      data.currency     || "MAD",
+          commission:    data.commission   ?? 0.20,
+          icsUrl:        data.icsUrl       || "",
+          ignoredBlocks: data.ignoredBlocks || [],
+          lastSync:      data.lastSync     || null,
+          version:       1,
+        };
+        await saveCloud(cloudData);
+        // Puis mettre à jour le state local
+        if (data.bookings)       setBookings(data.bookings);
+        if (filteredBlocked)     setBlocked(filteredBlocked);
+        if (data.expenses)       setExpenses(data.expenses);
+        if (data.recurring)      setRecurring(data.recurring);
+        if (data.rate)           setRate(data.rate);
+        if (data.currency)       setCurrency(data.currency);
+        if (data.ignoredBlocks)  setIgnoredBlocks(data.ignoredBlocks);
+        saveStorage(cloudData);
         showToast(`✅ ${lang==="fr"?"Sauvegarde restaurée":"Backup restored"} · ${data.bookings?.length||0} ${lang==="fr"?"réservations":"bookings"} · ${data.expenses?.length||0} ${lang==="fr"?"dépenses":"expenses"}`);
       } catch { showToast(t("toastJsonInvalid")); }
     };
