@@ -550,9 +550,14 @@ export default function RiadDashboard() {
     try { localStorage.setItem("riad_ignored_blocks", JSON.stringify(ignoredBlocks)); } catch {}
   }, [ignoredBlocks]);
 
-  // Mettre à jour lastModified local à chaque changement
+  // Mettre à jour lastModified local à chaque changement de données importantes
+  const prevBookingsLen = useRef(0);
   useEffect(() => {
-    try { localStorage.setItem("riad_last_modified", new Date().toISOString()); } catch {}
+    // Seulement si les données ont vraiment changé (pas au premier render)
+    if (prevBookingsLen.current > 0 || bookings.length > 0) {
+      try { localStorage.setItem("riad_last_modified", new Date().toISOString()); } catch {}
+    }
+    prevBookingsLen.current = bookings.length;
   }, [bookings, blocked, expenses, recurring, ignoredBlocks]);
 
   useEffect(() => {
@@ -612,10 +617,65 @@ export default function RiadDashboard() {
     }, 1500);
   }, [bookings, blocked, expenses, year, nextId, currency, rate, commission, recurring, icsUrl, lastSync, ignoredBlocks]);
 
+  // ── Helpers couverture de période ───────────────────────────────────────────
+  const isBlockFullyCovered = (bl, allBookings, allBlocked) => {
+    const in360Days = new Date(); in360Days.setDate(in360Days.getDate() + 360);
+    if (new Date(bl.start) > in360Days) return true; // au-delà de 360j → ignoré
+    const uid = bl.uid || (bl.start + "_" + bl.end);
+    if (ignoredBlocks.includes(uid)) return true; // liste noire → ignoré
+    // Vérification couverture complète avec tolérance 1 jour
+    const allRes = [...allBookings, ...allBlocked.filter(x => x.type === "personal")];
+    let cursor = bl.start;
+    while (cursor < bl.end) {
+      const covering = allRes.find(r => {
+        const s = r.checkIn || r.start;
+        const e = r.checkOut || r.end;
+        return s <= cursor && e > cursor;
+      });
+      if (!covering) {
+        const nextDay = new Date(cursor); nextDay.setDate(nextDay.getDate()+1);
+        const nd = nextDay.toISOString().slice(0,10);
+        const next = allRes.find(r => (r.checkIn||r.start) === nd);
+        if (!next) return false;
+        cursor = next.checkOut || next.end;
+      } else {
+        cursor = covering.checkOut || covering.end;
+      }
+    }
+    return true;
+  };
+
+  // ── Auto-backup avant sync ───────────────────────────────────────────────────
+  const autoBackupBeforeSync = () => {
+    try {
+      const snapshot = JSON.stringify({ bookings, blocked, expenses, recurring, rate, currency, commission, ignoredBlocks, lastSync, version:1, backedUpAt: new Date().toISOString() });
+      localStorage.setItem("riad_pre_sync_backup", snapshot);
+    } catch(e) { console.warn("Pre-sync backup failed", e); }
+  };
+
+  const restorePreSyncBackup = () => {
+    try {
+      const raw = localStorage.getItem("riad_pre_sync_backup");
+      if (!raw) { showToast(lang==="fr"?"Aucun backup pré-sync disponible":"No pre-sync backup available"); return; }
+      const data = JSON.parse(raw);
+      if (data.bookings)  setBookings(data.bookings);
+      if (data.blocked)   setBlocked(data.blocked);
+      if (data.expenses)  setExpenses(data.expenses);
+      if (data.recurring) setRecurring(data.recurring);
+      if (data.ignoredBlocks) setIgnoredBlocks(data.ignoredBlocks);
+      showToast(lang==="fr"?"✅ Sync annulée — état restauré":"✅ Sync cancelled — state restored");
+    } catch(e) { showToast(lang==="fr"?"❌ Erreur restauration":"❌ Restore error"); }
+  };
+
+  const [showUndoSync, setShowUndoSync] = useState(false);
+
   // ── Sync automatique .ics ────────────────────────────────────────────────────
   const syncIcs = async (url = icsUrl, silent = false) => {
     if (!url) return;
+    // Backup automatique avant le sync
+    autoBackupBeforeSync();
     setSyncStatus("syncing");
+    setShowUndoSync(false);
 
     // Toujours sync côté client — le cron Vercel gère l'auto à 6h
     let text = null;
@@ -651,13 +711,21 @@ export default function RiadDashboard() {
       });
       setBlocked(prev => {
         const personal = prev.filter(b => b.type === "personal");
-        const currentIgnored = ignoredBlocks;
-        const filtered = newBl.filter(bl => !currentIgnored.includes(bl.uid || (bl.start+"_"+bl.end)));
+        // Appliquer le filtre complet — même logique que l'affichage UI
+        const allBookings = [...newB.map(b2 => ({
+          ...b2,
+          amount: (prev.find(p=>p.id===b2.id)||{}).amount ?? 0,
+          name:   (prev.find(p=>p.id===b2.id)||{}).nameEdited ? (prev.find(p=>p.id===b2.id)||{}).name : b2.name,
+          nameEdited: (prev.find(p=>p.id===b2.id)||{}).nameEdited ?? false,
+        })), ...prev.filter(b2 => b2.id?.startsWith("MAN-"))];
+        const filtered = newBl.filter(bl => !isBlockFullyCovered(bl, allBookings, prev));
         return [...filtered, ...personal];
       });
       const now = new Date().toISOString();
       setLastSync(now);
       setSyncStatus("ok");
+      setShowUndoSync(true);
+      setTimeout(() => setShowUndoSync(false), 30000); // Afficher "Annuler" 30s
       if (!silent) showToast(`✅ ${lang==="fr"?"Calendrier synchronisé":"Calendar synced"} · ${newB.length} ${lang==="fr"?"réservations":"bookings"}`);
     } catch(e) {
       setSyncStatus("error");
@@ -1180,6 +1248,7 @@ export default function RiadDashboard() {
           <button onClick={()=>setDarkMode(d=>!d)} style={{padding:"4px 10px",fontSize:14,background:"none",border:"0.5px solid var(--color-border-secondary)",borderRadius:6,cursor:"pointer"}} title={darkMode?"Light mode":"Dark mode"}>{darkMode?"☀️":"🌙"}</button>
           <button onClick={()=>setShowIcsUrl(r=>!r)} style={{padding:"4px 10px",fontSize:13,background:icsUrl?"#e8f5e9":"none",border:`0.5px solid ${icsUrl?"#2e7d32":"var(--color-border-secondary)"}`,borderRadius:6,color:icsUrl?"#2e7d32":"var(--color-text-secondary)"}}>🔄 {icsUrl?t("autoSyncOn"):t("configSync")}</button>
           {icsUrl && <button onClick={()=>syncIcs()} style={{padding:"4px 10px",fontSize:13,background:"none",border:"0.5px solid var(--color-border-secondary)",borderRadius:6}}>{syncStatus==="syncing"?"⏳":"↻"} {t("sync")}</button>}
+          {showUndoSync && <button onClick={restorePreSyncBackup} style={{padding:"4px 10px",fontSize:13,background:"#856404",color:"#fff",border:"none",borderRadius:6,cursor:"pointer"}}>↩ {lang==="fr"?"Annuler sync":"Undo sync"}</button>}
           <button onClick={()=>setShowRate(r=>!r)} style={{padding:"4px 10px",fontSize:13,background:"none",border:"0.5px solid var(--color-border-secondary)",borderRadius:6}}>1€ = {rate} MAD</button>
           <button onClick={exportJSON} style={{padding:"4px 10px",fontSize:13,background:"none",border:"0.5px solid var(--color-border-secondary)",borderRadius:6}}>{t("backup")}</button>
           <label style={{padding:"4px 10px",fontSize:13,background:"none",border:"0.5px solid var(--color-border-secondary)",borderRadius:6,cursor:"pointer",display:"inline-flex",alignItems:"center"}}>
@@ -1446,36 +1515,9 @@ export default function RiadDashboard() {
             {/* Indispo Airbnb */}
             {(()=>{
               // Cacher les blocs dont le début est déjà couvert par une réservation existante
-              const in360Days = new Date(); in360Days.setDate(in360Days.getDate() + 360);
               const airbnbBlocked = blocked.filter(b => {
                 if (b.type !== "airbnb" && b.type) return false;
-                if (new Date(b.start) > in360Days) return false;
-                if (ignoredBlocks.includes(b.uid || (b.start+"_"+b.end))) return false;
-                // Vérifier que toute la période est couverte (départ matin = arrivée après-midi OK)
-                const isCovered = (() => {
-                  let cursor = b.start;
-                  const allRes = [...bookings, ...blocked.filter(x => x.type === "personal")];
-                  while (cursor < b.end) {
-                    const covering = allRes.find(r => {
-                      const s = r.checkIn || r.start;
-                      const e = r.checkOut || r.end;
-                      // Tolérance 1 jour : départ matin / arrivée lendemain
-                      return s <= cursor && e > cursor;
-                    });
-                    if (!covering) {
-                      // Cherche si quelque chose commence demain (gap 1 jour toléré)
-                      const nextDay = new Date(cursor); nextDay.setDate(nextDay.getDate()+1);
-                      const nd = nextDay.toISOString().slice(0,10);
-                      const next = allRes.find(r => (r.checkIn||r.start) === nd);
-                      if (!next) return false;
-                      cursor = next.checkOut || next.end;
-                    } else {
-                      cursor = covering.checkOut || covering.end;
-                    }
-                  }
-                  return true;
-                })();
-                return !isCovered;
+                return !isBlockFullyCovered(b, bookings, blocked);
               });
               if (!airbnbBlocked.length) return null;
               return (
