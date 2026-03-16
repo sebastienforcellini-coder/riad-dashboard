@@ -550,6 +550,11 @@ export default function RiadDashboard() {
     try { localStorage.setItem("riad_ignored_blocks", JSON.stringify(ignoredBlocks)); } catch {}
   }, [ignoredBlocks]);
 
+  // Mettre à jour lastModified local à chaque changement
+  useEffect(() => {
+    try { localStorage.setItem("riad_last_modified", new Date().toISOString()); } catch {}
+  }, [bookings, blocked, expenses, recurring, ignoredBlocks]);
+
   useEffect(() => {
     saveStorage({ bookings, blocked, expenses, year, nextId, currency, rate, commission, recurring, icsUrl, lastSync, ignoredBlocks });
   }, [bookings, blocked, expenses, year, nextId, currency, rate, commission, recurring, icsUrl, lastSync, ignoredBlocks]);
@@ -564,6 +569,14 @@ export default function RiadDashboard() {
     const unsub = onSnapshot(DOC_REF, (snap) => {
       if (snap.exists()) {
         const data = snap.data();
+        // Ne pas écraser si nos données locales sont plus récentes
+        const localModified = localStorage.getItem("riad_last_modified");
+        const remoteModified = data.lastModified || data.lastSync || "";
+        if (localModified && remoteModified && localModified > remoteModified) {
+          console.log("onSnapshot: données locales plus récentes, ignoré");
+          setCloudStatus("saved");
+          return;
+        }
         isFromFirebase.current = true;
         firebaseLoaded.current = true;
         if (data.bookings)  setBookings(data.bookings);
@@ -589,7 +602,7 @@ export default function RiadDashboard() {
     if (saveTimer.current) clearTimeout(saveTimer.current);
     setCloudStatus("saving");
     saveTimer.current = setTimeout(() => {
-      saveCloud({ bookings, blocked, expenses, year, nextId, currency, rate, commission, recurring, icsUrl, lastSync, ignoredBlocks })
+      saveCloud({ bookings, blocked, expenses, year, nextId, currency, rate, commission, recurring, icsUrl, lastSync, ignoredBlocks, lastModified: new Date().toISOString() })
         .then(() => setCloudStatus("saved"))
         .catch(() => setCloudStatus("error"));
     }, 1500);
@@ -836,6 +849,9 @@ export default function RiadDashboard() {
           lastSync:      data.lastSync     || null,
           version:       1,
         };
+        const now = new Date().toISOString();
+        cloudData.lastModified = now;
+        localStorage.setItem("riad_last_modified", now);
         await saveCloud(cloudData);
         // Puis mettre à jour le state local
         if (data.bookings)       setBookings(data.bookings);
