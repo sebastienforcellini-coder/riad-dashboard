@@ -2,7 +2,7 @@ import { useState, useMemo, useRef, useEffect } from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import * as XLSX from "xlsx";
 import { initializeApp } from "firebase/app";
-import { getFirestore, doc, setDoc, onSnapshot } from "firebase/firestore";
+import { getFirestore, doc, setDoc, getDoc } from "firebase/firestore";
 
 const translations = {
   fr: {
@@ -566,19 +566,25 @@ export default function RiadDashboard() {
   const firebaseLoaded = useRef(false);
 
   useEffect(() => {
-    const unsub = onSnapshot(DOC_REF, (snap) => {
+    // Lecture unique au démarrage — pas de sync temps réel pour éviter les écrasements
+    getDoc(DOC_REF).then((snap) => {
       if (snap.exists()) {
         const data = snap.data();
-        // Ne pas écraser si nos données locales sont plus récentes
+        // Ne charger Firestore que si on n'a pas de données locales récentes
         const localModified = localStorage.getItem("riad_last_modified");
         const remoteModified = data.lastModified || data.lastSync || "";
         if (localModified && remoteModified && localModified > remoteModified) {
-          console.log("onSnapshot: données locales plus récentes, ignoré");
+          console.log("Firestore: données locales plus récentes, ignoré");
           setCloudStatus("saved");
           return;
         }
-        isFromFirebase.current = true;
-        firebaseLoaded.current = true;
+        // Pas de données locales ou Firestore est plus récent
+        const hasLocalData = loadStorage();
+        if (hasLocalData && hasLocalData.bookings?.length > 0 && !remoteModified) {
+          // Garder les données locales si Firestore n'a pas de timestamp
+          setCloudStatus("saved");
+          return;
+        }
         if (data.bookings)  setBookings(data.bookings);
         if (data.blocked)   setBlocked(data.blocked);
         if (data.expenses)  setExpenses(data.expenses);
@@ -591,10 +597,8 @@ export default function RiadDashboard() {
         if (data.ignoredBlocks) setIgnoredBlocks(data.ignoredBlocks);
         saveStorage(data);
         setCloudStatus("saved");
-        setTimeout(() => { isFromFirebase.current = false; }, 200);
       }
-    }, () => setCloudStatus("error"));
-    return () => unsub();
+    }).catch(() => setCloudStatus("error"));
   }, []);
 
   useEffect(() => {
