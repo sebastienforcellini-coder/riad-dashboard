@@ -1248,7 +1248,7 @@ export default function RiadDashboard() {
               <div key={b.id+b.type} style={{background:bg,borderRadius:8,padding:"10px 14px",display:"flex",alignItems:"center",gap:10,flexWrap:"wrap",borderLeft:`3px solid ${col}`}}>
                 <span style={{fontSize:14}}>{icon}</span>
                 <span style={{fontWeight:600,color:col,fontSize:13,minWidth:130}}>{msg}</span>
-                <span style={{fontSize:13,fontWeight:500}}>{b.name||b.id}</span>
+                <span style={{fontSize:13,fontWeight:600,color:"#1a1a1a"}}>{b.name||b.id}</span>
                 <span style={{fontSize:12,color:"var(--color-text-secondary)"}}>{fmtDate(isArr?b.checkIn:b.checkOut,locale)} · {b.nights}n{b.guests?` · 👥 ${b.guests}`:""}</span>
                 <span style={{marginLeft:"auto",fontSize:12,color:col,fontWeight:500}}>{b.platform}</span>
               </div>
