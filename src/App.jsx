@@ -340,10 +340,24 @@ async function saveCloud(data) {
 function MonthCalendar({ year, month, bookings, blocked, monthName }) {
   const offset  = (new Date(year,month,1).getDay()+6)%7;
   const days    = new Date(year,month+1,0).getDate();
-  const inRange = (d, s, e) => { const pad=(n)=>String(n).padStart(2,"0"); const ds=`${year}-${pad(month+1)}-${pad(d)}`; return ds>=s && ds<e; };
+  const pad     = (n) => String(n).padStart(2,"0");
+  const inRange = (d, s, e) => { const ds=`${year}-${pad(month+1)}-${pad(d)}`; return ds>=s && ds<e; };
   const cells   = [...Array(offset).fill(null), ...Array.from({length:days},(_,i)=>i+1)];
+  const [tooltip, setTooltip] = useState(null); // {x, y, content}
+
+  const getBookingForDay = (d) => {
+    if (!d) return null;
+    const b = bookings.find(b => inRange(d, b.checkIn, b.checkOut) && b.platform !== "Perso");
+    if (b) return { name: b.name || b.id, platform: b.platform, checkIn: b.checkIn, checkOut: b.checkOut, nights: b.nights, type: "reserved" };
+    const p = bookings.find(b => inRange(d, b.checkIn, b.checkOut) && b.platform === "Perso");
+    if (p) return { name: p.name || "Perso", platform: "Perso", checkIn: p.checkIn, checkOut: p.checkOut, nights: p.nights, type: "perso" };
+    const bl = blocked.find(b => inRange(d, b.start, b.end));
+    if (bl) return { name: bl.label || "Bloqué", platform: "", checkIn: bl.start, checkOut: bl.end, nights: Math.round((new Date(bl.end)-new Date(bl.start))/86400000), type: "blocked" };
+    return null;
+  };
+
   return (
-    <div style={{flex:"1 1 210px",minWidth:190}}>
+    <div style={{flex:"1 1 210px",minWidth:190,position:"relative"}}>
       <p style={{margin:"0 0 8px",fontWeight:500,fontSize:13,textAlign:"center"}}>{monthName} {year}</p>
       <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:2}}>
         {["L","M","M","J","V","S","D"].map((d,i)=><div key={i} style={{textAlign:"center",fontSize:10,color:"var(--color-text-tertiary)",padding:"2px 0"}}>{d}</div>)}
@@ -352,6 +366,7 @@ function MonthCalendar({ year, month, bookings, blocked, monthName }) {
           const isPerso    = d && !isReserved && bookings.some(b=>inRange(d,b.checkIn,b.checkOut) && b.platform==="Perso");
           const isBlocked  = d && !isReserved && !isPerso && blocked.some(b=>inRange(d,b.start,b.end));
           const isToday    = d && (() => { const t=new Date(); return t.getFullYear()===year&&t.getMonth()===month&&t.getDate()===d; })();
+          const isInteractive = d && (isReserved || isPerso || isBlocked);
           let bg, color, fw=400, border="none";
           if      (isReserved) { bg=C_RESERVED; color="#fff"; fw=500; }
           else if (isPerso)    { bg=C_BLOCKED;  color="#fff"; fw=500; }
@@ -360,9 +375,58 @@ function MonthCalendar({ year, month, bookings, blocked, monthName }) {
           else if (d)          { bg=C_AVAIL;    color="#2e7d32"; }
           else                 { bg="transparent"; color="var(--color-text-primary)"; }
           if (isToday) { border="3px solid #FFD700"; fw=700; }
-          return <div key={i} style={{textAlign:"center",fontSize:12,padding:"5px 2px",background:bg,color,borderRadius:"var(--border-radius-md)",fontWeight:fw,border,boxSizing:"border-box"}}>{d||""}</div>;
+          return (
+            <div key={i}
+              style={{textAlign:"center",fontSize:12,padding:"5px 2px",background:bg,color,borderRadius:"var(--border-radius-md)",fontWeight:fw,border,boxSizing:"border-box",cursor:isInteractive?"pointer":"default",position:"relative"}}
+              onMouseEnter={isInteractive ? (e) => {
+                const info = getBookingForDay(d);
+                if (info) {
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  setTooltip({ x: rect.left + rect.width/2, y: rect.top - 8, info });
+                }
+              } : undefined}
+              onMouseLeave={isInteractive ? () => setTooltip(null) : undefined}
+              onClick={isInteractive ? (e) => {
+                const info = getBookingForDay(d);
+                if (!info) return;
+                if (tooltip) { setTooltip(null); return; }
+                const rect = e.currentTarget.getBoundingClientRect();
+                setTooltip({ x: rect.left + rect.width/2, y: rect.top - 8, info });
+              } : undefined}
+            >{d||""}</div>
+          );
         })}
       </div>
+      {/* Tooltip */}
+      {tooltip && (
+        <div
+          onClick={() => setTooltip(null)}
+          style={{
+            position:"fixed",
+            top: tooltip.y,
+            left: tooltip.x,
+            transform:"translate(-50%, -100%)",
+            background:"var(--color-background-primary)",
+            border:"0.5px solid var(--color-border-secondary)",
+            borderRadius:8,
+            padding:"8px 12px",
+            fontSize:12,
+            boxShadow:"0 4px 16px rgba(0,0,0,0.15)",
+            zIndex:9999,
+            minWidth:150,
+            maxWidth:220,
+            pointerEvents:"auto",
+          }}
+        >
+          <p style={{margin:"0 0 4px",fontWeight:600,color:tooltip.info.type==="reserved"?C_RESERVED:C_BLOCKED}}>{tooltip.info.name}</p>
+          {tooltip.info.platform && <p style={{margin:"0 0 2px",fontSize:11,color:"var(--color-text-tertiary)"}}>{tooltip.info.platform}</p>}
+          <p style={{margin:0,fontSize:11,color:"var(--color-text-secondary)"}}>
+            {tooltip.info.checkIn} → {tooltip.info.checkOut}
+          </p>
+          <p style={{margin:"2px 0 0",fontSize:11,color:"var(--color-text-tertiary)"}}>{tooltip.info.nights}n</p>
+          <div style={{position:"absolute",bottom:-5,left:"50%",transform:"translateX(-50%)",width:10,height:10,background:"var(--color-background-primary)",border:"0.5px solid var(--color-border-secondary)",borderTop:"none",borderLeft:"none",transform:"translateX(-50%) rotate(45deg)"}} />
+        </div>
+      )}
     </div>
   );
 }
