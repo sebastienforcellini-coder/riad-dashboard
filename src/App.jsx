@@ -1074,7 +1074,7 @@ export default function RiadDashboard() {
           {/* Toggle FR/EN */}
           <div style={{display:"flex",gap:4,background:"var(--color-background-secondary)",borderRadius:8,padding:3}}>
             {["fr","en"].map(l=>(
-              <button key={l} onClick={()=>setLang(l)} style={{border:"none",borderRadius:6,padding:"4px 10px",fontSize:13,fontWeight:lang===l?600:400,background:lang===l?"var(--color-background-primary)":"transparent",cursor:"pointer",color:lang===l?"var(--color-text-primary)":"var(--color-text-secondary)",boxShadow:lang===l?"0 1px 4px rgba(0,0,0,0.12)":"none",transition:"all .15s"}}>{l==="fr"?"🇫🇷":"🇬🇧"}</button>
+              <button key={l} onClick={()=>setLang(l)} style={{border:"none",borderRadius:6,padding:"4px 10px",fontSize:13,fontWeight:lang===l?600:400,background:lang===l?"var(--color-background-primary)":"transparent",cursor:"pointer",color:lang===l?"var(--color-text-primary)":"var(--color-text-secondary)",boxShadow:lang===l?"0 1px 4px rgba(0,0,0,0.12)":"none",transition:"all .15s"}}>{l==="fr"?"FR":"EN"}</button>
             ))}
           </div>
           <button onClick={()=>setDarkMode(d=>!d)} style={{padding:"4px 10px",fontSize:14,background:"none",border:"0.5px solid var(--color-border-secondary)",borderRadius:6,cursor:"pointer"}} title={darkMode?"Light mode":"Dark mode"}>{darkMode?"☀️":"🌙"}</button>
