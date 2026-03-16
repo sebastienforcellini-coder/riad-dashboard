@@ -418,12 +418,12 @@ function MonthCalendar({ year, month, bookings, blocked, monthName }) {
             pointerEvents:"auto",
           }}
         >
-          <p style={{margin:"0 0 4px",fontWeight:600,color:tooltip.info.type==="reserved"?C_RESERVED:C_BLOCKED}}>{tooltip.info.name}</p>
-          {tooltip.info.platform && <p style={{margin:"0 0 2px",fontSize:11,color:"var(--color-text-tertiary)"}}>{tooltip.info.platform}</p>}
-          <p style={{margin:0,fontSize:11,color:"var(--color-text-secondary)"}}>
+          <p style={{margin:"0 0 4px",fontWeight:700,fontSize:13,color:tooltip.info.type==="reserved"?C_RESERVED:C_BLOCKED}}>{tooltip.info.name}</p>
+          {tooltip.info.platform && <p style={{margin:"0 0 2px",fontSize:11,color:"var(--color-text-secondary)",fontWeight:500}}>{tooltip.info.platform}</p>}
+          <p style={{margin:0,fontSize:11,color:"var(--color-text-primary)"}}>
             {tooltip.info.checkIn} → {tooltip.info.checkOut}
           </p>
-          <p style={{margin:"2px 0 0",fontSize:11,color:"var(--color-text-tertiary)"}}>{tooltip.info.nights}n</p>
+          <p style={{margin:"2px 0 0",fontSize:12,fontWeight:600,color:"var(--color-text-primary)"}}>{tooltip.info.nights}n</p>
           <div style={{position:"absolute",bottom:-5,left:"50%",transform:"translateX(-50%)",width:10,height:10,background:"var(--color-background-primary)",border:"0.5px solid var(--color-border-secondary)",borderTop:"none",borderLeft:"none",transform:"translateX(-50%) rotate(45deg)"}} />
         </div>
       )}
