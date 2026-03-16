@@ -433,7 +433,7 @@ export default function RiadDashboard() {
   const [recurring, setRecurring] = useState([]);
   const [showAddR,  setShowAddR]  = useState(false);
   const [rForm,     setRForm]     = useState({category:"Ménage",description:"",amount:"",months:[]});
-  const [icsUrl,    setIcsUrl]    = useState("");
+  const [icsUrl,    setIcsUrl]    = useState(import.meta.env.VITE_ICS_URL || "");
   const [showIcsUrl,setShowIcsUrl]= useState(false);
   const [syncStatus,setSyncStatus]= useState("");
   const [lastSync,  setLastSync]  = useState(null);
