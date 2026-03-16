@@ -107,13 +107,21 @@ export default async function handler(req, res) {
       const allBookings = [...airbnb, ...manuals];
       // Vérifier que toute la période est couverte (départ matin = arrivée après-midi OK)
       let cursor = bl.start;
-      let fullyСovered = true;
+      let fullyCovered = true;
       while (cursor < bl.end) {
         const covering = allBookings.find(bk => bk.checkIn <= cursor && bk.checkOut > cursor);
-        if (!covering) { fullyСovered = false; break; }
-        cursor = covering.checkOut;
+        if (!covering) {
+          // Tolérance 1 jour : départ matin / arrivée lendemain
+          const nextDay = new Date(cursor); nextDay.setDate(nextDay.getDate()+1);
+          const nd = nextDay.toISOString().slice(0,10);
+          const next = allBookings.find(bk => bk.checkIn === nd);
+          if (!next) { fullyCovered = false; break; }
+          cursor = next.checkOut;
+        } else {
+          cursor = covering.checkOut;
+        }
       }
-      if (fullyСovered) return false;
+      if (fullyCovered) return false;
       return true;
     });
  
