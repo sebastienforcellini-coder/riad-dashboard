@@ -487,7 +487,7 @@ export default function RiadDashboard() {
   const [editAmt,   setEditAmt]   = useState("");
   const [editBooking, setEditBooking] = useState(null);
   const [nextId,    setNextId]    = useState(300);
-  const [bForm, setBForm]   = useState({checkIn:"",checkOut:"",name:"",phone:"",platform:"Direct",amount:"",guests:"",paid:false});
+  const [bForm, setBForm]   = useState({checkIn:"",checkOut:"",name:"",phone:"",platform:"Direct",amount:"",guests:"",paid:false,notes:""});
   const [eForm, setEForm]   = useState({date:today(),category:"Ménage",description:"",amount:""});
   const [blForm, setBlForm] = useState({start:"",end:"",label:""});
   const [currency,  setCurrency]  = useState("MAD");
@@ -501,6 +501,21 @@ export default function RiadDashboard() {
   const [showIcsUrl,setShowIcsUrl]= useState(false);
   const [syncStatus,setSyncStatus]= useState("");
   const [lastSync,  setLastSync]  = useState(null);
+
+  // ── Taux de change automatique ─────────────────────────────────────────────
+  useEffect(() => {
+    // Ne mettre à jour que si le taux est le taux par défaut (pas modifié manuellement)
+    if (rate !== DEFAULT_RATE) return;
+    fetch("https://api.frankfurter.app/latest?from=EUR&to=MAD")
+      .then(r => r.json())
+      .then(d => {
+        const newRate = d?.rates?.MAD;
+        if (newRate && Math.abs(newRate - rate) > 0.01) {
+          setRate(Math.round(newRate * 100) / 100);
+        }
+      })
+      .catch(() => {}); // Silencieux si hors ligne
+  }, []);
 
   // ── Dark mode ────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -668,6 +683,8 @@ export default function RiadDashboard() {
   };
 
   const [showUndoSync, setShowUndoSync] = useState(false);
+  const [bookingSearch, setBookingSearch] = useState("");
+  const [platformFilter, setPlatformFilter] = useState("all");
 
   // ── Sync automatique .ics ────────────────────────────────────────────────────
   const syncIcs = async (url = icsUrl, silent = false) => {
@@ -885,6 +902,96 @@ export default function RiadDashboard() {
     showToast(t("toastExcelDL"));
   };
 
+  // ── Export PDF mensuel ───────────────────────────────────────────────────────
+  const exportMonthlyPDF = (monthIdx) => {
+    const mName = months[monthIdx];
+    const mBookings = payingBookings.filter(b => {
+      const mStart = new Date(year, monthIdx, 1);
+      const mEnd   = new Date(year, monthIdx+1, 1);
+      return new Date(b.checkIn) < mEnd && new Date(b.checkOut) > mStart;
+    });
+    const mExpenses = yearExpenses.filter(e => new Date(e.date).getMonth() === monthIdx);
+    const mRevenue  = mBookings.reduce((s,b) => s+netAmount(b), 0);
+    const mExp      = mExpenses.reduce((s,e) => s+e.amount, 0);
+    const mProfit   = mRevenue - mExp;
+    const mPastRev  = mBookings.filter(b=>b.checkOut<=todayStr).reduce((s,b)=>s+netAmount(b),0);
+    const mFutRev   = mBookings.filter(b=>b.checkIn>todayStr).reduce((s,b)=>s+netAmount(b),0);
+
+    const bookingRows = mBookings.length === 0
+      ? `<tr><td colspan="5" style="text-align:center;color:#888;padding:12px">${lang==="fr"?"Aucune réservation":"No bookings"}</td></tr>`
+      : [...mBookings].sort((a,b)=>new Date(a.checkIn)-new Date(b.checkIn)).map(b => `
+        <tr>
+          <td>${b.name||b.id}</td>
+          <td>${b.platform}</td>
+          <td>${b.checkIn} → ${b.checkOut}</td>
+          <td>${b.nights}n</td>
+          <td style="text-align:right;font-weight:500">${fmtBoth(netAmount(b),rate)}</td>
+        </tr>
+        ${b.notes?`<tr><td colspan="5" style="font-size:11px;color:#888;padding:2px 8px 8px">📝 ${b.notes}</td></tr>`:""}
+      `).join("");
+
+    const expenseRows = mExpenses.length === 0
+      ? `<tr><td colspan="3" style="text-align:center;color:#888;padding:12px">${lang==="fr"?"Aucune dépense":"No expenses"}</td></tr>`
+      : [...mExpenses].sort((a,b)=>new Date(a.date)-new Date(b.date)).map(e => `
+        <tr>
+          <td>${e.date}</td>
+          <td>${e.category} — ${e.description}</td>
+          <td style="text-align:right;color:#c0392b;font-weight:500">${fmtBoth(e.amount,rate)}</td>
+        </tr>
+      `).join("");
+
+    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+    <title>Kasbah Blanca — ${mName} ${year}</title>
+    <style>
+      body{font-family:Georgia,serif;max-width:700px;margin:40px auto;padding:0 20px;color:#1a1a1a}
+      h1{font-size:22px;margin:0 0 4px} .sub{color:#888;font-size:13px;margin:0 0 24px}
+      h2{font-size:15px;margin:20px 0 10px;padding-bottom:6px;border-bottom:1px solid #eee}
+      table{width:100%;border-collapse:collapse;margin-bottom:20px}
+      th{padding:8px 6px;text-align:left;font-size:12px;color:#888;font-weight:400;border-bottom:1px solid #eee}
+      td{padding:8px 6px;font-size:13px;border-bottom:0.5px solid #f0f0f0}
+      .kpis{display:flex;gap:16px;margin:16px 0;flex-wrap:wrap}
+      .kpi{flex:1;min-width:120px;background:#f9f9f9;border-radius:8px;padding:12px}
+      .kpi-label{font-size:10px;text-transform:uppercase;letter-spacing:0.05em;color:#888;margin:0 0 4px}
+      .kpi-value{font-size:18px;font-weight:600;margin:0}
+      .kpi-sub{font-size:11px;color:#888;margin:2px 0 0}
+      .profit{color:${mProfit>=0?"#2e7d32":"#c0392b"}}
+      .footer{margin-top:40px;font-size:11px;color:#aaa;text-align:center;border-top:1px solid #eee;padding-top:16px}
+      @media print{body{margin:20px}}
+    </style></head><body>
+    <div style="font-size:28px">🏡</div>
+    <h1>Kasbah Blanca Marrakech</h1>
+    <p class="sub">${lang==="fr"?"Récapitulatif mensuel":"Monthly summary"} — ${mName} ${year}</p>
+
+    <div class="kpis">
+      <div class="kpi"><p class="kpi-label">${lang==="fr"?"Revenus nets":"Net revenue"}</p><p class="kpi-value" style="color:#2e7d32">${fmtMAD(mRevenue)}</p><p class="kpi-sub">${fmtEUR(mRevenue/rate)}</p></div>
+      <div class="kpi"><p class="kpi-label">${lang==="fr"?"Dépenses":"Expenses"}</p><p class="kpi-value" style="color:#c0392b">${fmtMAD(mExp)}</p><p class="kpi-sub">${fmtEUR(mExp/rate)}</p></div>
+      <div class="kpi"><p class="kpi-label">${lang==="fr"?"Bénéfice net":"Net profit"}</p><p class="kpi-value profit">${fmtMAD(mProfit)}</p><p class="kpi-sub">${fmtEUR(mProfit/rate)}</p></div>
+      <div class="kpi"><p class="kpi-label">${lang==="fr"?"Encaissé":"Collected"}</p><p class="kpi-value" style="color:#c0392b">${fmtMAD(mPastRev)}</p><p class="kpi-sub">${lang==="fr"?"À venir":"Upcoming"}: ${fmtMAD(mFutRev)}</p></div>
+    </div>
+
+    <h2>${lang==="fr"?"Réservations":"Bookings"} (${mBookings.length})</h2>
+    <table>
+      <thead><tr><th>${lang==="fr"?"Client":"Guest"}</th><th>${lang==="fr"?"Plateforme":"Platform"}</th><th>${lang==="fr"?"Dates":"Dates"}</th><th>${lang==="fr"?"Nuits":"Nights"}</th><th style="text-align:right">${lang==="fr"?"Montant net":"Net amount"}</th></tr></thead>
+      <tbody>${bookingRows}</tbody>
+      <tfoot><tr><td colspan="4" style="font-weight:600;padding:10px 6px">${lang==="fr"?"Total":"Total"}</td><td style="text-align:right;font-weight:600">${fmtBoth(mRevenue,rate)}</td></tr></tfoot>
+    </table>
+
+    <h2>${lang==="fr"?"Dépenses":"Expenses"} (${mExpenses.length})</h2>
+    <table>
+      <thead><tr><th>${lang==="fr"?"Date":"Date"}</th><th>${lang==="fr"?"Description":"Description"}</th><th style="text-align:right">${lang==="fr"?"Montant":"Amount"}</th></tr></thead>
+      <tbody>${expenseRows}</tbody>
+      <tfoot><tr><td colspan="2" style="font-weight:600;padding:10px 6px">${lang==="fr"?"Total":"Total"}</td><td style="text-align:right;font-weight:600;color:#c0392b">${fmtBoth(mExp,rate)}</td></tr></tfoot>
+    </table>
+
+    <div class="footer">Kasbah Blanca · ${mName} ${year} · ${lang==="fr"?"Généré le":"Generated on"} ${new Date().toLocaleDateString(locale)}</div>
+    <script>window.onload=function(){window.print()}</script>
+    </body></html>`;
+
+    const w = window.open("","_blank","width=750,height=900");
+    w.document.write(html);
+    w.document.close();
+  };
+
   // ── Export / Import JSON ──────────────────────────────────────────────────────
   const exportJSON = () => {
     const data = { bookings, blocked, expenses, rate, currency, recurring, exportedAt: new Date().toISOString(), version: 1 };
@@ -1008,7 +1115,7 @@ export default function RiadDashboard() {
     if (!bForm.checkIn||!bForm.checkOut) return;
     const nights=Math.round((new Date(bForm.checkOut)-new Date(bForm.checkIn))/86400000);
     setBookings(prev=>[...prev,{...bForm,id:"MAN-"+nextId,nights,amount:parseFloat(bForm.amount)||0}]);
-    setNextId(n=>n+1); setBForm({checkIn:"",checkOut:"",name:"",phone:"",platform:"Direct",amount:"",guests:""}); setShowAddB(false);
+    setNextId(n=>n+1); setBForm({checkIn:"",checkOut:"",name:"",phone:"",platform:"Direct",amount:"",guests:"",paid:false,notes:""}); setShowAddB(false);
     showToast(t("toastBookingAdded"));
   };
   const addExpense = () => {
@@ -1562,12 +1669,33 @@ export default function RiadDashboard() {
       {/* ── RÉSERVATIONS ───────────────────────────────────────────────────── */}
       {tab==="bookings" && (
         <div>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1rem",flexWrap:"wrap",gap:8}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"0.75rem",flexWrap:"wrap",gap:8}}>
             <p style={{margin:0,fontSize:14,color:"var(--color-text-secondary)"}}>
               {yearBookings.length} {t("bookingsSummary")} · {fmtBoth(totalRevenue,rate)}
               {pendingCount>0 && <span style={{marginLeft:8,fontSize:12,color:"var(--color-text-warning)"}}>({pendingCount} {t("noAmountSet")})</span>}
             </p>
             <button onClick={()=>setShowAddB(!showAddB)}>{t("addBooking")}</button>
+          </div>
+          {/* Recherche + filtre plateforme */}
+          <div style={{display:"flex",gap:8,marginBottom:"1rem",flexWrap:"wrap",alignItems:"center"}}>
+            <input
+              type="text"
+              placeholder={lang==="fr"?"🔍 Rechercher (nom, code)...":"🔍 Search (name, code)..."}
+              value={bookingSearch}
+              onChange={e=>setBookingSearch(e.target.value)}
+              style={{flex:1,minWidth:180,padding:"6px 10px",fontSize:13,borderRadius:6,border:"0.5px solid var(--color-border-secondary)",background:"var(--color-background-secondary)"}}
+            />
+            <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+              {["all",...new Set(yearBookings.map(b=>b.platform))].map(p=>(
+                <button key={p} onClick={()=>setPlatformFilter(p)}
+                  style={{padding:"4px 10px",fontSize:12,borderRadius:99,border:"0.5px solid var(--color-border-secondary)",
+                    background:platformFilter===p?"var(--color-text-primary)":"var(--color-background-secondary)",
+                    color:platformFilter===p?"var(--color-background-primary)":"var(--color-text-secondary)",
+                    cursor:"pointer",fontWeight:platformFilter===p?600:400}}>
+                  {p==="all"?(lang==="fr"?"Tous":"All"):p}
+                </button>
+              ))}
+            </div>
           </div>
 
           {showAddB && (
@@ -1581,6 +1709,7 @@ export default function RiadDashboard() {
                 <div><label style={{fontSize:13,color:"var(--color-text-secondary)"}}>{t("frmPlatform")}</label><select style={inp} value={bForm.platform} onChange={e=>setBForm(f=>({...f,platform:e.target.value}))}>{PLATFORMS.map(p=><option key={p}>{p}</option>)}</select></div>
                 <div><label style={{fontSize:13,color:"var(--color-text-secondary)"}}>{t("frmGuests")}</label><input type="number" placeholder={t("frmPlaceholderGuests")} min="1" style={inp} value={bForm.guests} onChange={e=>setBForm(f=>({...f,guests:e.target.value}))} /></div>
                 <div><label style={{fontSize:13,color:"var(--color-text-secondary)"}}>{t("frmAmount")}</label><input type="number" placeholder={t("frmPlaceholderAmount")} style={inp} value={bForm.amount} onChange={e=>setBForm(f=>({...f,amount:e.target.value}))} /></div>
+                <div style={{gridColumn:"1 / -1"}}><label style={{fontSize:13,color:"var(--color-text-secondary)"}}>{lang==="fr"?"Notes":"Notes"}</label><textarea placeholder={lang==="fr"?"Informations complémentaires...":"Additional info..."} style={{...inp,height:60,resize:"vertical",fontFamily:"inherit",fontSize:13,padding:"6px 8px"}} value={bForm.notes||""} onChange={e=>setBForm(f=>({...f,notes:e.target.value}))} /></div>
               </div>
               <div style={{display:"flex",gap:8}}>
                 <button onClick={addBooking}>{t("save")}</button>
@@ -1601,6 +1730,7 @@ export default function RiadDashboard() {
                   <div><label style={{fontSize:12,color:"var(--color-text-secondary)"}}>{t("frmPlatform")}</label><select style={inp} value={editBooking.platform} onChange={e=>setEditBooking(b=>({...b,platform:e.target.value}))}>{PLATFORMS.map(p=><option key={p}>{p}</option>)}</select></div>
                   <div><label style={{fontSize:12,color:"var(--color-text-secondary)"}}>{t("frmGuests")}</label><input type="number" min="1" style={inp} value={editBooking.guests||""} onChange={e=>setEditBooking(b=>({...b,guests:e.target.value}))} /></div>
                   <div><label style={{fontSize:12,color:"var(--color-text-secondary)"}}>{t("frmAmount")}</label><input type="number" style={inp} value={editBooking.amount||""} onChange={e=>setEditBooking(b=>({...b,amount:parseFloat(e.target.value)||0}))} /></div>
+                  <div style={{gridColumn:"1 / -1"}}><label style={{fontSize:12,color:"var(--color-text-secondary)"}}>Notes</label><textarea style={{...inp,height:60,resize:"vertical",fontFamily:"inherit",fontSize:13,padding:"6px 8px"}} value={editBooking.notes||""} onChange={e=>setEditBooking(b=>({...b,notes:e.target.value}))} /></div>
                 </div>
                 <div style={{display:"flex",gap:8,marginTop:4}}>
                   <button onClick={saveEditBooking} style={{flex:1}}>{t("save")}</button>
@@ -1610,13 +1740,23 @@ export default function RiadDashboard() {
             </div>
           )}
 
+          {(() => {
+            const filteredBookings = yearBookings.filter(b => {
+              const matchSearch = !bookingSearch || 
+                (b.name||"").toLowerCase().includes(bookingSearch.toLowerCase()) ||
+                (b.id||"").toLowerCase().includes(bookingSearch.toLowerCase());
+              const matchPlatform = platformFilter === "all" || b.platform === platformFilter;
+              return matchSearch && matchPlatform;
+            });
+            const displayBookings = filteredBookings;
+            return (
           <div style={rc}>
-            {yearBookings.length===0
-              ? <p style={{color:"var(--color-text-tertiary)",fontSize:13,textAlign:"center",padding:"1.5rem 0"}}>{t("noBookYear")} {year}.</p>
+            {displayBookings.length===0
+              ? <p style={{color:"var(--color-text-tertiary)",fontSize:13,textAlign:"center",padding:"1.5rem 0"}}>{bookingSearch||platformFilter!=="all" ? (lang==="fr"?"Aucun résultat":"No results") : `${t("noBookYear")} ${year}.`}</p>
               : isMobile
                 /* ── MOBILE : cartes ── */
                 ? <div style={{display:"flex",flexDirection:"column",gap:10}}>
-                    {[...yearBookings].sort((a,b)=>new Date(a.checkIn)-new Date(b.checkIn)).map(b=>(
+                    {[...displayBookings].sort((a,b)=>new Date(a.checkIn)-new Date(b.checkIn)).map(b=>(
                       <div key={b.id} style={{background:"var(--color-background-secondary)",borderRadius:10,padding:"12px 14px",borderLeft:`3px solid ${C_RESERVED}`}}>
                         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}}>
                           <div>
@@ -1639,6 +1779,7 @@ export default function RiadDashboard() {
                           {b.guests && <span>👥 {b.guests} {b.guests>1?t("personPlural"):t("personSingle")}</span>}
                           {b.phone && <span>📱 {b.phone}</span>}
                         </div>
+                        {b.notes && <p style={{margin:"4px 0 6px",fontSize:12,color:"var(--color-text-secondary)",fontStyle:"italic",padding:"4px 8px",background:"var(--color-background-primary)",borderRadius:4}}>📝 {b.notes}</p>}
                         {editId===b.id
                           ? <span style={{display:"flex",gap:6}}><input type="number" value={editAmt} onChange={e=>setEditAmt(e.target.value)} onKeyDown={e=>e.key==="Enter"&&saveAmount(b.id)} style={{flex:1,padding:"5px 8px",fontSize:13,borderRadius:6,border:"1px solid var(--color-border-secondary)"}} autoFocus /><button onClick={()=>saveAmount(b.id)} style={{padding:"5px 14px",fontSize:13}}>OK</button></span>
                           : <div onClick={()=>{setEditId(b.id);setEditAmt(b.amount||"");}} style={{cursor:"pointer"}}>
@@ -1673,7 +1814,7 @@ export default function RiadDashboard() {
                       </tr>
                     </thead>
                     <tbody>
-                      {[...yearBookings].sort((a,b)=>new Date(a.checkIn)-new Date(b.checkIn)).map(b=>(
+                      {[...displayBookings].sort((a,b)=>new Date(a.checkIn)-new Date(b.checkIn)).map(b=>(
                         <tr key={b.id} style={{borderBottom:"0.5px solid var(--color-border-tertiary)"}}>
                           <td style={{padding:"10px 6px",whiteSpace:"nowrap"}}>{fmtDate(b.checkIn,locale)}</td>
                           <td style={{padding:"10px 6px",whiteSpace:"nowrap"}}>{fmtDate(b.checkOut,locale)}</td>
@@ -1717,6 +1858,8 @@ export default function RiadDashboard() {
                   </table>
             }
           </div>
+            );
+          })()}
         </div>
       )}
 
@@ -1773,7 +1916,10 @@ export default function RiadDashboard() {
               <div style={{...rc,marginBottom:"1.25rem",borderLeft:"3px solid var(--color-text-primary)",animation:"fadeIn 0.2s ease"}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1.25rem",flexWrap:"wrap",gap:8}}>
                   <p style={{margin:0,fontSize:15,fontWeight:600}}>{mName} {year}</p>
-                  <button onClick={()=>setSelectedMonth(null)} style={{fontSize:12,background:"none",border:"none",cursor:"pointer",color:"var(--color-text-secondary)"}}>{t("closeBtn")}</button>
+                  <div style={{display:"flex",gap:8}}>
+                    <button onClick={()=>exportMonthlyPDF(mi)} style={{fontSize:12,padding:"4px 10px",background:C_RESERVED,color:"#fff",border:"none",borderRadius:6,cursor:"pointer"}}>📄 PDF</button>
+                    <button onClick={()=>setSelectedMonth(null)} style={{fontSize:12,background:"none",border:"none",cursor:"pointer",color:"var(--color-text-secondary)"}}>{t("closeBtn")}</button>
+                  </div>
                 </div>
 
                 {/* KPIs du mois */}
@@ -1821,6 +1967,8 @@ export default function RiadDashboard() {
                             <span style={{fontSize:12,fontWeight:500,color:"var(--color-text-success)",marginLeft:"auto"}}>{b.amount>0?fmtBoth(netAmount(b),rate):"—"}</span>
                             <span style={{fontSize:11}}>{b.paid?"✅":"⏳"}</span>
                           </div>
+                          {b.notes && <p style={{margin:"2px 0 0",fontSize:11,color:"var(--color-text-secondary)",fontStyle:"italic"}}>📝 {b.notes}</p>}
+                        </div>
                         );
                       })}
                     </div>
@@ -1861,7 +2009,7 @@ export default function RiadDashboard() {
                 return (
                   <div key={m}>
                     <div style={{display:"flex",justifyContent:"space-between",fontSize:13,marginBottom:4}}>
-                      <span>{m}</span>
+                      <span style={{cursor:"pointer",display:"flex",alignItems:"center",gap:6}} onClick={()=>exportMonthlyPDF(i)} title={lang==="fr"?"Exporter PDF":"Export PDF"}>{m} <span style={{fontSize:10,color:"var(--color-text-tertiary)"}}>📄</span></span>
                       <span style={{color:"var(--color-text-secondary)"}}>
                         {n>0 && <span style={{color:C_RESERVED,fontWeight:500}}>{n}n {t("paying").toLowerCase()}</span>}
                         {n>0 && p>0 && " · "}
