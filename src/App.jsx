@@ -1180,7 +1180,7 @@ export default function RiadDashboard() {
           <button onClick={()=>setDarkMode(d=>!d)} style={{padding:"4px 10px",fontSize:14,background:"none",border:"0.5px solid var(--color-border-secondary)",borderRadius:6,cursor:"pointer"}} title={darkMode?"Light mode":"Dark mode"}>{darkMode?"☀️":"🌙"}</button>
           <button onClick={()=>setShowIcsUrl(r=>!r)} style={{padding:"4px 10px",fontSize:13,background:icsUrl?"#e8f5e9":"none",border:`0.5px solid ${icsUrl?"#2e7d32":"var(--color-border-secondary)"}`,borderRadius:6,color:icsUrl?"#2e7d32":"var(--color-text-secondary)"}}>🔄 {icsUrl?t("autoSyncOn"):t("configSync")}</button>
           {icsUrl && <button onClick={()=>syncIcs()} style={{padding:"4px 10px",fontSize:13,background:"none",border:"0.5px solid var(--color-border-secondary)",borderRadius:6}}>{syncStatus==="syncing"?"⏳":"↻"} {t("sync")}</button>}
-          <button onClick={()=>setShowRate(r=>!r)} style={{padding:"4px 10px",fontSize:13,background:"none",border:"0.5px solid var(--color-border-secondary)",borderRadius:6}}>1€ = {rate} MAD · -{Math.round(commission*100)}%</button>
+          <button onClick={()=>setShowRate(r=>!r)} style={{padding:"4px 10px",fontSize:13,background:"none",border:"0.5px solid var(--color-border-secondary)",borderRadius:6}}>1€ = {rate} MAD</button>
           <button onClick={exportJSON} style={{padding:"4px 10px",fontSize:13,background:"none",border:"0.5px solid var(--color-border-secondary)",borderRadius:6}}>{t("backup")}</button>
           <label style={{padding:"4px 10px",fontSize:13,background:"none",border:"0.5px solid var(--color-border-secondary)",borderRadius:6,cursor:"pointer",display:"inline-flex",alignItems:"center"}}>
             {t("restore")}
