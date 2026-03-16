@@ -1562,7 +1562,7 @@ export default function RiadDashboard() {
                           <td style={{padding:"10px 6px"}}>
                             {b.amount>0
                               ? b.platform==="Airbnb"
-                                ? <span><span style={{fontSize:11,color:"var(--color-text-tertiary)",textDecoration:"line-through",marginRight:4}}>{fmtMAD(b.amount*b.nights)}</span><span style={{fontWeight:500,color:"var(--color-text-success)"}}>{fmtBoth(netAmount({...b,amount:b.amount*b.nights}),rate)}</span></span>
+                                ? <span><span style={{fontSize:11,color:"var(--color-text-tertiary)",textDecoration:"line-through",marginRight:4}}>{fmtMAD(b.amount*b.nights)}</span><span style={{fontWeight:500,color:"var(--color-text-success)"}}>{fmtBoth(netAmount(b),rate)}</span></span>
                                 : <span style={{fontWeight:500,color:"var(--color-text-success)"}}>{fmtBoth(b.amount*b.nights,rate)}</span>
                               : <span style={{fontSize:12,color:"var(--color-text-tertiary)"}}>—</span>
                             }
