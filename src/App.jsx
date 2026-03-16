@@ -1351,7 +1351,22 @@ export default function RiadDashboard() {
                 if (b.type !== "airbnb" && b.type) return false;
                 if (new Date(b.start) > in360Days) return false;
                 if (ignoredBlocks.includes(b.uid || (b.start+"_"+b.end))) return false;
-                return !bookings.some(bk => bk.checkIn <= b.start && bk.checkOut > b.start);
+                // Vérifier que toute la période est couverte (départ matin = arrivée après-midi OK)
+                const isCovered = (() => {
+                  let cursor = b.start;
+                  const allRes = [...bookings, ...blocked.filter(x => x.type === "personal")];
+                  while (cursor < b.end) {
+                    const covering = allRes.find(r => {
+                      const s = r.checkIn || r.start;
+                      const e = r.checkOut || r.end;
+                      return s <= cursor && e > cursor;
+                    });
+                    if (!covering) return false;
+                    cursor = covering.checkOut || covering.end;
+                  }
+                  return true;
+                })();
+                return !isCovered;
               });
               if (!airbnbBlocked.length) return null;
               return (
