@@ -1375,10 +1375,19 @@ export default function RiadDashboard() {
                     const covering = allRes.find(r => {
                       const s = r.checkIn || r.start;
                       const e = r.checkOut || r.end;
+                      // Tolérance 1 jour : départ matin / arrivée lendemain
                       return s <= cursor && e > cursor;
                     });
-                    if (!covering) return false;
-                    cursor = covering.checkOut || covering.end;
+                    if (!covering) {
+                      // Cherche si quelque chose commence demain (gap 1 jour toléré)
+                      const nextDay = new Date(cursor); nextDay.setDate(nextDay.getDate()+1);
+                      const nd = nextDay.toISOString().slice(0,10);
+                      const next = allRes.find(r => (r.checkIn||r.start) === nd);
+                      if (!next) return false;
+                      cursor = next.checkOut || next.end;
+                    } else {
+                      cursor = covering.checkOut || covering.end;
+                    }
                   }
                   return true;
                 })();
