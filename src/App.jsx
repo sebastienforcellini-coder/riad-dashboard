@@ -1966,9 +1966,8 @@ export default function RiadDashboard() {
                             <span style={{fontSize:12,color:"var(--color-text-tertiary)"}}>{b.nights}n</span>
                             <span style={{fontSize:12,fontWeight:500,color:"var(--color-text-success)",marginLeft:"auto"}}>{b.amount>0?fmtBoth(netAmount(b),rate):"—"}</span>
                             <span style={{fontSize:11}}>{b.paid?"✅":"⏳"}</span>
+                          {b.notes && <p style={{margin:"2px 0 0 0",width:"100%",fontSize:11,color:"var(--color-text-secondary)",fontStyle:"italic"}}>📝 {b.notes}</p>}
                           </div>
-                          {b.notes && <p style={{margin:"2px 0 0",fontSize:11,color:"var(--color-text-secondary)",fontStyle:"italic"}}>📝 {b.notes}</p>}
-                        </div>
                         );
                       })}
                     </div>
