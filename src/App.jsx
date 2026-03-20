@@ -726,12 +726,12 @@ export default function RiadDashboard() {
         }
       } catch {}
       // RÈGLE ABSOLUE : on ne supprime JAMAIS une réservation existante
-      // Le sync ajoute les nouvelles et met à jour les existantes uniquement
+      console.log("SYNC - currentBookings:", currentBookings.map(b=>b.id+":"+b.name));
+      console.log("SYNC - newB from iCal:", newB.map(b=>b.id));
       const existing = Object.fromEntries(currentBookings.map(b=>[b.id,{
         amount:b.amount, name:b.name||"", guests:b.guests||"",
         paid:b.paid||false, nameEdited:b.nameEdited||false, notes:b.notes||""
       }]));
-      // Mettre à jour les réservations Airbnb existantes depuis le iCal
       const updatedFromIcal = newB.map(b=>({...b,
         amount: existing[b.id]?.amount ?? 0,
         name:   existing[b.id]?.nameEdited ? existing[b.id].name : (existing[b.id]?.name || b.name || ""),
@@ -740,8 +740,9 @@ export default function RiadDashboard() {
         nameEdited: existing[b.id]?.nameEdited ?? false,
         notes: existing[b.id]?.notes ?? "",
       }));
-      // Garder TOUTES les réservations existantes non présentes dans le iCal
       const notInIcal = currentBookings.filter(b => !newB.some(nb => nb.id === b.id));
+      console.log("SYNC - notInIcal (kept):", notInIcal.map(b=>b.id+":"+b.name));
+      console.log("SYNC - final:", [...updatedFromIcal, ...notInIcal].map(b=>b.id+":"+b.name));
       setBookings([...updatedFromIcal, ...notInIcal]);
       setBlocked(prev => {
         const personal = prev.filter(b => b.type === "personal");
