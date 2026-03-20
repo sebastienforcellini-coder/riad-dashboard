@@ -691,6 +691,9 @@ export default function RiadDashboard() {
     if (!url) return;
     // Backup automatique avant le sync
     autoBackupBeforeSync();
+    // Marquer lastModified AVANT le sync pour protéger contre onSnapshot/getDoc
+    const syncTime = new Date().toISOString();
+    try { localStorage.setItem("riad_last_modified", syncTime); } catch {}
     setSyncStatus("syncing");
     setShowUndoSync(false);
 
@@ -713,29 +716,33 @@ export default function RiadDashboard() {
     try {
       const { bookings: newB, blocked: newBl } = parseIcs(text);
       if (!newB.length && !newBl.length) throw new Error("Empty");
-      setBookings(prev => {
-        const manuals  = prev.filter(b => b.id.startsWith("MAN-"));
-        const existing = Object.fromEntries(prev.map(b=>[b.id,{amount:b.amount,name:b.name||"",guests:b.guests||"",paid:b.paid||false,nameEdited:b.nameEdited||false}]));
-        const airbnb   = newB.map(b=>({...b,
-          amount: existing[b.id]?.amount ?? 0,
-          // Preserve manually-edited name — never overwrite with ICS name
-          name:   existing[b.id]?.nameEdited ? existing[b.id].name : (existing[b.id]?.name || b.name || ""),
-          guests: existing[b.id]?.guests ?? "",
-          paid:   existing[b.id]?.paid   ?? false,
-          nameEdited: existing[b.id]?.nameEdited ?? false,
-        }));
-        return [...airbnb, ...manuals];
-      });
+      // Use ref for reliable access to latest bookings (avoids stale state after Restore)
+      const currentBookings = bookingsRef.current;
+      const manuals  = currentBookings.filter(b => b.id.startsWith("MAN-"));
+      const existing = Object.fromEntries(currentBookings.map(b=>[b.id,{amount:b.amount,name:b.name||"",guests:b.guests||"",paid:b.paid||false,nameEdited:b.nameEdited||false}]));
+      const airbnb   = newB.map(b=>({...b,
+        amount: existing[b.id]?.amount ?? 0,
+        name:   existing[b.id]?.nameEdited ? existing[b.id].name : (existing[b.id]?.name || b.name || ""),
+        guests: existing[b.id]?.guests ?? "",
+        paid:   existing[b.id]?.paid   ?? false,
+        nameEdited: existing[b.id]?.nameEdited ?? false,
+      }));
+      setBookings([...airbnb, ...manuals]);
       setBlocked(prev => {
         const personal = prev.filter(b => b.type === "personal");
-        // Appliquer le filtre complet — même logique que l'affichage UI
+        // Use ignoredBlocksRef for latest value
+        const currentIgnored = ignoredBlocksRef.current;
         const allBookings = [...newB.map(b2 => ({
           ...b2,
           amount: (prev.find(p=>p.id===b2.id)||{}).amount ?? 0,
           name:   (prev.find(p=>p.id===b2.id)||{}).nameEdited ? (prev.find(p=>p.id===b2.id)||{}).name : b2.name,
           nameEdited: (prev.find(p=>p.id===b2.id)||{}).nameEdited ?? false,
         })), ...prev.filter(b2 => b2.id?.startsWith("MAN-"))];
-        const filtered = newBl.filter(bl => !isBlockFullyCovered(bl, allBookings, prev));
+        const filtered = newBl.filter(bl => {
+          const uid = bl.uid || (bl.start+"_"+bl.end);
+          if (currentIgnored.includes(uid)) return false;
+          return !isBlockFullyCovered(bl, allBookings, prev);
+        });
         return [...filtered, ...personal];
       });
       const now = new Date().toISOString();
@@ -752,6 +759,10 @@ export default function RiadDashboard() {
 
   const icsUrlRef = useRef(icsUrl);
   useEffect(() => { icsUrlRef.current = icsUrl; }, [icsUrl]);
+  const bookingsRef = useRef(bookings);
+  useEffect(() => { bookingsRef.current = bookings; }, [bookings]);
+  const ignoredBlocksRef = useRef(ignoredBlocks);
+  useEffect(() => { ignoredBlocksRef.current = ignoredBlocks; }, [ignoredBlocks]);
 
   // ── Import iCal ───────────────────────────────────────────────────────────────
   const handleIcs = (file) => {
@@ -994,7 +1005,7 @@ export default function RiadDashboard() {
 
   // ── Export / Import JSON ──────────────────────────────────────────────────────
   const exportJSON = () => {
-    const data = { bookings, blocked, expenses, rate, currency, recurring, exportedAt: new Date().toISOString(), version: 1 };
+    const data = { bookings, blocked, expenses, rate, currency, recurring, ignoredBlocks, lastSync, lastModified: new Date().toISOString(), exportedAt: new Date().toISOString(), version: 1 };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement("a");
