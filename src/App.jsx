@@ -1060,9 +1060,10 @@ export default function RiadDashboard() {
         };
         const now = new Date().toISOString();
         cloudData.lastModified = now;
+        // Sauvegarder localStorage EN PREMIER — avant tout le reste
         localStorage.setItem("riad_last_modified", now);
-        await saveCloud(cloudData);
-        // Puis mettre à jour le state local
+        saveStorage(cloudData);
+        // Mettre à jour le state local
         if (data.bookings)       setBookings(data.bookings);
         if (filteredBlocked)     setBlocked(filteredBlocked);
         if (data.expenses)       setExpenses(data.expenses);
@@ -1070,7 +1071,8 @@ export default function RiadDashboard() {
         if (data.rate)           setRate(data.rate);
         if (data.currency)       setCurrency(data.currency);
         if (data.ignoredBlocks)  setIgnoredBlocks(data.ignoredBlocks);
-        saveStorage(cloudData);
+        // Puis sauvegarder Firestore en arrière-plan
+        saveCloud(cloudData).catch(e => console.warn("Cloud save failed", e));
         showToast(`✅ ${lang==="fr"?"Sauvegarde restaurée":"Backup restored"} · ${data.bookings?.length||0} ${lang==="fr"?"réservations":"bookings"} · ${data.expenses?.length||0} ${lang==="fr"?"dépenses":"expenses"}`);
       } catch { showToast(t("toastJsonInvalid")); }
     };
