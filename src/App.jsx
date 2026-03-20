@@ -726,8 +726,6 @@ export default function RiadDashboard() {
         }
       } catch {}
       // RÈGLE ABSOLUE : on ne supprime JAMAIS une réservation existante
-      console.log("SYNC - currentBookings:", currentBookings.map(b=>b.id+":"+b.name));
-      console.log("SYNC - newB from iCal:", newB.map(b=>b.id));
       const existing = Object.fromEntries(currentBookings.map(b=>[b.id,{
         amount:b.amount, name:b.name||"", guests:b.guests||"",
         paid:b.paid||false, nameEdited:b.nameEdited||false, notes:b.notes||""
@@ -741,9 +739,16 @@ export default function RiadDashboard() {
         notes: existing[b.id]?.notes ?? "",
       }));
       const notInIcal = currentBookings.filter(b => !newB.some(nb => nb.id === b.id));
-      console.log("SYNC - notInIcal (kept):", notInIcal.map(b=>b.id+":"+b.name));
-      console.log("SYNC - final:", [...updatedFromIcal, ...notInIcal].map(b=>b.id+":"+b.name));
-      setBookings([...updatedFromIcal, ...notInIcal]);
+      const finalBookings = [...updatedFromIcal, ...notInIcal];
+      // Sauvegarder immédiatement dans Firestore avec le bon état
+      const syncNow = new Date().toISOString();
+      localStorage.setItem("riad_last_modified", syncNow);
+      try {
+        const stored = localStorage.getItem("riad_dashboard_v1");
+        const currentData = stored ? JSON.parse(stored) : {};
+        await saveCloud({...currentData, bookings: finalBookings, lastModified: syncNow});
+      } catch(e) { console.warn("Sync cloud save failed", e); }
+      setBookings(finalBookings);
       setBlocked(prev => {
         const personal = prev.filter(b => b.type === "personal");
         // Read ignoredBlocks from localStorage for guaranteed fresh data
