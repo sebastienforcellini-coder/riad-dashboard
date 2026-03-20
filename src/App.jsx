@@ -1077,6 +1077,7 @@ export default function RiadDashboard() {
         if (data.rate)           setRate(data.rate);
         if (data.currency)       setCurrency(data.currency);
         if (data.ignoredBlocks)  setIgnoredBlocks(data.ignoredBlocks);
+        if (data.nextId)          setNextId(data.nextId);
         // Puis sauvegarder Firestore en arrière-plan
         saveCloud(cloudData).catch(e => console.warn("Cloud save failed", e));
         showToast(`✅ ${lang==="fr"?"Sauvegarde restaurée":"Backup restored"} · ${data.bookings?.length||0} ${lang==="fr"?"réservations":"bookings"} · ${data.expenses?.length||0} ${lang==="fr"?"dépenses":"expenses"}`);
