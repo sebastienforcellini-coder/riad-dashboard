@@ -716,8 +716,15 @@ export default function RiadDashboard() {
     try {
       const { bookings: newB, blocked: newBl } = parseIcs(text);
       if (!newB.length && !newBl.length) throw new Error("Empty");
-      // Use ref for reliable access to latest bookings (avoids stale state after Restore)
-      const currentBookings = bookingsRef.current;
+      // Read directly from localStorage for guaranteed fresh data (avoids stale state after Restore)
+      let currentBookings = bookingsRef.current;
+      try {
+        const stored = localStorage.getItem("riad_dashboard_v1");
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed.bookings?.length > 0) currentBookings = parsed.bookings;
+        }
+      } catch {}
       const manuals  = currentBookings.filter(b => b.id.startsWith("MAN-"));
       const existing = Object.fromEntries(currentBookings.map(b=>[b.id,{amount:b.amount,name:b.name||"",guests:b.guests||"",paid:b.paid||false,nameEdited:b.nameEdited||false}]));
       const airbnb   = newB.map(b=>({...b,
@@ -730,8 +737,12 @@ export default function RiadDashboard() {
       setBookings([...airbnb, ...manuals]);
       setBlocked(prev => {
         const personal = prev.filter(b => b.type === "personal");
-        // Use ignoredBlocksRef for latest value
-        const currentIgnored = ignoredBlocksRef.current;
+        // Read ignoredBlocks from localStorage for guaranteed fresh data
+        let currentIgnored = ignoredBlocksRef.current;
+        try {
+          const stored = localStorage.getItem("riad_dashboard_v1");
+          if (stored) { const p = JSON.parse(stored); if (p.ignoredBlocks) currentIgnored = p.ignoredBlocks; }
+        } catch {}
         const allBookings = [...newB.map(b2 => ({
           ...b2,
           amount: (prev.find(p=>p.id===b2.id)||{}).amount ?? 0,
