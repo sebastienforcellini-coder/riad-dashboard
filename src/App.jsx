@@ -1098,7 +1098,7 @@ export default function RiadDashboard() {
   const totalExp     = useMemo(()=>yearExpenses.reduce((s,e)=>s+e.amount,0),[yearExpenses]);
   const pastExp      = useMemo(()=>{ const t=today(); return yearExpenses.filter(e=>e.date<=t).reduce((s,e)=>s+e.amount,0);},[yearExpenses]);
   const futureExp    = useMemo(()=>{ const t=today(); return yearExpenses.filter(e=>e.date>t).reduce((s,e)=>s+e.amount,0);},[yearExpenses]);
-  const netProfit    = totalRevenue - totalExp;
+  const netProfit    = totalRevenue - pastExp;
   const totalNights  = useMemo(()=>payingBookings.reduce((s,b)=>s+b.nights,0),[payingBookings]);
   const persoNights  = useMemo(()=>persoBookings.reduce((s,b)=>s+b.nights,0),[persoBookings]);
   const occupancy    = Math.round(((totalNights+persoNights)/365)*100);
@@ -1107,8 +1107,10 @@ export default function RiadDashboard() {
   const todayStr     = today();
   const pastBookings   = payingBookings.filter(b=>b.checkOut <= todayStr);
   const futureBookings = payingBookings.filter(b=>b.checkIn > todayStr);
-  const pastRevenue  = pastBookings.reduce((s,b)=>s+netAmount(b),0);
+  // Règle : séjour terminé = encaissé automatiquement
+  const pastRevenue   = pastBookings.reduce((s,b)=>s+netAmount(b),0);
   const futureRevenue = futureBookings.reduce((s,b)=>s+netAmount(b),0);
+  const confirmedRevenue = totalRevenue; // tous séjours réservés
 
   const nightsInMonth = (b, monthIdx) => {
     const y = year;
@@ -1196,6 +1198,12 @@ export default function RiadDashboard() {
     else showToast(`✅ ${toAdd.length} ${lang==="fr"?`dépense${toAdd.length>1?"s":""} générée${toAdd.length>1?"s":""}`:`expense${toAdd.length>1?"s":""} generated`} ${year}`);
   };
   const togglePaid = (id) => {
+    const b = bookings.find(x=>x.id===id);
+    // Règle : séjour terminé = toujours encaissé
+    if (b && b.checkOut <= todayStr) {
+      showToast(lang==="fr"?"✅ Séjour terminé — considéré encaissé":"✅ Completed stay — considered paid");
+      return;
+    }
     setBookings(prev=>prev.map(b=>b.id===id?{...b,paid:!b.paid}:b));
     showToast(t("toastPaymentUpdated"));
   };
@@ -1482,25 +1490,44 @@ export default function RiadDashboard() {
       </div>
 
       {/* KPIs */}
-      <div style={{display:"flex",gap:12,flexWrap:"wrap",marginBottom:"1.5rem"}}>
+      <div style={{display:"flex",gap:12,flexWrap:"wrap",marginBottom:"0.75rem"}}>
+        {/* Bloc gauche : À date */}
+        <div style={{flex:"1 1 100%",fontSize:11,color:"var(--color-text-tertiary)",textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:2}}>
+          📅 {lang==="fr"?"Situation à date — séjours terminés":"To date — completed stays"}
+        </div>
         {[
-          {label:t("netRevenue"), value:fmtBoth(totalRevenue,rate), sub:`${t("gross")} : ${fmtMAD(totalGross)} · Airbnb -${Math.round(commission*100)}%`, color:"var(--color-text-success)"},
-          {label:t("expenses"),   value:fmtBoth(pastExp,rate),     sub:`+ ${fmtBoth(futureExp,rate)} ${lang==="fr"?"prévus":"planned"} · ${yearExpenses.length} ${t("expensesCount")}`, color:"var(--color-text-danger)"},
-          {label:t("netProfit"),  value:fmtBoth(netProfit,rate),    sub:t("margin")+" "+(totalRevenue?Math.round((netProfit/totalRevenue)*100):0)+"%", color:netProfit>=0?"var(--color-text-success)":"var(--color-text-danger)"},
-          {label:t("occupation"), value:occupancy+"%",               sub:`${totalNights} ${t("payingNights")} + ${persoNights} ${t("persoNights")}`, color:"var(--color-text-info)"},
-          {label:t("avgNight"),   value:avgNight?fmtBoth(avgNight,rate):"—", sub:t("onAmounts"), color:"var(--color-text-secondary)"},
+          {label:lang==="fr"?"Revenus encaissés":"Collected revenue", value:fmtBoth(pastRevenue,rate), sub:`${t("gross")} : ${fmtMAD(pastBookings.reduce((s,b)=>s+totalStay(b),0))} · Airbnb -${Math.round(commission*100)}%`, color:"var(--color-text-success)"},
+          {label:t("expenses"),   value:fmtBoth(pastExp,rate),   sub:`+ ${fmtBoth(futureExp,rate)} ${lang==="fr"?"prévus":"planned"}`, color:"var(--color-text-danger)"},
+          {label:lang==="fr"?"Bénéfice réel":"Real profit",  value:fmtBoth(pastRevenue-pastExp,rate), sub:(pastRevenue?Math.round(((pastRevenue-pastExp)/pastRevenue)*100):0)+"% "+t("margin"), color:(pastRevenue-pastExp)>=0?"var(--color-text-success)":"var(--color-text-danger)"},
         ].map(k=>(
-          <div key={k.label} style={mc}>
+          <div key={k.label} style={{...mc,flex:"1 1 180px",borderLeft:"3px solid var(--color-text-success)"}}>
             <p style={{margin:0,fontSize:11,color:"var(--color-text-secondary)",textTransform:"uppercase",letterSpacing:"0.05em"}}>{k.label}</p>
-            {typeof k.value === "string" && k.value.includes("·") ? (
-              <div style={{margin:"6px 0 2px"}}>
-                <p style={{margin:0,fontSize:20,fontWeight:500,color:k.color}}>{k.value.split("·")[0].trim()}</p>
-                <p style={{margin:0,fontSize:13,color:"var(--color-text-tertiary)"}}>{k.value.split("·")[1].trim()}</p>
-              </div>
-            ) : (
-              <p style={{margin:"6px 0 2px",fontSize:22,fontWeight:500,color:k.color}}>{k.value}</p>
-            )}
-            <p style={{margin:0,fontSize:12,color:"var(--color-text-tertiary)"}}>{k.sub}</p>
+            <div style={{margin:"6px 0 2px"}}>
+              <p style={{margin:0,fontSize:18,fontWeight:500,color:k.color}}>{k.value.split("·")[0].trim()}</p>
+              <p style={{margin:0,fontSize:12,color:"var(--color-text-tertiary)"}}>{k.value.split("·")[1]?.trim()}</p>
+            </div>
+            <p style={{margin:0,fontSize:11,color:"var(--color-text-tertiary)"}}>{k.sub}</p>
+          </div>
+        ))}
+      </div>
+      <div style={{display:"flex",gap:12,flexWrap:"wrap",marginBottom:"1.5rem"}}>
+        {/* Bloc droit : Prévisionnel année */}
+        <div style={{flex:"1 1 100%",fontSize:11,color:"var(--color-text-tertiary)",textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:2}}>
+          📈 {lang==="fr"?"Prévisionnel année — séjours confirmés":"Year forecast — confirmed stays"}
+        </div>
+        {[
+          {label:lang==="fr"?"CA confirmé":"Confirmed revenue", value:fmtBoth(confirmedRevenue,rate), sub:`${lang==="fr"?"Brut":"Gross"} : ${fmtMAD(totalGross)} · Airbnb -${Math.round(commission*100)}%`, color:"var(--color-text-info)"},
+          {label:t("occupation"), value:occupancy+"%", sub:`${totalNights} ${t("payingNights")} + ${persoNights} ${t("persoNights")}`, color:"var(--color-text-info)"},
+          {label:t("avgNight"),   value:avgNight?fmtBoth(avgNight,rate):"—", sub:t("onAmounts"), color:"var(--color-text-secondary)"},
+          {label:lang==="fr"?"Bénéfice projeté":"Projected profit", value:fmtBoth(confirmedRevenue-totalExp,rate), sub:(confirmedRevenue?Math.round(((confirmedRevenue-totalExp)/confirmedRevenue)*100):0)+"% "+t("margin"), color:(confirmedRevenue-totalExp)>=0?"var(--color-text-success)":"var(--color-text-danger)"},
+        ].map(k=>(
+          <div key={k.label} style={{...mc,flex:"1 1 150px",borderLeft:"3px solid var(--color-text-info)"}}>
+            <p style={{margin:0,fontSize:11,color:"var(--color-text-secondary)",textTransform:"uppercase",letterSpacing:"0.05em"}}>{k.label}</p>
+            <div style={{margin:"6px 0 2px"}}>
+              <p style={{margin:0,fontSize:18,fontWeight:500,color:k.color}}>{typeof k.value==="string"&&k.value.includes("·")?k.value.split("·")[0].trim():k.value}</p>
+              {typeof k.value==="string"&&k.value.includes("·") && <p style={{margin:0,fontSize:12,color:"var(--color-text-tertiary)"}}>{k.value.split("·")[1]?.trim()}</p>}
+            </div>
+            <p style={{margin:0,fontSize:11,color:"var(--color-text-tertiary)"}}>{k.sub}</p>
           </div>
         ))}
       </div>
