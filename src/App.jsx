@@ -1515,7 +1515,7 @@ export default function RiadDashboard() {
           {label:lang==="fr"?"CA confirmé":"Confirmed revenue", value:fmtBoth(confirmedRevenue,rate), sub:`${lang==="fr"?"Brut":"Gross"} : ${fmtMAD(totalGross)} · Airbnb -${Math.round(commission*100)}%`, color:"var(--color-text-info)"},
           {label:t("occupation"), value:occupancy+"%", sub:`${totalNights} ${t("payingNights")} + ${persoNights} ${t("persoNights")}`, color:"var(--color-text-info)", mini:true},
           {label:t("avgNight"),   value:avgNight?fmtBoth(avgNight,rate):"—", sub:t("onAmounts"), color:"var(--color-text-secondary)"},
-          {label:lang==="fr"?"Bénéfice projeté":"Projected profit", value:fmtBoth(confirmedRevenue-totalExp,rate), sub:(confirmedRevenue?Math.round(((confirmedRevenue-totalExp)/confirmedRevenue)*100):0)+"% "+t("margin"), color:(confirmedRevenue-totalExp)>=0?"var(--color-text-success)":"var(--color-text-danger)"},
+          {label:lang==="fr"?"Bénéfice projeté":"Projected profit", value:fmtBoth(confirmedRevenue-totalExp,rate), sub:(confirmedRevenue?Math.round(((confirmedRevenue-totalExp)/confirmedRevenue)*100):0)+"% "+t("margin")+" · "+(lang==="fr"?"dép. totales":"total exp."), color:(confirmedRevenue-totalExp)>=0?"var(--color-text-success)":"var(--color-text-danger)"},
         ].map(k=>(
           <div key={k.label} style={{...mc,flex:"1 1 150px",borderLeft:"3px solid var(--color-text-info)"}}>
             <p style={{margin:0,fontSize:11,color:"var(--color-text-secondary)",textTransform:"uppercase",letterSpacing:"0.05em"}}>{k.label}</p>
