@@ -1096,8 +1096,8 @@ export default function RiadDashboard() {
   const totalRevenue = useMemo(()=>payingBookings.reduce((s,b)=>s+netAmount(b),0),[payingBookings,commission]);
   const totalGross   = useMemo(()=>payingBookings.reduce((s,b)=>s+totalStay(b),0),[payingBookings]);
   const totalExp     = useMemo(()=>yearExpenses.reduce((s,e)=>s+e.amount,0),[yearExpenses]);
-  const pastExp      = useMemo(()=>yearExpenses.filter(e=>e.date<=todayStr).reduce((s,e)=>s+e.amount,0),[yearExpenses,todayStr]);
-  const futureExp    = useMemo(()=>yearExpenses.filter(e=>e.date>todayStr).reduce((s,e)=>s+e.amount,0),[yearExpenses,todayStr]);
+  const pastExp      = useMemo(()=>{ const t=today(); return yearExpenses.filter(e=>e.date<=t).reduce((s,e)=>s+e.amount,0);},[yearExpenses]);
+  const futureExp    = useMemo(()=>{ const t=today(); return yearExpenses.filter(e=>e.date>t).reduce((s,e)=>s+e.amount,0);},[yearExpenses]);
   const netProfit    = totalRevenue - totalExp;
   const totalNights  = useMemo(()=>payingBookings.reduce((s,b)=>s+b.nights,0),[payingBookings]);
   const persoNights  = useMemo(()=>persoBookings.reduce((s,b)=>s+b.nights,0),[persoBookings]);
