@@ -73,13 +73,8 @@ export default async function handler(req, res) {
       }])
     );
 
-    const manuals = (data.bookings || []).filter(b => b.id.startsWith("MAN-"));
-    // Garder les réservations Airbnb passées même si absentes du iCal
-    const todayStr = new Date().toISOString().slice(0,10);
-    const pastAirbnb = (data.bookings || []).filter(b =>
-      !b.id.startsWith("MAN-") && b.checkOut <= todayStr && !newB.some(nb => nb.id === b.id)
-    );
-    const airbnb  = newB.map(b => ({
+    // RÈGLE ABSOLUE : on ne supprime JAMAIS une réservation existante
+    const updatedFromIcal = newB.map(b => ({
       ...b,
       amount:     existing[b.id]?.amount ?? 0,
       name:       existing[b.id]?.nameEdited
@@ -90,6 +85,8 @@ export default async function handler(req, res) {
       nameEdited: existing[b.id]?.nameEdited ?? false,
       notes:      existing[b.id]?.notes ?? "",
     }));
+    // Garder TOUTES les réservations existantes non présentes dans le iCal
+    const notInIcal = (data.bookings || []).filter(b => !newB.some(nb => nb.id === b.id));
 
     // Blocages : filtrer selon liste noire + 360 jours + réservations existantes
     const ignoredBlocks = data.ignoredBlocks || [];
@@ -124,7 +121,7 @@ export default async function handler(req, res) {
 
     await setDoc(docRef, {
       ...data,
-      bookings: [...airbnb, ...pastAirbnb, ...manuals],
+      bookings: [...updatedFromIcal, ...notInIcal],
       blocked:  [...filteredAirbnb, ...personal],
       lastSync: new Date().toISOString(),
     });
