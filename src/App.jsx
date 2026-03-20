@@ -1517,7 +1517,7 @@ export default function RiadDashboard() {
         </div>
         {[
           {label:lang==="fr"?"CA confirmé":"Confirmed revenue", value:fmtBoth(confirmedRevenue,rate), sub:`${lang==="fr"?"Brut":"Gross"} : ${fmtMAD(totalGross)} · Airbnb -${Math.round(commission*100)}%`, color:"var(--color-text-info)"},
-          {label:t("occupation"), value:occupancy+"%", sub:`${totalNights} ${t("payingNights")} + ${persoNights} ${t("persoNights")}`, color:"var(--color-text-info)"},
+          {label:t("occupation"), value:occupancy+"%", sub:`${totalNights} ${t("payingNights")} + ${persoNights} ${t("persoNights")}`, color:"var(--color-text-info)", mini:true},
           {label:t("avgNight"),   value:avgNight?fmtBoth(avgNight,rate):"—", sub:t("onAmounts"), color:"var(--color-text-secondary)"},
           {label:lang==="fr"?"Bénéfice projeté":"Projected profit", value:fmtBoth(confirmedRevenue-totalExp,rate), sub:(confirmedRevenue?Math.round(((confirmedRevenue-totalExp)/confirmedRevenue)*100):0)+"% "+t("margin"), color:(confirmedRevenue-totalExp)>=0?"var(--color-text-success)":"var(--color-text-danger)"},
         ].map(k=>(
@@ -1528,6 +1528,33 @@ export default function RiadDashboard() {
               {typeof k.value==="string"&&k.value.includes("·") && <p style={{margin:0,fontSize:12,color:"var(--color-text-tertiary)"}}>{k.value.split("·")[1]?.trim()}</p>}
             </div>
             <p style={{margin:0,fontSize:11,color:"var(--color-text-tertiary)"}}>{k.sub}</p>
+            {k.mini && (() => {
+              const curMonth = new Date().getMonth();
+              return (
+                <div style={{marginTop:8,display:"flex",flexDirection:"column",gap:4}}>
+                  {[0,1,2,3].map(offset => {
+                    const mi = (curMonth + offset) % 12;
+                    const daysInMonth = new Date(year, mi+1, 0).getDate();
+                    const n = payingBookings.reduce((s,b)=>s+nightsInMonth(b,mi),0);
+                    const p = persoBookings.reduce((s,b)=>s+nightsInMonth(b,mi),0);
+                    const rate2 = Math.round(((n+p)/daysInMonth)*100);
+                    const col = rate2>=70?"#2e7d32":rate2>=40?"#856404":"#c0392b";
+                    return (
+                      <div key={mi}>
+                        <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"var(--color-text-tertiary)",marginBottom:2}}>
+                          <span>{months[mi]}</span>
+                          <span style={{color:col,fontWeight:500}}>{rate2}%</span>
+                        </div>
+                        <div style={{background:"var(--color-border-tertiary)",borderRadius:99,height:4,overflow:"hidden",display:"flex"}}>
+                          <div style={{width:`${Math.round((n/daysInMonth)*100)}%`,height:"100%",background:C_RESERVED,borderRadius:99}} />
+                          <div style={{width:`${Math.round((p/daysInMonth)*100)}%`,height:"100%",background:C_BLOCKED,borderRadius:99,marginLeft:1}} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
           </div>
         ))}
       </div>
@@ -1599,6 +1626,7 @@ export default function RiadDashboard() {
         {tabBtn("calendar",t("tabCalendar"))}
         {tabBtn("bookings",`${t("tabBookings")}${pendingCount>0?` (${pendingCount} ⚠)`:""}`)}
         {tabBtn("chart",t("tabChart"))}
+        {tabBtn("occupation",lang==="fr"?"Occupation":"Occupancy")}
         {tabBtn("expenses",t("tabExpenses"))}
       </div>
 
@@ -2139,6 +2167,59 @@ export default function RiadDashboard() {
                 <span style={{color:C_BLOCKED}}>■ {t("confirmed")}</span>
                 <span>□ {t("notYetBooked")}</span>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── OCCUPATION ─────────────────────────────────────────────────────── */}
+      {tab==="occupation" && (
+        <div>
+          <div style={{...rc,marginBottom:"1.25rem"}}>
+            <p style={{margin:"0 0 1rem",fontSize:14,fontWeight:500}}>{lang==="fr"?"Taux de remplissage":"Fill rate"} — {year}</p>
+            <div style={{display:"flex",gap:12,marginBottom:"1rem",fontSize:12,flexWrap:"wrap"}}>
+              <span style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:10,height:10,borderRadius:2,background:"#2e7d32"}}/> {lang==="fr"?"≥70% Excellent":"≥70% Excellent"}</span>
+              <span style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:10,height:10,borderRadius:2,background:"#856404"}}/> {lang==="fr"?"40-70% Bon":"40-70% Good"}</span>
+              <span style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:10,height:10,borderRadius:2,background:C_RESERVED}}/> {lang==="fr"?"<40% Faible":"<40% Low"}</span>
+            </div>
+            <div style={{display:"flex",flexDirection:"column",gap:8}}>
+              {months.map((m,mi) => {
+                const daysInMonth = new Date(year, mi+1, 0).getDate();
+                const n = payingBookings.reduce((s,b)=>s+nightsInMonth(b,mi),0);
+                const p = persoBookings.reduce((s,b)=>s+nightsInMonth(b,mi),0);
+                const pct = Math.round(((n+p)/daysInMonth)*100);
+                const pctPaying = Math.round((n/daysInMonth)*100);
+                const mRevenue = payingBookings.filter(b=>{
+                  const mStart=new Date(year,mi,1); const mEnd=new Date(year,mi+1,1);
+                  return new Date(b.checkIn)<mEnd && new Date(b.checkOut)>mStart;
+                }).reduce((s,b)=>s+netAmount(b),0);
+                const col = pct>=70?"#2e7d32":pct>=40?"#856404":pct===0?"var(--color-text-tertiary)":C_RESERVED;
+                const isCurrentMonth = mi === new Date().getMonth() && year === new Date().getFullYear();
+                const isPast = new Date(year, mi+1, 0) < new Date();
+                return (
+                  <div key={m} style={{padding:"10px 12px",background:isCurrentMonth?"var(--color-background-secondary)":"transparent",borderRadius:8,border:isCurrentMonth?`1px solid ${col}`:"none"}}>
+                    <div style={{display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
+                      <span style={{fontSize:13,fontWeight:isCurrentMonth?600:400,minWidth:36,color:isCurrentMonth?"var(--color-text-primary)":"var(--color-text-secondary)"}}>{m}</span>
+                      <div style={{flex:1,minWidth:120}}>
+                        <div style={{background:"var(--color-border-tertiary)",borderRadius:99,height:8,overflow:"hidden",display:"flex"}}>
+                          <div style={{width:`${Math.round((n/daysInMonth)*100)}%`,height:"100%",background:C_RESERVED,borderRadius:99,transition:"width 0.3s"}} />
+                          <div style={{width:`${Math.round((p/daysInMonth)*100)}%`,height:"100%",background:C_BLOCKED,borderRadius:99,marginLeft:p>0?1:0,transition:"width 0.3s"}} />
+                        </div>
+                      </div>
+                      <span style={{fontSize:13,fontWeight:600,color:col,minWidth:36,textAlign:"right"}}>{pct}%</span>
+                      <span style={{fontSize:12,color:"var(--color-text-tertiary)",minWidth:80}}>{n}n {lang==="fr"?"pay.":"pay."}{p>0?` + ${p}n perso`:""}</span>
+                      <span style={{fontSize:12,fontWeight:500,color:"var(--color-text-success)",minWidth:100,textAlign:"right"}}>{mRevenue>0?fmtBoth(mRevenue,rate):"—"}</span>
+                      <span style={{fontSize:11,padding:"2px 8px",borderRadius:99,background:pct>=70?"#e8f5e9":pct>=40?"#fff3cd":pct===0?"var(--color-background-secondary)":"#fdecea",color:col,fontWeight:500}}>{pct>=70?"🟢":pct>=40?"🟠":pct===0?"—":"🔴"} {pct>=70?(lang==="fr"?"Excellent":"Excellent"):pct>=40?(lang==="fr"?"Bon":"Good"):pct===0?(lang==="fr"?"Libre":"Free"):(lang==="fr"?"Faible":"Low")}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{marginTop:"1rem",paddingTop:"1rem",borderTop:"0.5px solid var(--color-border-tertiary)",display:"flex",gap:24,fontSize:13,flexWrap:"wrap"}}>
+              <span>{lang==="fr"?"Taux annuel":"Annual rate"} : <strong style={{color:occupancy>=70?"#2e7d32":occupancy>=40?"#856404":C_RESERVED}}>{occupancy}%</strong></span>
+              <span>{lang==="fr"?"Total payantes":"Total paying"} : <strong style={{color:C_RESERVED}}>{totalNights}n</strong></span>
+              {persoNights>0 && <span>{lang==="fr"?"Total perso":"Personal"} : <strong style={{color:C_BLOCKED}}>{persoNights}n</strong></span>}
+              <span>{lang==="fr"?"Objectif 70%":"Target 70%"} : <strong>{Math.round(365*0.7)}n</strong></span>
             </div>
           </div>
         </div>
