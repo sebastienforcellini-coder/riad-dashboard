@@ -725,14 +725,14 @@ export default function RiadDashboard() {
           if (parsed.bookings?.length > 0) currentBookings = parsed.bookings;
         }
       } catch {}
-      const manuals  = currentBookings.filter(b => b.id.startsWith("MAN-"));
-      // Garder les réservations Airbnb passées même si absentes du iCal
-      const today = new Date().toISOString().slice(0,10);
-      const pastAirbnb = currentBookings.filter(b => 
-        !b.id.startsWith("MAN-") && b.checkOut <= today && !newB.some(nb => nb.id === b.id)
-      );
-      const existing = Object.fromEntries(currentBookings.map(b=>[b.id,{amount:b.amount,name:b.name||"",guests:b.guests||"",paid:b.paid||false,nameEdited:b.nameEdited||false,notes:b.notes||""}]));
-      const airbnb   = newB.map(b=>({...b,
+      // RÈGLE ABSOLUE : on ne supprime JAMAIS une réservation existante
+      // Le sync ajoute les nouvelles et met à jour les existantes uniquement
+      const existing = Object.fromEntries(currentBookings.map(b=>[b.id,{
+        amount:b.amount, name:b.name||"", guests:b.guests||"",
+        paid:b.paid||false, nameEdited:b.nameEdited||false, notes:b.notes||""
+      }]));
+      // Mettre à jour les réservations Airbnb existantes depuis le iCal
+      const updatedFromIcal = newB.map(b=>({...b,
         amount: existing[b.id]?.amount ?? 0,
         name:   existing[b.id]?.nameEdited ? existing[b.id].name : (existing[b.id]?.name || b.name || ""),
         guests: existing[b.id]?.guests ?? "",
@@ -740,7 +740,9 @@ export default function RiadDashboard() {
         nameEdited: existing[b.id]?.nameEdited ?? false,
         notes: existing[b.id]?.notes ?? "",
       }));
-      setBookings([...airbnb, ...pastAirbnb, ...manuals]);
+      // Garder TOUTES les réservations existantes non présentes dans le iCal
+      const notInIcal = currentBookings.filter(b => !newB.some(nb => nb.id === b.id));
+      setBookings([...updatedFromIcal, ...notInIcal]);
       setBlocked(prev => {
         const personal = prev.filter(b => b.type === "personal");
         // Read ignoredBlocks from localStorage for guaranteed fresh data
