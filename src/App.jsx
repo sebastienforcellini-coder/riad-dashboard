@@ -1483,11 +1483,7 @@ export default function RiadDashboard() {
         </div>
       )}
 
-      {/* Import zones */}
-      <div style={{display:"flex",gap:12,marginBottom:"1.5rem",flexWrap:"wrap"}}>
-        <DropZone label={t("dropIcsLabel")} sub={t("dropIcsSub")} accept=".ics" onFile={handleIcs} color={C_RESERVED} />
-        <DropZone label={t("dropCsvLabel")} sub={t("dropCsvSub")} accept=".csv" onFile={handleCsv} color="var(--color-text-info)" />
-      </div>
+
 
       {/* KPIs */}
       <div style={{display:"flex",gap:12,flexWrap:"wrap",marginBottom:"0.75rem"}}>
@@ -1633,6 +1629,11 @@ export default function RiadDashboard() {
       {/* ── CALENDRIER ─────────────────────────────────────────────────────── */}
       {tab==="calendar" && (
         <div>
+          {/* Import zones dans le calendrier */}
+          <div style={{display:"flex",gap:12,marginBottom:"1.25rem",flexWrap:"wrap"}}>
+            <DropZone label={t("dropIcsLabel")} sub={t("dropIcsSub")} accept=".ics" onFile={handleIcs} color={C_RESERVED} />
+            <DropZone label={t("dropCsvLabel")} sub={t("dropCsvSub")} accept=".csv" onFile={handleCsv} color="var(--color-text-info)" />
+          </div>
           {/* Légende */}
           <div style={{display:"flex",gap:12,marginBottom:"1rem",flexWrap:"wrap",alignItems:"center"}}>
             {[
@@ -2175,47 +2176,74 @@ export default function RiadDashboard() {
       {/* ── OCCUPATION ─────────────────────────────────────────────────────── */}
       {tab==="occupation" && (
         <div>
-          <div style={{...rc,marginBottom:"1.25rem"}}>
-            <p style={{margin:"0 0 1rem",fontSize:14,fontWeight:500}}>{lang==="fr"?"Taux de remplissage":"Fill rate"} — {year}</p>
-            <div style={{display:"flex",gap:12,marginBottom:"1rem",fontSize:12,flexWrap:"wrap"}}>
-              <span style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:10,height:10,borderRadius:2,background:"#2e7d32"}}/> {lang==="fr"?"≥70% Excellent":"≥70% Excellent"}</span>
-              <span style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:10,height:10,borderRadius:2,background:"#856404"}}/> {lang==="fr"?"40-70% Bon":"40-70% Good"}</span>
-              <span style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:10,height:10,borderRadius:2,background:C_RESERVED}}/> {lang==="fr"?"<40% Faible":"<40% Low"}</span>
+          <div style={rc}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1.5rem",flexWrap:"wrap",gap:8}}>
+              <p style={{margin:0,fontSize:14,fontWeight:500}}>{lang==="fr"?"Taux de remplissage":"Fill rate"} — {year}</p>
+              <div style={{display:"flex",gap:16,fontSize:12}}>
+                <span style={{display:"flex",alignItems:"center",gap:5}}><div style={{width:10,height:10,borderRadius:2,background:"#2e7d32",flexShrink:0}}/>{lang==="fr"?"≥70% Excellent":"≥70% Excellent"}</span>
+                <span style={{display:"flex",alignItems:"center",gap:5}}><div style={{width:10,height:10,borderRadius:2,background:"#856404",flexShrink:0}}/>{lang==="fr"?"40–70% Bon":"40–70% Good"}</span>
+                <span style={{display:"flex",alignItems:"center",gap:5}}><div style={{width:10,height:10,borderRadius:2,background:C_RESERVED,flexShrink:0}}/>{lang==="fr"?"<40% Faible":"<40% Low"}</span>
+              </div>
             </div>
-            <div style={{display:"flex",flexDirection:"column",gap:8}}>
+            <div style={{display:"flex",flexDirection:"column",gap:0}}>
               {months.map((m,mi) => {
                 const daysInMonth = new Date(year, mi+1, 0).getDate();
                 const n = payingBookings.reduce((s,b)=>s+nightsInMonth(b,mi),0);
                 const p = persoBookings.reduce((s,b)=>s+nightsInMonth(b,mi),0);
                 const pct = Math.round(((n+p)/daysInMonth)*100);
-                const pctPaying = Math.round((n/daysInMonth)*100);
                 const mRevenue = payingBookings.filter(b=>{
                   const mStart=new Date(year,mi,1); const mEnd=new Date(year,mi+1,1);
                   return new Date(b.checkIn)<mEnd && new Date(b.checkOut)>mStart;
                 }).reduce((s,b)=>s+netAmount(b),0);
                 const col = pct>=70?"#2e7d32":pct>=40?"#856404":pct===0?"var(--color-text-tertiary)":C_RESERVED;
-                const isCurrentMonth = mi === new Date().getMonth() && year === new Date().getFullYear();
-                const isPast = new Date(year, mi+1, 0) < new Date();
+                const isCurrentMonth = mi===new Date().getMonth() && year===new Date().getFullYear();
+                const badge = pct>=70
+                  ? {bg:"#e8f5e9",color:"#2e7d32",label:lang==="fr"?"Excellent":"Excellent",dot:"●"}
+                  : pct>=40
+                    ? {bg:"#fff3cd",color:"#856404",label:lang==="fr"?"Bon":"Good",dot:"●"}
+                    : pct===0
+                      ? {bg:"var(--color-background-secondary)",color:"var(--color-text-tertiary)",label:lang==="fr"?"Libre":"Free",dot:"—"}
+                      : {bg:"#fdecea",color:C_RESERVED,label:lang==="fr"?"Faible":"Low",dot:"●"};
                 return (
-                  <div key={m} style={{padding:"10px 12px",background:isCurrentMonth?"var(--color-background-secondary)":"transparent",borderRadius:8,border:isCurrentMonth?`1px solid ${col}`:"none"}}>
-                    <div style={{display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
-                      <span style={{fontSize:13,fontWeight:isCurrentMonth?600:400,minWidth:36,color:isCurrentMonth?"var(--color-text-primary)":"var(--color-text-secondary)"}}>{m}</span>
-                      <div style={{flex:1,minWidth:120}}>
-                        <div style={{background:"var(--color-border-tertiary)",borderRadius:99,height:8,overflow:"hidden",display:"flex"}}>
-                          <div style={{width:`${Math.round((n/daysInMonth)*100)}%`,height:"100%",background:C_RESERVED,borderRadius:99,transition:"width 0.3s"}} />
-                          <div style={{width:`${Math.round((p/daysInMonth)*100)}%`,height:"100%",background:C_BLOCKED,borderRadius:99,marginLeft:p>0?1:0,transition:"width 0.3s"}} />
-                        </div>
-                      </div>
-                      <span style={{fontSize:13,fontWeight:600,color:col,minWidth:36,textAlign:"right"}}>{pct}%</span>
-                      <span style={{fontSize:12,color:"var(--color-text-tertiary)",minWidth:80}}>{n}n {lang==="fr"?"pay.":"pay."}{p>0?` + ${p}n perso`:""}</span>
-                      <span style={{fontSize:12,fontWeight:500,color:"var(--color-text-success)",minWidth:100,textAlign:"right"}}>{mRevenue>0?fmtBoth(mRevenue,rate):"—"}</span>
-                      <span style={{fontSize:11,padding:"2px 8px",borderRadius:99,background:pct>=70?"#e8f5e9":pct>=40?"#fff3cd":pct===0?"var(--color-background-secondary)":"#fdecea",color:col,fontWeight:500}}>{pct>=70?"🟢":pct>=40?"🟠":pct===0?"—":"🔴"} {pct>=70?(lang==="fr"?"Excellent":"Excellent"):pct>=40?(lang==="fr"?"Bon":"Good"):pct===0?(lang==="fr"?"Libre":"Free"):(lang==="fr"?"Faible":"Low")}</span>
+                  <div key={m} style={{
+                    display:"grid",
+                    gridTemplateColumns:"48px 1fr 52px 120px 140px 90px",
+                    alignItems:"center",
+                    gap:16,
+                    padding:"14px 16px",
+                    borderBottom:"0.5px solid var(--color-border-tertiary)",
+                    background:isCurrentMonth?"var(--color-background-secondary)":"transparent",
+                    borderRadius:isCurrentMonth?8:0,
+                    borderLeft:isCurrentMonth?`3px solid ${col}`:"3px solid transparent",
+                  }}>
+                    {/* Mois */}
+                    <span style={{fontSize:14,fontWeight:isCurrentMonth?700:400,color:isCurrentMonth?"var(--color-text-primary)":"var(--color-text-secondary)"}}>{m}</span>
+                    {/* Barre */}
+                    <div style={{background:"var(--color-border-tertiary)",borderRadius:99,height:10,overflow:"hidden",display:"flex"}}>
+                      <div style={{width:`${Math.round((n/daysInMonth)*100)}%`,height:"100%",background:C_RESERVED,transition:"width 0.4s"}} />
+                      <div style={{width:`${Math.round((p/daysInMonth)*100)}%`,height:"100%",background:C_BLOCKED,marginLeft:p>0?2:0,transition:"width 0.4s"}} />
                     </div>
+                    {/* Taux */}
+                    <span style={{fontSize:15,fontWeight:700,color:col,textAlign:"right"}}>{pct}%</span>
+                    {/* Nuits */}
+                    <span style={{fontSize:12,color:"var(--color-text-secondary)"}}>
+                      {n>0?<span style={{color:C_RESERVED,fontWeight:500}}>{n}n {lang==="fr"?"pay.":"pay."}</span>:<span style={{color:"var(--color-text-tertiary)"}}>0n</span>}
+                      {p>0 && <span style={{color:C_BLOCKED,marginLeft:4}}>+ {p}n perso</span>}
+                    </span>
+                    {/* Revenus */}
+                    <span style={{fontSize:12,fontWeight:500,color:mRevenue>0?"var(--color-text-success)":"var(--color-text-tertiary)",textAlign:"right"}}>
+                      {mRevenue>0?<>{fmtMAD(mRevenue)}<br/><span style={{fontSize:11,fontWeight:400}}>{fmtEUR(mRevenue/rate)}</span></>:"—"}
+                    </span>
+                    {/* Badge */}
+                    <span style={{fontSize:11,padding:"3px 10px",borderRadius:99,background:badge.bg,color:badge.color,fontWeight:600,textAlign:"center",display:"inline-block"}}>
+                      <span style={{marginRight:4}}>{badge.dot}</span>{badge.label}
+                    </span>
                   </div>
                 );
               })}
             </div>
-            <div style={{marginTop:"1rem",paddingTop:"1rem",borderTop:"0.5px solid var(--color-border-tertiary)",display:"flex",gap:24,fontSize:13,flexWrap:"wrap"}}>
+            {/* Totaux */}
+            <div style={{display:"flex",gap:24,fontSize:13,flexWrap:"wrap",padding:"16px 16px 4px",borderTop:"0.5px solid var(--color-border-tertiary)",marginTop:4}}>
               <span>{lang==="fr"?"Taux annuel":"Annual rate"} : <strong style={{color:occupancy>=70?"#2e7d32":occupancy>=40?"#856404":C_RESERVED}}>{occupancy}%</strong></span>
               <span>{lang==="fr"?"Total payantes":"Total paying"} : <strong style={{color:C_RESERVED}}>{totalNights}n</strong></span>
               {persoNights>0 && <span>{lang==="fr"?"Total perso":"Personal"} : <strong style={{color:C_BLOCKED}}>{persoNights}n</strong></span>}
