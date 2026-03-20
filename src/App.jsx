@@ -1030,7 +1030,7 @@ export default function RiadDashboard() {
 
   // ── Export / Import JSON ──────────────────────────────────────────────────────
   const exportJSON = () => {
-    const data = { bookings, blocked, expenses, rate, currency, recurring, ignoredBlocks, lastSync, lastModified: new Date().toISOString(), exportedAt: new Date().toISOString(), version: 1 };
+    const data = { bookings, blocked, expenses, rate, currency, recurring, ignoredBlocks, lastSync, lastModified: new Date().toISOString(), exportedAt: new Date().toISOString(), version: 1, nextId };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement("a");
@@ -1149,11 +1149,12 @@ export default function RiadDashboard() {
     setEditBooking(null);
     showToast(t("toastBookingUpdated"));
   };
+  const genId = () => "MAN-" + Date.now().toString(36).toUpperCase().slice(-6);
   const addBooking = () => {
     if (!bForm.checkIn||!bForm.checkOut) return;
     const nights=Math.round((new Date(bForm.checkOut)-new Date(bForm.checkIn))/86400000);
-    setBookings(prev=>[...prev,{...bForm,id:"MAN-"+nextId,nights,amount:parseFloat(bForm.amount)||0}]);
-    setNextId(n=>n+1); setBForm({checkIn:"",checkOut:"",name:"",phone:"",platform:"Direct",amount:"",guests:"",paid:false,notes:""}); setShowAddB(false);
+    setBookings(prev=>[...prev,{...bForm,id:genId(),nights,amount:parseFloat(bForm.amount)||0}]);
+    setBForm({checkIn:"",checkOut:"",name:"",phone:"",platform:"Direct",amount:"",guests:"",paid:false,notes:""}); setShowAddB(false);
     showToast(t("toastBookingAdded"));
   };
   const addExpense = () => {
@@ -1170,14 +1171,14 @@ export default function RiadDashboard() {
   };
   const addBlocked = () => {
     if (!blForm.start||!blForm.end) return;
-    setBlocked(prev=>[...prev,{...blForm,type:"personal"}]);
+    setBlocked(prev=>[...prev,{...blForm,type:"personal",uid:genId()}]);
     setBlForm({start:"",end:"",label:""}); setShowAddBl(false);
     showToast(t("toastBlockedAdded"));
   };
   const addRecurring = () => {
     if (!rForm.description||!rForm.amount) return;
-    setRecurring(prev=>[...prev,{...rForm,id:"REC-"+nextId,amount:parseFloat(rForm.amount)}]);
-    setNextId(n=>n+1); setRForm({category:"Ménage",description:"",amount:"",months:[]}); setShowAddR(false);
+    setRecurring(prev=>[...prev,{...rForm,id:"REC-"+Date.now().toString(36).toUpperCase().slice(-6),amount:parseFloat(rForm.amount)}]);
+    setRForm({category:"Ménage",description:"",amount:"",months:[]}); setShowAddR(false);
     showToast(t("toastRecurringAdded"));
   };
   const generateRecurring = (rec) => {
@@ -1674,7 +1675,7 @@ export default function RiadDashboard() {
                       const convertToBooking = () => {
                         setBlocked(prev=>prev.filter(x=>x!==b));
                         setBookings(prev=>[...prev,{
-                          id:"MAN-"+nextId, checkIn:b.start, checkOut:b.end,
+                          id:genId(), checkIn:b.start, checkOut:b.end,
                           nights:n, platform:"Direct", phone:"", name:"",
                           amount:0, uid:""
                         }]);
