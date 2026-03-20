@@ -1640,11 +1640,10 @@ export default function RiadDashboard() {
                     const convertToBooking = () => {
                       setBlocked(prev=>prev.filter(x=>x!==b));
                       setBookings(prev=>[...prev,{
-                        id:"MAN-"+nextId, checkIn:b.start, checkOut:b.end,
+                        id:genId(), checkIn:b.start, checkOut:b.end,
                         nights:n, platform:"Direct", phone:"", name:b.label||"",
                         amount:0, uid:""
                       }]);
-                      setNextId(n=>n+1);
                       setTab("bookings");
                       showToast(t("toastConverted"));
                     };
