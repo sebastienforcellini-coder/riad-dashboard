@@ -1485,7 +1485,7 @@ export default function RiadDashboard() {
       <div style={{display:"flex",gap:12,flexWrap:"wrap",marginBottom:"1.5rem"}}>
         {[
           {label:t("netRevenue"), value:fmtBoth(totalRevenue,rate), sub:`${t("gross")} : ${fmtMAD(totalGross)} · Airbnb -${Math.round(commission*100)}%`, color:"var(--color-text-success)"},
-          {label:t("expenses"),   value:fmtBoth(pastExp,rate),     sub:`+ ${fmtMAD(futureExp)} ${lang==="fr"?"prévus":"planned"} · ${yearExpenses.length} ${t("expensesCount")}`, color:"var(--color-text-danger)"},
+          {label:t("expenses"),   value:fmtBoth(pastExp,rate),     sub:`+ ${fmtBoth(futureExp,rate)} ${lang==="fr"?"prévus":"planned"} · ${yearExpenses.length} ${t("expensesCount")}`, color:"var(--color-text-danger)"},
           {label:t("netProfit"),  value:fmtBoth(netProfit,rate),    sub:t("margin")+" "+(totalRevenue?Math.round((netProfit/totalRevenue)*100):0)+"%", color:netProfit>=0?"var(--color-text-success)":"var(--color-text-danger)"},
           {label:t("occupation"), value:occupancy+"%",               sub:`${totalNights} ${t("payingNights")} + ${persoNights} ${t("persoNights")}`, color:"var(--color-text-info)"},
           {label:t("avgNight"),   value:avgNight?fmtBoth(avgNight,rate):"—", sub:t("onAmounts"), color:"var(--color-text-secondary)"},
