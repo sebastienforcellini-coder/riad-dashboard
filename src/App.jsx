@@ -382,7 +382,7 @@ function DropZone({ label, sub, accept, onFile, color }) {
   );
 }
 
-export default function RiadDashboard() {
+export default function App() {
   const [bookings,  setBookings]  = useState([]);
   const [blocked,   setBlocked]   = useState([]);
   const [expenses,  setExpenses]  = useState([]);
@@ -601,15 +601,39 @@ export default function RiadDashboard() {
     setSyncStatus("syncing");
     setShowUndoSync(false);
 
+    // Fetch avec timeout via AbortController
+    const fetchWithTimeout = async (fetchFn, ms = 7000) => {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), ms);
+      try {
+        return await fetchFn(ctrl.signal);
+      } finally {
+        clearTimeout(timer);
+      }
+    };
+
+    // Les deux proxies partent EN PARALLÈLE — on prend le premier qui répond valide
     let text = null;
     try {
-      const res = await fetch(`/api/ical?url=${encodeURIComponent(url)}`);
-      if (res.ok) { const tx = await res.text(); if (tx.includes("BEGIN:VCALENDAR")) text = tx; }
-    } catch {}
-    if (!text) try {
-      const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`);
-      if (res.ok) { const j = await res.json(); if (j?.contents?.includes("BEGIN:VCALENDAR")) text = j.contents; }
-    } catch {}
+      text = await Promise.any([
+        fetchWithTimeout(async (signal) => {
+          const res = await fetch(`/api/ical?url=${encodeURIComponent(url)}`, { signal });
+          if (!res.ok) throw new Error("not ok");
+          const tx = await res.text();
+          if (!tx.includes("BEGIN:VCALENDAR")) throw new Error("no calendar");
+          return tx;
+        }),
+        fetchWithTimeout(async (signal) => {
+          const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`, { signal });
+          if (!res.ok) throw new Error("not ok");
+          const j = await res.json();
+          if (!j?.contents?.includes("BEGIN:VCALENDAR")) throw new Error("no calendar");
+          return j.contents;
+        }),
+      ]);
+    } catch {
+      text = null;
+    }
 
     if (!text) {
       setSyncStatus("error");
