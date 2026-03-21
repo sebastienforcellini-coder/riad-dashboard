@@ -6,17 +6,52 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'autoUpdate',  // Met à jour automatiquement sans demander
+      registerType: 'autoUpdate',
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
         runtimeCaching: [
+          // Firebase Firestore
           {
             urlPattern: /^https:\/\/.*\.firebaseio\.com\/.*/i,
             handler: 'NetworkFirst',
+            options: {
+              networkTimeoutSeconds: 5,
+              cacheName: 'firebase-cache',
+            },
           },
           {
             urlPattern: /^https:\/\/.*\.googleapis\.com\/.*/i,
             handler: 'NetworkFirst',
+            options: {
+              networkTimeoutSeconds: 5,
+              cacheName: 'google-apis-cache',
+            },
+          },
+          // Proxy iCal interne Vercel
+          {
+            urlPattern: /\/api\/ical/i,
+            handler: 'NetworkFirst',
+            options: {
+              networkTimeoutSeconds: 6,
+              cacheName: 'ical-cache',
+              expiration: {
+                maxEntries: 5,
+                maxAgeSeconds: 60 * 30, // 30 min max en cache
+              },
+            },
+          },
+          // Fallback proxy allorigins
+          {
+            urlPattern: /api\.allorigins\.win/i,
+            handler: 'NetworkFirst',
+            options: {
+              networkTimeoutSeconds: 6,
+              cacheName: 'allorigins-cache',
+              expiration: {
+                maxEntries: 5,
+                maxAgeSeconds: 60 * 30,
+              },
+            },
           },
         ],
       },
