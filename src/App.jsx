@@ -1630,10 +1630,10 @@ export default function RiadDashboard() {
           <div style={rc}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1.5rem",flexWrap:"wrap",gap:8}}>
               <p style={{margin:0,fontSize:14,fontWeight:500}}>{lang==="fr"?"Taux de remplissage":"Fill rate"} — {year}</p>
-              <div style={{display:"flex",gap:16,fontSize:12}}>
-                <span style={{display:"flex",alignItems:"center",gap:5}}><div style={{width:10,height:10,borderRadius:2,background:"#2e7d32",flexShrink:0}}/>{lang==="fr"?"≥70% Excellent":"≥70% Excellent"}</span>
-                <span style={{display:"flex",alignItems:"center",gap:5}}><div style={{width:10,height:10,borderRadius:2,background:"#856404",flexShrink:0}}/>{lang==="fr"?"40–70% Bon":"40–70% Good"}</span>
-                <span style={{display:"flex",alignItems:"center",gap:5}}><div style={{width:10,height:10,borderRadius:2,background:C_RESERVED,flexShrink:0}}/>{lang==="fr"?"<40% Faible":"<40% Low"}</span>
+              <div style={{display:"flex",gap:10,fontSize:11,flexWrap:"wrap"}}>
+                <span style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:8,height:8,borderRadius:2,background:"#2e7d32",flexShrink:0}}/>{lang==="fr"?"≥70%":"≥70%"}</span>
+                <span style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:8,height:8,borderRadius:2,background:"#856404",flexShrink:0}}/>{lang==="fr"?"40–70%":"40–70%"}</span>
+                <span style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:8,height:8,borderRadius:2,background:C_RESERVED,flexShrink:0}}/>{lang==="fr"?"<40%":"<40%"}</span>
               </div>
             </div>
             <div style={{display:"flex",flexDirection:"column",gap:0}}>
@@ -1644,31 +1644,40 @@ export default function RiadDashboard() {
                 const mRevenue=payingBookings.filter(b=>{const mStart=new Date(year,mi,1),mEnd=new Date(year,mi+1,1);return new Date(b.checkIn)<mEnd&&new Date(b.checkOut)>mStart;}).reduce((s,b)=>s+netAmount(b),0);
                 const col=pct>=70?"#2e7d32":pct>=40?"#856404":pct===0?"var(--color-text-tertiary)":C_RESERVED;
                 const isCurrentMonth=mi===new Date().getMonth()&&year===new Date().getFullYear();
-                const badge=pct>=70?{bg:"#e8f5e9",color:"#2e7d32",label:lang==="fr"?"Excellent":"Excellent",dot:"●"}:pct>=40?{bg:"#fff3cd",color:"#856404",label:lang==="fr"?"Bon":"Good",dot:"●"}:pct===0?{bg:"var(--color-background-secondary)",color:"var(--color-text-tertiary)",label:lang==="fr"?"Libre":"Free",dot:"—"}:{bg:"#fdecea",color:C_RESERVED,label:lang==="fr"?"Faible":"Low",dot:"●"};
+                const badge=pct>=70?{bg:"#e8f5e9",color:"#2e7d32",label:lang==="fr"?"Excellent":"Excellent"}:pct>=40?{bg:"#fff3cd",color:"#856404",label:lang==="fr"?"Bon":"Good"}:pct===0?{bg:"var(--color-background-secondary)",color:"var(--color-text-tertiary)",label:lang==="fr"?"Libre":"Free"}:{bg:"#fdecea",color:C_RESERVED,label:lang==="fr"?"Faible":"Low"};
                 return (
-                  <div key={m} style={{display:"grid",gridTemplateColumns:"48px 1fr 52px 120px 140px 90px",alignItems:"center",gap:16,padding:"14px 16px",borderBottom:"0.5px solid var(--color-border-tertiary)",background:isCurrentMonth?"var(--color-background-secondary)":"transparent",borderRadius:isCurrentMonth?8:0,borderLeft:isCurrentMonth?`3px solid ${col}`:"3px solid transparent"}}>
-                    <span style={{fontSize:14,fontWeight:isCurrentMonth?700:400,color:isCurrentMonth?"var(--color-text-primary)":"var(--color-text-secondary)"}}>{m}</span>
-                    <div style={{background:"var(--color-border-tertiary)",borderRadius:99,height:10,overflow:"hidden",display:"flex"}}>
-                      <div style={{width:`${Math.round((n/daysInMonth)*100)}%`,height:"100%",background:C_RESERVED,transition:"width 0.4s"}} />
-                      <div style={{width:`${Math.round((p/daysInMonth)*100)}%`,height:"100%",background:C_BLOCKED,marginLeft:p>0?2:0,transition:"width 0.4s"}} />
+                  <div key={m} style={{padding:"12px 0",borderBottom:"0.5px solid var(--color-border-tertiary)",borderLeft:isCurrentMonth?`3px solid ${col}`:"3px solid transparent",paddingLeft:isCurrentMonth?10:0,background:isCurrentMonth?"var(--color-background-secondary)":"transparent",borderRadius:isCurrentMonth?6:0,marginLeft:isCurrentMonth?-4:0,paddingRight:isCurrentMonth?8:0}}>
+                    {/* Ligne 1 : mois | barre | % | badge */}
+                    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:5}}>
+                      <span style={{fontSize:13,fontWeight:isCurrentMonth?700:500,color:isCurrentMonth?"var(--color-text-primary)":"var(--color-text-secondary)",minWidth:28,flexShrink:0}}>{m}</span>
+                      <div style={{flex:1,background:"var(--color-border-tertiary)",borderRadius:99,height:8,overflow:"hidden",display:"flex"}}>
+                        <div style={{width:`${Math.round((n/daysInMonth)*100)}%`,height:"100%",background:C_RESERVED,transition:"width 0.4s"}} />
+                        <div style={{width:`${Math.round((p/daysInMonth)*100)}%`,height:"100%",background:C_BLOCKED,marginLeft:p>0?2:0,transition:"width 0.4s"}} />
+                      </div>
+                      <span style={{fontSize:14,fontWeight:700,color:col,minWidth:38,textAlign:"right",flexShrink:0}}>{pct}%</span>
+                      <span style={{fontSize:10,padding:"2px 7px",borderRadius:99,background:badge.bg,color:badge.color,fontWeight:600,flexShrink:0,whiteSpace:"nowrap"}}>{badge.label}</span>
                     </div>
-                    <span style={{fontSize:15,fontWeight:700,color:col,textAlign:"right"}}>{pct}%</span>
-                    <span style={{fontSize:12,color:"var(--color-text-secondary)"}}>
-                      {n>0?<span style={{color:C_RESERVED,fontWeight:500}}>{n}n {lang==="fr"?"pay.":"pay."}</span>:<span style={{color:"var(--color-text-tertiary)"}}>0n</span>}
-                      {p>0&&<span style={{color:C_BLOCKED,marginLeft:4}}>+ {p}n perso</span>}
-                    </span>
-                    <span style={{fontSize:12,fontWeight:500,color:mRevenue>0?"var(--color-text-success)":"var(--color-text-tertiary)",textAlign:"right"}}>
-                      {mRevenue>0?<>{fmtMAD(mRevenue)}<br/><span style={{fontSize:11,fontWeight:400}}>{fmtEUR(mRevenue/rate)}</span></>:"—"}
-                    </span>
-                    <span style={{fontSize:11,padding:"3px 10px",borderRadius:99,background:badge.bg,color:badge.color,fontWeight:600,textAlign:"center",display:"inline-block"}}><span style={{marginRight:4}}>{badge.dot}</span>{badge.label}</span>
+                    {/* Ligne 2 : nuits | montant */}
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingLeft:36}}>
+                      <span style={{fontSize:11,color:"var(--color-text-secondary)"}}>
+                        {n>0?<span style={{color:C_RESERVED,fontWeight:500}}>{n}n {lang==="fr"?"pay.":"pay."}</span>:<span style={{color:"var(--color-text-tertiary)"}}>0n</span>}
+                        {p>0&&<span style={{color:C_BLOCKED,marginLeft:6}}>+ {p}n perso</span>}
+                      </span>
+                      <span style={{fontSize:12,fontWeight:500,color:mRevenue>0?"var(--color-text-success)":"var(--color-text-tertiary)",textAlign:"right"}}>
+                        {mRevenue>0
+                          ? <span>{fmtMAD(mRevenue)} <span style={{fontSize:10,fontWeight:400,color:"var(--color-text-tertiary)"}}>{fmtEUR(mRevenue/rate)}</span></span>
+                          : "—"
+                        }
+                      </span>
+                    </div>
                   </div>
                 );
               })}
             </div>
-            <div style={{display:"flex",gap:24,fontSize:13,flexWrap:"wrap",padding:"16px 16px 4px",borderTop:"0.5px solid var(--color-border-tertiary)",marginTop:4}}>
-              <span>{lang==="fr"?"Taux annuel":"Annual rate"} : <strong style={{color:occupancy>=70?"#2e7d32":occupancy>=40?"#856404":C_RESERVED}}>{occupancy}%</strong></span>
-              <span>{lang==="fr"?"Total payantes":"Total paying"} : <strong style={{color:C_RESERVED}}>{totalNights}n</strong></span>
-              {persoNights>0&&<span>{lang==="fr"?"Total perso":"Personal"} : <strong style={{color:C_BLOCKED}}>{persoNights}n</strong></span>}
+            <div style={{display:"flex",gap:16,fontSize:12,flexWrap:"wrap",padding:"14px 0 4px",borderTop:"0.5px solid var(--color-border-tertiary)",marginTop:8}}>
+              <span>{lang==="fr"?"Annuel":"Annual"} : <strong style={{color:occupancy>=70?"#2e7d32":occupancy>=40?"#856404":C_RESERVED}}>{occupancy}%</strong></span>
+              <span>{lang==="fr"?"Payantes":"Paying"} : <strong style={{color:C_RESERVED}}>{totalNights}n</strong></span>
+              {persoNights>0&&<span>{lang==="fr"?"Perso":"Personal"} : <strong style={{color:C_BLOCKED}}>{persoNights}n</strong></span>}
               <span>{lang==="fr"?"Objectif 70%":"Target 70%"} : <strong>{Math.round(365*0.7)}n</strong></span>
             </div>
           </div>
