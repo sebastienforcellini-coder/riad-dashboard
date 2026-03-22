@@ -1771,7 +1771,7 @@ export default function RiadDashboard() {
                                 <button onClick={()=>togglePaid(b.id)} style={{fontSize:13,border:"none",background:"none",cursor:"pointer",padding:"0 2px"}}>{b.paid?"✅":"⏳"}</button>
                                 <button onClick={()=>printRecap(b)} style={{fontSize:13,border:"none",background:"none",cursor:"pointer",padding:"0 2px"}}>📄</button>
                                 <button onClick={()=>setEditBooking({...b})} style={{fontSize:11,color:"var(--color-text-info)",border:"none",background:"none",cursor:"pointer",padding:"0 4px"}}>✏️</button>
-                                <button onClick={()=>{setBookings(prev=>prev.filter(x=>x.id!==b.id));showToast(t("toastBookingDel"));}} style={{fontSize:12,color:"var(--color-text-danger)",border:"none",background:"none",cursor:"pointer",padding:"0 4px"}}>✕</button>
+                                <button onClick={()=>{if(window.confirm(`${lang==="fr"?"Supprimer la réservation de":"Delete booking for"} ${b.name||b.id} ?`)){setBookings(prev=>prev.filter(x=>x.id!==b.id));showToast(t("toastBookingDel"));}}} style={{fontSize:12,color:"var(--color-text-danger)",border:"none",background:"none",cursor:"pointer",padding:"0 4px"}}>✕</button>
                               </div>
                             </div>
                             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"3px 8px",fontSize:12,color:"var(--color-text-secondary)",marginBottom:8}}>
@@ -1859,7 +1859,7 @@ export default function RiadDashboard() {
                                 <button onClick={()=>togglePaid(b.id)} title={b.paid?t("markUnpaid"):t("markPaid")} style={{fontSize:11,border:"none",background:"none",cursor:"pointer",padding:"2px 4px"}}>{b.paid?"✅":"⏳"}</button>
                                 <button onClick={()=>printRecap(b)} title={lang==="fr"?"Fiche récap PDF":"PDF summary"} style={{fontSize:11,border:"none",background:"none",cursor:"pointer",padding:"2px 4px"}}>📄</button>
                                 <button onClick={()=>setEditBooking({...b})} style={{fontSize:11,color:"var(--color-text-info)",border:"none",background:"none",cursor:"pointer",padding:"2px 4px"}}>✏️</button>
-                                <button onClick={()=>{setBookings(prev=>prev.filter(x=>x.id!==b.id));showToast(t("toastBookingDel"));}} style={{fontSize:11,color:"var(--color-text-danger)",border:"none",background:"none",cursor:"pointer",padding:"2px 4px"}}>✕</button>
+                                <button onClick={()=>{if(window.confirm(`${lang==="fr"?"Supprimer la réservation de":"Delete booking for"} ${b.name||b.id} ?`)){setBookings(prev=>prev.filter(x=>x.id!==b.id));showToast(t("toastBookingDel"));}}} style={{fontSize:11,color:"var(--color-text-danger)",border:"none",background:"none",cursor:"pointer",padding:"2px 4px"}}>✕</button>
                               </td>
                             </tr>
                           ))}
