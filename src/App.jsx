@@ -399,7 +399,7 @@ export default function RiadDashboard() {
   const [tab,          setTab]          = useState("calendar");
   const [year,         setYear]         = useState(new Date().getFullYear());
   const [toast,        setToast]        = useState("");
-  const [showAddB,     setShowAddB]     = useState(false);
+  const [confirmDelete,setConfirmDelete]= useState(null); // {label, onConfirm}  const [showAddB,     setShowAddB]     = useState(false);
   const [showAddE,     setShowAddE]     = useState(false);
   const [editExpense,  setEditExpense]  = useState(null);
   const [showAddBl,    setShowAddBl]    = useState(false);
@@ -1291,6 +1291,30 @@ export default function RiadDashboard() {
         </div>
       )}
 
+      {/* ── Modal confirmation suppression ──────────────────────────────── */}
+      {confirmDelete && (
+        <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.5)",zIndex:10000,display:"flex",alignItems:"center",justifyContent:"center",padding:"1rem"}}
+          onClick={()=>setConfirmDelete(null)}>
+          <div style={{background:"var(--color-background-primary)",borderRadius:14,padding:"1.5rem",width:"100%",maxWidth:340,boxShadow:"0 8px 32px rgba(0,0,0,0.25)"}}
+            onClick={e=>e.stopPropagation()}>
+            <p style={{margin:"0 0 6px",fontSize:16}}>🗑️ {lang==="fr"?"Supprimer ?":"Delete?"}</p>
+            <p style={{margin:"0 0 20px",fontSize:13,color:"var(--color-text-secondary)"}}>{confirmDelete.label}</p>
+            <div style={{display:"flex",gap:10}}>
+              <button
+                onClick={()=>{confirmDelete.onConfirm();setConfirmDelete(null);}}
+                style={{flex:1,padding:"10px",background:C_RESERVED,color:"#fff",border:"none",borderRadius:8,fontSize:14,fontWeight:600,cursor:"pointer"}}>
+                {lang==="fr"?"Supprimer":"Delete"}
+              </button>
+              <button
+                onClick={()=>setConfirmDelete(null)}
+                style={{flex:1,padding:"10px",background:"var(--color-background-secondary)",color:"var(--color-text-primary)",border:"0.5px solid var(--color-border-secondary)",borderRadius:8,fontSize:14,cursor:"pointer"}}>
+                {lang==="fr"?"Annuler":"Cancel"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Header ──────────────────────────────────────────────────────── */}
       <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:"1.25rem",flexWrap:"wrap",gap:12}}>
         <div style={{display:"flex",alignItems:"center",gap:12}}>
@@ -1771,7 +1795,7 @@ export default function RiadDashboard() {
                                 <button onClick={()=>togglePaid(b.id)} style={{fontSize:13,border:"none",background:"none",cursor:"pointer",padding:"0 2px"}}>{b.paid?"✅":"⏳"}</button>
                                 <button onClick={()=>printRecap(b)} style={{fontSize:13,border:"none",background:"none",cursor:"pointer",padding:"0 2px"}}>📄</button>
                                 <button onClick={()=>setEditBooking({...b})} style={{fontSize:11,color:"var(--color-text-info)",border:"none",background:"none",cursor:"pointer",padding:"0 4px"}}>✏️</button>
-                                <button onClick={()=>{if(window.confirm(`${lang==="fr"?"Supprimer la réservation de":"Delete booking for"} ${b.name||b.id} ?`)){setBookings(prev=>prev.filter(x=>x.id!==b.id));showToast(t("toastBookingDel"));}}} style={{fontSize:12,color:"var(--color-text-danger)",border:"none",background:"none",cursor:"pointer",padding:"0 4px"}}>✕</button>
+                                <button onClick={()=>setConfirmDelete({label:`${b.name||b.id} · ${b.nights}n · ${b.platform}`,onConfirm:()=>{setBookings(prev=>prev.filter(x=>x.id!==b.id));showToast(t("toastBookingDel"));}})} style={{fontSize:12,color:"var(--color-text-danger)",border:"none",background:"none",cursor:"pointer",padding:"0 4px"}}>✕</button>
                               </div>
                             </div>
                             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"3px 8px",fontSize:12,color:"var(--color-text-secondary)",marginBottom:8}}>
@@ -1859,7 +1883,7 @@ export default function RiadDashboard() {
                                 <button onClick={()=>togglePaid(b.id)} title={b.paid?t("markUnpaid"):t("markPaid")} style={{fontSize:11,border:"none",background:"none",cursor:"pointer",padding:"2px 4px"}}>{b.paid?"✅":"⏳"}</button>
                                 <button onClick={()=>printRecap(b)} title={lang==="fr"?"Fiche récap PDF":"PDF summary"} style={{fontSize:11,border:"none",background:"none",cursor:"pointer",padding:"2px 4px"}}>📄</button>
                                 <button onClick={()=>setEditBooking({...b})} style={{fontSize:11,color:"var(--color-text-info)",border:"none",background:"none",cursor:"pointer",padding:"2px 4px"}}>✏️</button>
-                                <button onClick={()=>{if(window.confirm(`${lang==="fr"?"Supprimer la réservation de":"Delete booking for"} ${b.name||b.id} ?`)){setBookings(prev=>prev.filter(x=>x.id!==b.id));showToast(t("toastBookingDel"));}}} style={{fontSize:11,color:"var(--color-text-danger)",border:"none",background:"none",cursor:"pointer",padding:"2px 4px"}}>✕</button>
+                                <button onClick={()=>setConfirmDelete({label:`${b.name||b.id} · ${b.nights}n · ${b.platform}`,onConfirm:()=>{setBookings(prev=>prev.filter(x=>x.id!==b.id));showToast(t("toastBookingDel"));}})} style={{fontSize:11,color:"var(--color-text-danger)",border:"none",background:"none",cursor:"pointer",padding:"2px 4px"}}>✕</button>
                               </td>
                             </tr>
                           ))}
