@@ -1,3 +1,4 @@
+
 import { useState, useMemo, useRef, useEffect } from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import * as XLSX from "xlsx";
@@ -1587,7 +1588,7 @@ export default function RiadDashboard() {
               : <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
                   <thead>
                     <tr style={{borderBottom:"0.5px solid var(--color-border-tertiary)"}}>
-                      {[t("hPayment"),t("hClient"),t("colArrival"),t("colDeparture"),t("colNights"),t("hPlatform"),t("hNetTotal")].map(h=>(
+                      {[t("hPayment"),t("hClient"),t("colArrival"),t("colDeparture"),t("colNights"),t("colGuests"),t("hPlatform"),t("hNetTotal")].map(h=>(
                         <th key={h} style={{padding:"6px 8px",textAlign:"left",color:"var(--color-text-secondary)",fontWeight:400,fontSize:12,whiteSpace:"nowrap"}}>{h}</th>
                       ))}
                     </tr>
@@ -1600,6 +1601,7 @@ export default function RiadDashboard() {
                         <td style={{padding:"8px",whiteSpace:"nowrap"}}>{fmtDate(b.checkIn,locale)}</td>
                         <td style={{padding:"8px",whiteSpace:"nowrap"}}>{fmtDate(b.checkOut,locale)}</td>
                         <td style={{padding:"8px",color:"var(--color-text-secondary)"}}>{b.nights}n</td>
+                        <td style={{padding:"8px",color:"var(--color-text-secondary)",textAlign:"center"}}>{b.guests?<span style={{fontWeight:500}}>👥 {b.guests}</span>:"—"}</td>
                         <td style={{padding:"8px"}}><span style={{fontSize:11,padding:"2px 6px",borderRadius:99,background:"var(--color-background-secondary)"}}>{b.platform}</span></td>
                         <td style={{padding:"8px",fontWeight:500,color:b.paid?"#2e7d32":"var(--color-text-warning)"}}>{b.amount>0?fmtBoth(netAmount(b),rate):<span style={{fontSize:12}}>{t("toEnter")}</span>}</td>
                       </tr>
@@ -1607,7 +1609,9 @@ export default function RiadDashboard() {
                   </tbody>
                   <tfoot>
                     <tr>
-                      <td colSpan={6} style={{padding:"8px",fontWeight:500,fontSize:13}}>{t("total")} · {list.filter(b=>b.paid).length}/{list.length} {lang==="fr"?`payé${list.filter(b=>b.paid).length>1?"s":""}`:`paid`}</td>
+                      <td colSpan={5} style={{padding:"8px",fontWeight:500,fontSize:13}}>{t("total")} · {list.filter(b=>b.paid).length}/{list.length} {lang==="fr"?`payé${list.filter(b=>b.paid).length>1?"s":""}`:`paid`}</td>
+                      <td style={{padding:"8px",fontWeight:600,color:"var(--color-text-info)",textAlign:"center"}}>👥 {list.reduce((s,b)=>s+(parseInt(b.guests)||0),0)}</td>
+                      <td></td>
                       <td style={{padding:"8px",fontWeight:600,color}}>{fmtBoth(list.reduce((s,b)=>s+netAmount(b),0),rate)}</td>
                     </tr>
                   </tfoot>
