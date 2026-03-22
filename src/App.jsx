@@ -496,42 +496,48 @@ export default function RiadDashboard() {
   }, [bookings, blocked, expenses, year, nextId, currency, rate, commission, recurring, icsUrl, lastSync, ignoredBlocks]);
 
   // ── Firestore — onSnapshot temps réel ────────────────────────────────────
-  // CORRECTION : onSnapshot (live) au lieu de getDoc (one-shot)
-  // lastSavedModified empêche de ré-appliquer notre propre write
-  const [cloudStatus,    setCloudStatus]    = useState("");
-  const saveTimer        = useRef(null);
-  const isFromFirebase   = useRef(false);
-  const lastSavedModified = useRef("");          // ← NOUVEAU
+  // ARCHITECTURE CLÉ :
+  // hasHydrated = false au démarrage → bloque toute écriture Firestore
+  // tant que onSnapshot n'a pas répondu au moins une fois.
+  // Cela empêche les mobiles d'écraser Firestore avec leur vieux localStorage.
+  const [cloudStatus,     setCloudStatus]    = useState("");
+  const saveTimer         = useRef(null);
+  const isFromFirebase    = useRef(false);
+  const lastSavedModified = useRef("");
+  const hasHydrated       = useRef(false);  // ← CLÉ : false jusqu'au 1er onSnapshot
 
   useEffect(() => {
-    let initialLoad = true;
-
     const unsub = onSnapshot(DOC_REF, (snap) => {
-      if (!snap.exists()) { setCloudStatus("saved"); initialLoad = false; return; }
+      // Annuler tout timer de save en attente issu du chargement localStorage
+      if (saveTimer.current) { clearTimeout(saveTimer.current); saveTimer.current = null; }
+
+      if (!snap.exists()) {
+        // Firestore vide → on devient la source de vérité, on peut écrire
+        hasHydrated.current = true;
+        setCloudStatus("saved");
+        return;
+      }
       const data = snap.data();
 
-      // C'est notre propre écriture qui revient → ignorer
+      // Notre propre write qui revient → juste confirmer, ne rien appliquer
       if (data.lastModified && data.lastModified === lastSavedModified.current) {
+        hasHydrated.current = true;
         setCloudStatus("saved");
-        initialLoad = false;
         return;
       }
 
-      // Un save local est en cours (debounce actif) → ignorer le snapshot entrant
-      if (!initialLoad && saveTimer.current) {
-        initialLoad = false;
-        return;
-      }
-
-      // Les données locales sont plus récentes → ignorer (check toujours, même au 1er chargement)
-      const localModified  = localStorage.getItem("riad_last_modified");
+      // Comparer timestamps : qui a les données les plus récentes ?
+      const localModified  = localStorage.getItem("riad_last_modified") || "";
       const remoteModified = data.lastModified || "";
+
       if (localModified && remoteModified && localModified > remoteModified) {
-        initialLoad = false;
+        // Local plus récent (ex: Restore vient d'être fait sur ce device)
+        // → on garde le local, on devient source de vérité
+        hasHydrated.current = true;
         return;
       }
 
-      // Appliquer les données Firestore
+      // Firestore est plus récent (ou pas de date locale) → on applique
       isFromFirebase.current = true;
       if (data.bookings)               setBookings(data.bookings);
       if (data.blocked)                setBlocked(data.blocked);
@@ -545,23 +551,26 @@ export default function RiadDashboard() {
       if (data.ignoredBlocks)          setIgnoredBlocks(data.ignoredBlocks);
       saveStorage(data);
       setCloudStatus("saved");
-      initialLoad = false;
-    }, () => setCloudStatus("error"));
+      hasHydrated.current = true;
+    }, () => { hasHydrated.current = true; setCloudStatus("error"); });
 
     return () => unsub();
   }, []);
 
   // ── Save Firestore avec debounce ──────────────────────────────────────────
+  // N'écrit JAMAIS dans Firestore avant que onSnapshot ait répondu (hasHydrated)
+  // Cela empêche le localStorage mobile de démarrage d'écraser Firestore
   useEffect(() => {
-    // Toujours annuler le timer en cours, même si c'est un update venu de Firebase
-    // Sans ça, une ancienne sauvegarde (localStorage mobile) s'exécuterait après
-    // l'arrivée de onSnapshot et écraserait les données Firestore plus récentes
     if (saveTimer.current) clearTimeout(saveTimer.current);
 
     if (isFromFirebase.current) {
       isFromFirebase.current = false;
       return;
     }
+
+    // Bloquer toute écriture tant que onSnapshot n'a pas répondu
+    if (!hasHydrated.current) return;
+
     setCloudStatus("saving");
     saveTimer.current = setTimeout(() => {
       const now = new Date().toISOString();
