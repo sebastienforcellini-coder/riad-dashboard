@@ -1312,37 +1312,6 @@ export default function RiadDashboard() {
 
     <div style={{fontFamily:"var(--font-sans)",maxWidth:940,margin:"0 auto",padding:"1.5rem 1rem",paddingBottom:"calc(1.5rem + env(safe-area-inset-bottom, 0px))",position:"relative",background:"var(--color-background-primary)",minHeight:"-webkit-fill-available"}}>
 
-      {/* Toast */}
-      {toast && (
-        <div className="safe-bottom" style={{position:"fixed",bottom:24,left:"50%",transform:"translateX(-50%)",background:"var(--color-background-primary)",border:"0.5px solid var(--color-border-secondary)",borderRadius:"var(--border-radius-lg)",padding:"10px 20px",fontSize:13,fontWeight:500,boxShadow:"0 4px 16px rgba(0,0,0,0.12)",zIndex:9999,whiteSpace:"nowrap"}}>
-          {toast}
-        </div>
-      )}
-
-      {/* ── Modal confirmation suppression ──────────────────────────────── */}
-      {confirmDelete && (
-        <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.5)",zIndex:10000,display:"flex",alignItems:"center",justifyContent:"center",padding:"1rem"}}
-          onClick={()=>setConfirmDelete(null)}>
-          <div style={{background:"var(--color-background-primary)",borderRadius:14,padding:"1.5rem",paddingBottom:"max(1.5rem, calc(env(safe-area-inset-bottom) + 1rem))",width:"100%",maxWidth:340,boxShadow:"0 8px 32px rgba(0,0,0,0.25)"}}
-            onClick={e=>e.stopPropagation()}>
-            <p style={{margin:"0 0 6px",fontSize:16}}>🗑️ {lang==="fr"?"Supprimer ?":"Delete?"}</p>
-            <p style={{margin:"0 0 20px",fontSize:13,color:"var(--color-text-secondary)"}}>{confirmDelete.label}</p>
-            <div style={{display:"flex",gap:10}}>
-              <button
-                onClick={()=>{confirmDelete.onConfirm();setConfirmDelete(null);}}
-                style={{flex:1,padding:"10px",background:C_RESERVED,color:"#fff",border:"none",borderRadius:8,fontSize:14,fontWeight:600,cursor:"pointer"}}>
-                {lang==="fr"?"Supprimer":"Delete"}
-              </button>
-              <button
-                onClick={()=>setConfirmDelete(null)}
-                style={{flex:1,padding:"10px",background:"var(--color-background-secondary)",color:"var(--color-text-primary)",border:"0.5px solid var(--color-border-secondary)",borderRadius:8,fontSize:14,cursor:"pointer"}}>
-                {lang==="fr"?"Annuler":"Cancel"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* ── Header ──────────────────────────────────────────────────────── */}
       <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:"1.25rem",flexWrap:"wrap",gap:12}}>
         <div style={{display:"flex",alignItems:"center",gap:12}}>
@@ -2359,6 +2328,39 @@ export default function RiadDashboard() {
       )}
 
     </div>
+
+    {/* ── Toast — hors container pour position:fixed fiable sur iOS PWA ── */}
+    {toast && (
+      <div className="safe-bottom" style={{position:"fixed",bottom:24,left:"50%",transform:"translateX(-50%)",background:"var(--color-background-primary)",border:"0.5px solid var(--color-border-secondary)",borderRadius:"var(--border-radius-lg)",padding:"10px 20px",fontSize:13,fontWeight:500,boxShadow:"0 4px 16px rgba(0,0,0,0.12)",zIndex:9999,whiteSpace:"nowrap"}}>
+        {toast}
+      </div>
+    )}
+
+    {/* ── Modal confirmation suppression — hors container pour iOS PWA ── */}
+    {confirmDelete && (
+      <div
+        style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.55)",zIndex:10000,display:"flex",alignItems:"center",justifyContent:"center",padding:"1rem",boxSizing:"border-box"}}
+        onClick={()=>setConfirmDelete(null)}>
+        <div
+          style={{background:"var(--color-background-primary)",borderRadius:16,padding:"1.5rem",paddingBottom:"max(1.5rem, calc(env(safe-area-inset-bottom, 0px) + 1rem))",width:"100%",maxWidth:320,boxShadow:"0 12px 40px rgba(0,0,0,0.3)",boxSizing:"border-box"}}
+          onClick={e=>e.stopPropagation()}>
+          <p style={{margin:"0 0 6px",fontSize:17,fontWeight:600}}>🗑️ {lang==="fr"?"Supprimer ?":"Delete?"}</p>
+          <p style={{margin:"0 0 20px",fontSize:14,color:"var(--color-text-secondary)",lineHeight:1.4}}>{confirmDelete.label}</p>
+          <div style={{display:"flex",gap:12}}>
+            <button
+              onClick={()=>{confirmDelete.onConfirm();setConfirmDelete(null);}}
+              style={{flex:1,padding:"12px",background:C_RESERVED,color:"#fff",border:"none",borderRadius:10,fontSize:15,fontWeight:700,cursor:"pointer",WebkitAppearance:"none"}}>
+              {lang==="fr"?"Supprimer":"Delete"}
+            </button>
+            <button
+              onClick={()=>setConfirmDelete(null)}
+              style={{flex:1,padding:"12px",background:"var(--color-background-secondary)",color:"var(--color-text-primary)",border:"1px solid var(--color-border-secondary)",borderRadius:10,fontSize:15,cursor:"pointer",WebkitAppearance:"none"}}>
+              {lang==="fr"?"Annuler":"Cancel"}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
     </>
   );
 }
