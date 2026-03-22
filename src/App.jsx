@@ -1309,6 +1309,20 @@ export default function RiadDashboard() {
       }
       [data-theme="dark"] input::placeholder { color: #555; }
       * { transition: background-color 0.2s, color 0.2s, border-color 0.2s; }
+
+      /* iOS tap-through fix : désactive les boutons du modal pendant 400ms
+         Empêche le tap sur ✕ de traverser vers le bouton Supprimer du modal */
+      @keyframes modalIn {
+        0%   { opacity: 0; transform: scale(0.95); pointer-events: none; }
+        60%  { opacity: 1; transform: scale(1);    pointer-events: none; }
+        100% { opacity: 1; transform: scale(1);    pointer-events: auto; }
+      }
+      .modal-card {
+        animation: modalIn 0.4s ease forwards;
+      }
+      .modal-overlay {
+        animation: none;
+      }
     `}</style>
 
     <div style={{fontFamily:"var(--font-sans)",maxWidth:940,margin:"0 auto",padding:"1.5rem 1rem",paddingBottom:"calc(1.5rem + env(safe-area-inset-bottom, 0px))",position:"relative",background:"var(--color-background-primary)",minHeight:"-webkit-fill-available"}}>
@@ -2344,7 +2358,7 @@ export default function RiadDashboard() {
     {/* ── Modal confirmation suppression ── */}
     {confirmDelete && (
       <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.55)",zIndex:10000,display:"flex",alignItems:"center",justifyContent:"center",padding:"1.5rem",boxSizing:"border-box"}}>
-        <div style={{background:"var(--color-background-primary)",borderRadius:16,padding:"1.5rem",paddingBottom:"max(1.5rem, calc(env(safe-area-inset-bottom, 0px) + 1rem))",width:"100%",maxWidth:320,boxShadow:"0 12px 40px rgba(0,0,0,0.3)",boxSizing:"border-box"}}>
+        <div className="modal-card" style={{background:"var(--color-background-primary)",borderRadius:16,padding:"1.5rem",paddingBottom:"max(1.5rem, calc(env(safe-area-inset-bottom, 0px) + 1rem))",width:"100%",maxWidth:320,boxShadow:"0 12px 40px rgba(0,0,0,0.3)",boxSizing:"border-box"}}>
           <p style={{margin:"0 0 6px",fontSize:17,fontWeight:600}}>🗑️ {lang==="fr"?"Supprimer ?":"Delete?"}</p>
           <p style={{margin:"0 0 20px",fontSize:14,color:"var(--color-text-secondary)",lineHeight:1.4}}>{confirmDelete.label}</p>
           <div style={{display:"flex",gap:12}}>
