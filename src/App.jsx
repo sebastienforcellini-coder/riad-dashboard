@@ -570,6 +570,43 @@ export default function RiadDashboard() {
     }, 1500);
   }, [bookings, blocked, expenses, year, nextId, currency, rate, commission, recurring, icsUrl, lastSync, ignoredBlocks]);
 
+  // ── Re-sync au retour au premier plan (mobile / onglet) ──────────────────
+  // Quand le navigateur mobile sort d'arrière-plan, onSnapshot peut s'être
+  // coupé. On relit Firestore manuellement dès que l'onglet redevient visible.
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState !== "visible") return;
+      import("firebase/firestore").then(({ getDoc }) => {
+        getDoc(DOC_REF).then((snap) => {
+          if (!snap.exists()) return;
+          const data = snap.data();
+          // Notre propre write → ignorer
+          if (data.lastModified && data.lastModified === lastSavedModified.current) return;
+          // Données locales plus récentes → ignorer
+          const localModified  = localStorage.getItem("riad_last_modified");
+          const remoteModified = data.lastModified || "";
+          if (localModified && remoteModified && localModified >= remoteModified) return;
+          // Remote plus récent → appliquer
+          isFromFirebase.current = true;
+          if (data.bookings)               setBookings(data.bookings);
+          if (data.blocked)                setBlocked(data.blocked);
+          if (data.expenses)               setExpenses(data.expenses);
+          if (data.recurring)              setRecurring(data.recurring);
+          if (data.rate)                   setRate(data.rate);
+          if (data.currency)               setCurrency(data.currency);
+          if (data.commission !== undefined) setCommission(data.commission);
+          if (data.icsUrl)                 setIcsUrl(data.icsUrl);
+          if (data.lastSync)               setLastSync(data.lastSync);
+          if (data.ignoredBlocks)          setIgnoredBlocks(data.ignoredBlocks);
+          saveStorage(data);
+          setCloudStatus("saved");
+        }).catch(() => {});
+      });
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
+  }, []);
+
   // ── Refs courants ─────────────────────────────────────────────────────────
   const icsUrlRef        = useRef(icsUrl);       useEffect(() => { icsUrlRef.current = icsUrl; }, [icsUrl]);
   const bookingsRef      = useRef(bookings);     useEffect(() => { bookingsRef.current = bookings; }, [bookings]);
