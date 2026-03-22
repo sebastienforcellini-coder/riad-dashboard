@@ -1794,9 +1794,8 @@ export default function RiadDashboard() {
                                 <button onClick={()=>printRecap(b)} style={{fontSize:13,border:"none",background:"none",cursor:"pointer",padding:"0 2px"}}>📄</button>
                                 <button onClick={()=>setEditBooking({...b})} style={{fontSize:11,color:"var(--color-text-info)",border:"none",background:"none",cursor:"pointer",padding:"0 4px"}}>✏️</button>
                                 <button
-  onClick={()=>setConfirmDelete({_openedAt:Date.now(),label:`${b.name||b.id} · ${b.nights}n · ${b.platform}`,onConfirm:()=>{setBookings(prev=>prev.filter(x=>x.id!==b.id));showToast(t("toastBookingDel"));}})}
-  onTouchEnd={e=>{e.preventDefault();setConfirmDelete({_openedAt:Date.now(),label:`${b.name||b.id} · ${b.nights}n · ${b.platform}`,onConfirm:()=>{setBookings(prev=>prev.filter(x=>x.id!==b.id));showToast(t("toastBookingDel"));}});}}
-  style={{fontSize:12,color:"var(--color-text-danger)",border:"none",background:"none",cursor:"pointer",padding:"0 4px"}}>✕</button>
+  onClick={()=>setConfirmDelete({label:`${b.name||b.id} · ${b.nights}n · ${b.platform}`,onConfirm:()=>{setBookings(prev=>prev.filter(x=>x.id!==b.id));showToast(t("toastBookingDel"));}})}
+  style={{fontSize:12,color:"var(--color-text-danger)",border:"none",background:"none",cursor:"pointer",padding:"8px",minWidth:36,minHeight:36}}>✕</button>
                               </div>
                             </div>
                             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"3px 8px",fontSize:12,color:"var(--color-text-secondary)",marginBottom:8}}>
@@ -1885,9 +1884,8 @@ export default function RiadDashboard() {
                                 <button onClick={()=>printRecap(b)} title={lang==="fr"?"Fiche récap PDF":"PDF summary"} style={{fontSize:11,border:"none",background:"none",cursor:"pointer",padding:"2px 4px"}}>📄</button>
                                 <button onClick={()=>setEditBooking({...b})} style={{fontSize:11,color:"var(--color-text-info)",border:"none",background:"none",cursor:"pointer",padding:"2px 4px"}}>✏️</button>
                                 <button
-  onClick={()=>setConfirmDelete({_openedAt:Date.now(),label:`${b.name||b.id} · ${b.nights}n · ${b.platform}`,onConfirm:()=>{setBookings(prev=>prev.filter(x=>x.id!==b.id));showToast(t("toastBookingDel"));}})}
-  onTouchEnd={e=>{e.preventDefault();setConfirmDelete({_openedAt:Date.now(),label:`${b.name||b.id} · ${b.nights}n · ${b.platform}`,onConfirm:()=>{setBookings(prev=>prev.filter(x=>x.id!==b.id));showToast(t("toastBookingDel"));}});}}
-  style={{fontSize:11,color:"var(--color-text-danger)",border:"none",background:"none",cursor:"pointer",padding:"2px 4px"}}>✕</button>
+  onClick={()=>setConfirmDelete({label:`${b.name||b.id} · ${b.nights}n · ${b.platform}`,onConfirm:()=>{setBookings(prev=>prev.filter(x=>x.id!==b.id));showToast(t("toastBookingDel"));}})}
+  style={{fontSize:11,color:"var(--color-text-danger)",border:"none",background:"none",cursor:"pointer",padding:"8px",minWidth:36,minHeight:36}}>✕</button>
                               </td>
                             </tr>
                           ))}
@@ -2343,50 +2341,27 @@ export default function RiadDashboard() {
       </div>
     )}
 
-    {/* ── Modal confirmation suppression — hors container pour iOS PWA ── */}
-    {confirmDelete && (() => {
-      // iOS ghost click fix : on mémorise le timestamp d'ouverture du modal.
-      // Tout click/touch dans les 400ms suivant l'ouverture est ignoré sur le backdrop.
-      const openedAt = confirmDelete._openedAt || Date.now();
-      const dismiss = (e) => {
-        e.stopPropagation();
-        if (Date.now() - openedAt < 400) return; // ignorer le ghost click iOS
-        setConfirmDelete(null);
-      };
-      const confirm = (e) => {
-        e.stopPropagation();
-        confirmDelete.onConfirm();
-        setConfirmDelete(null);
-      };
-      return (
-        <div
-          style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.55)",zIndex:10000,display:"flex",alignItems:"center",justifyContent:"center",padding:"1rem",boxSizing:"border-box"}}
-          onClick={dismiss}
-          onTouchEnd={dismiss}>
-          <div
-            style={{background:"var(--color-background-primary)",borderRadius:16,padding:"1.5rem",paddingBottom:"max(1.5rem, calc(env(safe-area-inset-bottom, 0px) + 1rem))",width:"100%",maxWidth:320,boxShadow:"0 12px 40px rgba(0,0,0,0.3)",boxSizing:"border-box"}}
-            onClick={e=>e.stopPropagation()}
-            onTouchEnd={e=>e.stopPropagation()}>
-            <p style={{margin:"0 0 6px",fontSize:17,fontWeight:600}}>🗑️ {lang==="fr"?"Supprimer ?":"Delete?"}</p>
-            <p style={{margin:"0 0 20px",fontSize:14,color:"var(--color-text-secondary)",lineHeight:1.4}}>{confirmDelete.label}</p>
-            <div style={{display:"flex",gap:12}}>
-              <button
-                onClick={confirm}
-                onTouchEnd={confirm}
-                style={{flex:1,padding:"12px",background:C_RESERVED,color:"#fff",border:"none",borderRadius:10,fontSize:15,fontWeight:700,cursor:"pointer",WebkitAppearance:"none"}}>
-                {lang==="fr"?"Supprimer":"Delete"}
-              </button>
-              <button
-                onClick={dismiss}
-                onTouchEnd={dismiss}
-                style={{flex:1,padding:"12px",background:"var(--color-background-secondary)",color:"var(--color-text-primary)",border:"1px solid var(--color-border-secondary)",borderRadius:10,fontSize:15,cursor:"pointer",WebkitAppearance:"none"}}>
-                {lang==="fr"?"Annuler":"Cancel"}
-              </button>
-            </div>
+    {/* ── Modal confirmation suppression ── */}
+    {confirmDelete && (
+      <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.55)",zIndex:10000,display:"flex",alignItems:"center",justifyContent:"center",padding:"1.5rem",boxSizing:"border-box"}}>
+        <div style={{background:"var(--color-background-primary)",borderRadius:16,padding:"1.5rem",paddingBottom:"max(1.5rem, calc(env(safe-area-inset-bottom, 0px) + 1rem))",width:"100%",maxWidth:320,boxShadow:"0 12px 40px rgba(0,0,0,0.3)",boxSizing:"border-box"}}>
+          <p style={{margin:"0 0 6px",fontSize:17,fontWeight:600}}>🗑️ {lang==="fr"?"Supprimer ?":"Delete?"}</p>
+          <p style={{margin:"0 0 20px",fontSize:14,color:"var(--color-text-secondary)",lineHeight:1.4}}>{confirmDelete.label}</p>
+          <div style={{display:"flex",gap:12}}>
+            <button
+              onClick={()=>{confirmDelete.onConfirm();setConfirmDelete(null);}}
+              style={{flex:1,padding:"14px",background:C_RESERVED,color:"#fff",border:"none",borderRadius:10,fontSize:16,fontWeight:700,cursor:"pointer",WebkitAppearance:"none",minHeight:48}}>
+              {lang==="fr"?"Supprimer":"Delete"}
+            </button>
+            <button
+              onClick={()=>setConfirmDelete(null)}
+              style={{flex:1,padding:"14px",background:"var(--color-background-secondary)",color:"var(--color-text-primary)",border:"1px solid var(--color-border-secondary)",borderRadius:10,fontSize:16,cursor:"pointer",WebkitAppearance:"none",minHeight:48}}>
+              {lang==="fr"?"Annuler":"Cancel"}
+            </button>
           </div>
         </div>
-      );
-    })()}
+      </div>
+    )}
     </>
   );
 }
