@@ -399,7 +399,8 @@ export default function RiadDashboard() {
   const [tab,          setTab]          = useState("calendar");
   const [year,         setYear]         = useState(new Date().getFullYear());
   const [toast,        setToast]        = useState("");
-  const [confirmDelete,setConfirmDelete]= useState(null); // {label, onConfirm}  const [showAddB,     setShowAddB]     = useState(false);
+  const [confirmDelete,setConfirmDelete]= useState(null);
+  const [showAddB,     setShowAddB]     = useState(false);
   const [showAddE,     setShowAddE]     = useState(false);
   const [editExpense,  setEditExpense]  = useState(null);
   const [showAddBl,    setShowAddBl]    = useState(false);
