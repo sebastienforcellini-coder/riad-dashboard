@@ -1253,6 +1253,34 @@ export default function RiadDashboard() {
   return (
     <>
     <style>{`
+      /* ── Reset mobile iOS / Android ──────────────────────────────────── */
+
+      /* iOS : empêche le zoom auto sur focus des inputs (déclenché si fontSize < 16px)  */
+      input, select, textarea { font-size: 16px !important; }
+
+      /* iOS : scroll momentum natif */
+      * { -webkit-overflow-scrolling: touch; }
+
+      /* iOS/Android : supprimer le flash bleu au tap + désactiver double-tap zoom */
+      button, a, [role="button"] {
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+
+      /* iOS : empêcher le rubber-band scroll sur le body */
+      html, body {
+        overscroll-behavior: none;
+        -webkit-text-size-adjust: 100%;
+      }
+
+      /* iOS safe-area : toast au-dessus de la home bar iPhone */
+      .safe-bottom {
+        padding-bottom: max(16px, env(safe-area-inset-bottom)) !important;
+      }
+
+      /* Dark mode */
       [data-theme="dark"] {
         --color-background-primary: #1a1a1a;
         --color-background-secondary: #252525;
@@ -1282,11 +1310,11 @@ export default function RiadDashboard() {
       * { transition: background-color 0.2s, color 0.2s, border-color 0.2s; }
     `}</style>
 
-    <div style={{fontFamily:"var(--font-sans)",maxWidth:940,margin:"0 auto",padding:"1.5rem 1rem",position:"relative",background:"var(--color-background-primary)",minHeight:"100vh"}}>
+    <div style={{fontFamily:"var(--font-sans)",maxWidth:940,margin:"0 auto",padding:"1.5rem 1rem",paddingBottom:"calc(1.5rem + env(safe-area-inset-bottom, 0px))",position:"relative",background:"var(--color-background-primary)",minHeight:"-webkit-fill-available"}}>
 
       {/* Toast */}
       {toast && (
-        <div style={{position:"fixed",bottom:24,left:"50%",transform:"translateX(-50%)",background:"var(--color-background-primary)",border:"0.5px solid var(--color-border-secondary)",borderRadius:"var(--border-radius-lg)",padding:"10px 20px",fontSize:13,fontWeight:500,boxShadow:"0 4px 16px rgba(0,0,0,0.12)",zIndex:9999,whiteSpace:"nowrap"}}>
+        <div className="safe-bottom" style={{position:"fixed",bottom:24,left:"50%",transform:"translateX(-50%)",background:"var(--color-background-primary)",border:"0.5px solid var(--color-border-secondary)",borderRadius:"var(--border-radius-lg)",padding:"10px 20px",fontSize:13,fontWeight:500,boxShadow:"0 4px 16px rgba(0,0,0,0.12)",zIndex:9999,whiteSpace:"nowrap"}}>
           {toast}
         </div>
       )}
@@ -1295,7 +1323,7 @@ export default function RiadDashboard() {
       {confirmDelete && (
         <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.5)",zIndex:10000,display:"flex",alignItems:"center",justifyContent:"center",padding:"1rem"}}
           onClick={()=>setConfirmDelete(null)}>
-          <div style={{background:"var(--color-background-primary)",borderRadius:14,padding:"1.5rem",width:"100%",maxWidth:340,boxShadow:"0 8px 32px rgba(0,0,0,0.25)"}}
+          <div style={{background:"var(--color-background-primary)",borderRadius:14,padding:"1.5rem",paddingBottom:"max(1.5rem, calc(env(safe-area-inset-bottom) + 1rem))",width:"100%",maxWidth:340,boxShadow:"0 8px 32px rgba(0,0,0,0.25)"}}
             onClick={e=>e.stopPropagation()}>
             <p style={{margin:"0 0 6px",fontSize:16}}>🗑️ {lang==="fr"?"Supprimer ?":"Delete?"}</p>
             <p style={{margin:"0 0 20px",fontSize:13,color:"var(--color-text-secondary)"}}>{confirmDelete.label}</p>
@@ -1557,7 +1585,7 @@ export default function RiadDashboard() {
       })()}
 
       {/* ── Tabs ────────────────────────────────────────────────────────── */}
-      <div style={{borderBottom:"0.5px solid var(--color-border-tertiary)",marginBottom:"1.5rem",overflowX:"auto"}}>
+      <div style={{borderBottom:"0.5px solid var(--color-border-tertiary)",marginBottom:"1.5rem",overflowX:"auto",WebkitOverflowScrolling:"touch",msOverflowStyle:"none",scrollbarWidth:"none"}}>
         {tabBtn("calendar", t("tabCalendar"))}
         {tabBtn("bookings", `${t("tabBookings")}${pendingCount>0?` (${pendingCount} ⚠)`:""}`)}
         {tabBtn("chart",    t("tabChart"))}
