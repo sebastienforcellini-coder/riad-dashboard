@@ -523,10 +523,10 @@ export default function RiadDashboard() {
         return;
       }
 
-      // Les données locales sont plus récentes qu'un write d'un autre appareil → ignorer
+      // Les données locales sont plus récentes → ignorer (check toujours, même au 1er chargement)
       const localModified  = localStorage.getItem("riad_last_modified");
       const remoteModified = data.lastModified || "";
-      if (!initialLoad && localModified && remoteModified && localModified > remoteModified) {
+      if (localModified && remoteModified && localModified > remoteModified) {
         initialLoad = false;
         return;
       }
@@ -552,21 +552,27 @@ export default function RiadDashboard() {
   }, []);
 
   // ── Save Firestore avec debounce ──────────────────────────────────────────
-  // CORRECTION : reset isFromFirebase.current + mémoriser lastSavedModified
   useEffect(() => {
+    // Toujours annuler le timer en cours, même si c'est un update venu de Firebase
+    // Sans ça, une ancienne sauvegarde (localStorage mobile) s'exécuterait après
+    // l'arrivée de onSnapshot et écraserait les données Firestore plus récentes
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+
     if (isFromFirebase.current) {
-      isFromFirebase.current = false;   // reset le flag après avoir consommé l'update
+      isFromFirebase.current = false;
       return;
     }
-    if (saveTimer.current) clearTimeout(saveTimer.current);
     setCloudStatus("saving");
     saveTimer.current = setTimeout(() => {
       const now = new Date().toISOString();
-      lastSavedModified.current = now;  // mémoriser notre write pour l'ignorer dans onSnapshot
+      lastSavedModified.current = now;
       localStorage.setItem("riad_last_modified", now);
       saveCloud({ bookings, blocked, expenses, year, nextId, currency, rate, commission, recurring, icsUrl, lastSync, ignoredBlocks, lastModified: now })
         .then(() => setCloudStatus("saved"))
-        .catch(() => setCloudStatus("error"));
+        .catch(() => {
+          setCloudStatus("error");
+          showToast("❌ Sauvegarde cloud échouée — vérifiez votre connexion");
+        });
     }, 1500);
   }, [bookings, blocked, expenses, year, nextId, currency, rate, commission, recurring, icsUrl, lastSync, ignoredBlocks]);
 
