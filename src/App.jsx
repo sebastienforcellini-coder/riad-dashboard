@@ -1003,10 +1003,13 @@ export default function RiadDashboard() {
     if (toAdd.length===0) showToast(t("toastAlreadyGenerated"));
     else showToast(`✅ ${toAdd.length} ${lang==="fr"?`dépense${toAdd.length>1?"s":""} générée${toAdd.length>1?"s":""}`:`expense${toAdd.length>1?"s":""} generated`} ${year}`);
   };
+  // Un séjour est considéré encaissé si marqué payé OU si le checkout est passé
+  const isEffectivelyPaid = (b) => b.paid || b.checkOut <= todayStr;
+
   const togglePaid = (id) => {
     const b = bookings.find(x=>x.id===id);
     if (b && b.checkOut <= todayStr) {
-      showToast(lang==="fr"?"✅ Séjour terminé — considéré encaissé":"✅ Completed stay — considered paid");
+      showToast(lang==="fr"?"✅ Séjour terminé — automatiquement encaissé":"✅ Completed stay — automatically paid");
       return;
     }
     setBookings(prev=>prev.map(b=>b.id===id?{...b,paid:!b.paid}:b));
@@ -1215,7 +1218,7 @@ export default function RiadDashboard() {
       +"<table>"+rows
       +"<tr class='total'><td>"+t("recapTotal")+"</td><td>"+Math.round(netTot).toLocaleString("fr-MA")+" MAD · "+Math.round(netTot/rate).toLocaleString("fr-FR")+" €</td></tr>"
       +"</table>"
-      +"<p>"+t("recapPayment")+" : <span class='badge "+(b.paid?"paid":"unpaid")+"'>"+(b.paid?t("paidStatus"):t("unpaidStatus"))+"</span></p>"
+      +"<p>"+t("recapPayment")+" : <span class='badge "+(b.paid?"paid":"unpaid")+"'>"+(isEffectivelyPaid(b)?t("paidStatus"):t("unpaidStatus"))+"</span></p>"
       +"<div class='footer'>Kasbah Blanca · "+new Date().toLocaleDateString(loc)+"</div>"
       +"<scr"+"ipt>window.onload=function(){window.print()}</scr"+"ipt>"
       +"</body></html>";
@@ -1542,20 +1545,20 @@ export default function RiadDashboard() {
                   <tbody>
                     {[...list].sort((a,b)=>new Date(a.checkIn)-new Date(b.checkIn)).map(b=>(
                       <tr key={b.id} style={{borderBottom:"0.5px solid var(--color-border-tertiary)"}}>
-                        <td style={{padding:"8px"}}><button onClick={()=>togglePaid(b.id)} title={b.paid?t("markUnpaid"):t("markPaid")} style={{border:"none",background:"none",cursor:"pointer",fontSize:14}}>{b.paid?"✅":"⏳"}</button></td>
+                        <td style={{padding:"8px"}}><button onClick={()=>togglePaid(b.id)} title={b.paid?t("markUnpaid"):t("markPaid")} style={{border:"none",background:"none",cursor:"pointer",fontSize:14}}>{isEffectivelyPaid(b)?"✅":"⏳"}</button></td>
                         <td style={{padding:"8px",fontWeight:500}}>{b.name||<span style={{color:"var(--color-text-tertiary)"}}>—</span>}</td>
                         <td style={{padding:"8px",whiteSpace:"nowrap"}}>{fmtDate(b.checkIn,locale)}</td>
                         <td style={{padding:"8px",whiteSpace:"nowrap"}}>{fmtDate(b.checkOut,locale)}</td>
                         <td style={{padding:"8px",color:"var(--color-text-secondary)"}}>{b.nights}n</td>
                         <td style={{padding:"8px",color:"var(--color-text-secondary)",textAlign:"center"}}>{b.guests?<span style={{fontWeight:500}}>👥 {b.guests}</span>:"—"}</td>
                         <td style={{padding:"8px"}}><span style={{fontSize:11,padding:"2px 6px",borderRadius:99,background:"var(--color-background-secondary)"}}>{b.platform}</span></td>
-                        <td style={{padding:"8px",fontWeight:500,color:b.paid?"#2e7d32":"var(--color-text-warning)"}}>{b.amount>0?fmtBoth(netAmount(b),rate):<span style={{fontSize:12}}>{t("toEnter")}</span>}</td>
+                        <td style={{padding:"8px",fontWeight:500,color:isEffectivelyPaid(b)?"#2e7d32":"var(--color-text-warning)"}}>{b.amount>0?fmtBoth(netAmount(b),rate):<span style={{fontSize:12}}>{t("toEnter")}</span>}</td>
                       </tr>
                     ))}
                   </tbody>
                   <tfoot>
                     <tr>
-                      <td colSpan={5} style={{padding:"8px",fontWeight:500,fontSize:13}}>{t("total")} · {list.filter(b=>b.paid).length}/{list.length} {lang==="fr"?`payé${list.filter(b=>b.paid).length>1?"s":""}`:  "paid"}</td>
+                      <td colSpan={5} style={{padding:"8px",fontWeight:500,fontSize:13}}>{t("total")} · {list.filter(b=>isEffectivelyPaid(b)).length}/{list.length} {lang==="fr"?`payé${list.filter(b=>isEffectivelyPaid(b)).length>1?"s":""}`:  "paid"}</td>
                       <td style={{padding:"8px",fontWeight:600,color:"var(--color-text-info)",textAlign:"center"}}>👥 {list.reduce((s,b)=>s+(parseInt(b.guests)||0),0)}</td>
                       <td></td>
                       <td style={{padding:"8px",fontWeight:600,color}}>{fmtBoth(list.reduce((s,b)=>s+netAmount(b),0),rate)}</td>
@@ -1804,7 +1807,7 @@ export default function RiadDashboard() {
                                 <span style={{marginLeft:6,fontSize:11,fontWeight:600,color:b.paid?"#2e7d32":"#856404"}}>{b.paid?t("paidStatus"):t("unpaidStatus")}</span>
                               </div>
                               <div style={{display:"flex",gap:6,alignItems:"center"}}>
-                                <button onClick={()=>togglePaid(b.id)} style={{fontSize:13,border:"none",background:"none",cursor:"pointer",padding:"0 2px"}}>{b.paid?"✅":"⏳"}</button>
+                                <button onClick={()=>togglePaid(b.id)} style={{fontSize:13,border:"none",background:"none",cursor:"pointer",padding:"0 2px"}}>{isEffectivelyPaid(b)?"✅":"⏳"}</button>
                                 <button onClick={()=>printRecap(b)} style={{fontSize:13,border:"none",background:"none",cursor:"pointer",padding:"0 2px"}}>📄</button>
                                 <button onClick={()=>setEditBooking({...b})} style={{fontSize:11,color:"var(--color-text-info)",border:"none",background:"none",cursor:"pointer",padding:"0 4px"}}>✏️</button>
                                 <button
@@ -1894,7 +1897,7 @@ export default function RiadDashboard() {
                                 }
                               </td>
                               <td style={{padding:"10px 6px",textAlign:"right",whiteSpace:"nowrap"}}>
-                                <button onClick={()=>togglePaid(b.id)} title={b.paid?t("markUnpaid"):t("markPaid")} style={{fontSize:11,border:"none",background:"none",cursor:"pointer",padding:"2px 4px"}}>{b.paid?"✅":"⏳"}</button>
+                                <button onClick={()=>togglePaid(b.id)} title={isEffectivelyPaid(b)?t("markUnpaid"):t("markPaid")} style={{fontSize:11,border:"none",background:"none",cursor:"pointer",padding:"2px 4px"}}>{isEffectivelyPaid(b)?"✅":"⏳"}</button>
                                 <button onClick={()=>printRecap(b)} title={lang==="fr"?"Fiche récap PDF":"PDF summary"} style={{fontSize:11,border:"none",background:"none",cursor:"pointer",padding:"2px 4px"}}>📄</button>
                                 <button onClick={()=>setEditBooking({...b})} style={{fontSize:11,color:"var(--color-text-info)",border:"none",background:"none",cursor:"pointer",padding:"2px 4px"}}>✏️</button>
                                 <button
@@ -2013,7 +2016,7 @@ export default function RiadDashboard() {
                             <span style={{fontSize:12,color:"var(--color-text-secondary)"}}>{fmtDate(b.checkIn,locale)} → {fmtDate(b.checkOut,locale)}</span>
                             <span style={{fontSize:12,color:"var(--color-text-tertiary)"}}>{b.nights}n</span>
                             <span style={{fontSize:12,fontWeight:500,color:"var(--color-text-success)",marginLeft:"auto"}}>{b.amount>0?fmtBoth(netAmount(b),rate):"—"}</span>
-                            <span style={{fontSize:11}}>{b.paid?"✅":"⏳"}</span>
+                            <span style={{fontSize:11}}>{isEffectivelyPaid(b)?"✅":"⏳"}</span>
                             {b.notes && <p style={{margin:"2px 0 0",width:"100%",fontSize:11,color:"var(--color-text-secondary)",fontStyle:"italic"}}>📝 {b.notes}</p>}
                           </div>
                         );
