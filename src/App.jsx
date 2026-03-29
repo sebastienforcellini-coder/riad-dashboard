@@ -1299,6 +1299,18 @@ export default function RiadDashboard() {
     checkNotifs();
   }, [bookings.length]);
 
+  // ── Auto-paid : marque automatiquement payé les réservations échues ──────────
+  useEffect(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    const updated = bookings.map(b => {
+      if (b.platform === "Perso") return b;
+      if (!b.paid && b.checkOut < today) return { ...b, paid: true };
+      return b;
+    });
+    const hasChanges = updated.some((b, i) => b.paid !== bookings[i].paid);
+    if (hasChanges) setBookings(updated);
+  }, [bookings.length]);
+
   // ── Prévisionnel ─────────────────────────────────────────────────────────────
   const forecast = useMemo(() => {
     const monthsLeft = 12 - new Date().getMonth();
