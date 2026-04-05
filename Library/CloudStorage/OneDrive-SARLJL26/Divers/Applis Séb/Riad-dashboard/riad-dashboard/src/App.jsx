@@ -6,7 +6,7 @@ import { getFirestore, doc, setDoc, onSnapshot } from "firebase/firestore";
 
 const translations = {
   fr: {
-    title:"Kasbah Blanca Marrakech",subtitle:"Tableau de bord locatif",
+    title:"Kasbah Blanca Marrakech ",subtitle:"Tableau de bord locatif",
     saving:"⏳ Sauvegarde...",synced:"☁️ Synchronisé",offline:"⚠️ Hors ligne",
     syncOk:"✅ Airbnb",syncFail:"⚠️ Sync échouée",configSync:"Configurer sync",
     autoSyncOn:"Auto-sync ON",sync:"Sync",backup:"💾 Backup",restore:"📂 Restore",
@@ -100,7 +100,7 @@ const translations = {
     cats:{"Ménage":"Ménage","Gouvernante":"Gouvernante","Pisciniste":"Pisciniste","Frais Airbnb":"Frais Airbnb","Maintenance":"Maintenance","Fournitures":"Fournitures","Taxes/CFE":"Taxes/CFE","Internet":"Internet","Eau/Électricité":"Eau/Électricité","Assurance":"Assurance","Autre":"Autre"},
   },
   en: {
-    title:"Kasbah Blanca Marrakech",subtitle:"Rental dashboard",
+    title:"Kasbah Blanca Marrakech ",subtitle:"Rental dashboard",
     saving:"⏳ Saving...",synced:"☁️ Synced",offline:"⚠️ Offline",
     syncOk:"✅ Airbnb",syncFail:"⚠️ Sync failed",configSync:"Setup sync",
     autoSyncOn:"Auto-sync ON",sync:"Sync",backup:"💾 Backup",restore:"📂 Restore",
@@ -1170,7 +1170,7 @@ export default function RiadDashboard() {
     .footer{margin-top:40px;font-size:11px;color:#aaa;text-align:center;border-top:1px solid #eee;padding-top:16px}
     @media print{body{margin:20px}}</style></head><body>
     <div style="font-size:28px">🏡</div>
-    <h1>Kasbah Blanca Marrakech</h1>
+    <h1>Kasbah Blanca Marrakech </h1>
     <p class="sub">${lang==="fr"?"Récapitulatif mensuel":"Monthly summary"} — ${mName} ${year}</p>
     <div class="kpis">
       <div class="kpi"><p class="kpi-label">${lang==="fr"?"Revenus nets":"Net revenue"}</p><p class="kpi-value" style="color:#2e7d32">${fmtMAD(mRevenue)}</p><p class="kpi-sub">${fmtEUR(mRevenue/rate)}</p></div>
@@ -1220,7 +1220,7 @@ export default function RiadDashboard() {
       +".footer{margin-top:40px;font-size:11px;color:#aaa;text-align:center}"
       +"@media print{body{margin:20px}}</style></head><body>"
       +"<div style='font-size:28px'>🏡</div>"
-      +"<h1>Kasbah Blanca Marrakech</h1>"
+      +"<h1>Kasbah Blanca Marrakech </h1>"
       +"<p class='sub'>"+t("recapTitle")+"</p>"
       +"<table>"+rows
       +"<tr class='total'><td>"+t("recapTotal")+"</td><td>"+Math.round(netTot).toLocaleString("fr-MA")+" MAD · "+Math.round(netTot/rate).toLocaleString("fr-FR")+" €</td></tr>"
