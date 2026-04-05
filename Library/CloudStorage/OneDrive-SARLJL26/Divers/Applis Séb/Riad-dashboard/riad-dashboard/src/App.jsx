@@ -960,7 +960,7 @@ export default function RiadDashboard() {
       const co = new Date(b.checkOut); co.setHours(0,0,0,0);
       return {...b, type:"departure", daysUntil: Math.round((co-now)/86400000)};
     }).filter(b => b.daysUntil >= 0 && b.daysUntil <= 7);
-    return [...arrivals, ...departures].sort((a,b) => a.daysUntil - b.daysUntil || (a.type==="departure"?0:1) - (b.type==="departure"?0:1));
+    return [...arrivals, ...departures].sort((a,b) => a.daysUntil - b.daysUntil || (a.type==="arrival"?1:0) - (b.type==="arrival"?1:0));
   }, [bookings]);
 
   // ── Notifications push ────────────────────────────────────────────────────
