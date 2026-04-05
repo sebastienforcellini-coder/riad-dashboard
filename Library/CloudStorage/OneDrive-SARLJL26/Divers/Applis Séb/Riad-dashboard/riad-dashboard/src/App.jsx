@@ -399,6 +399,7 @@ export default function RiadDashboard() {
   const [tab,          setTab]          = useState("calendar");
   const [year,         setYear]         = useState(new Date().getFullYear());
   const [toast,        setToast]        = useState("");
+  const [confirmDelete,setConfirmDelete]= useState(null);
   const [showAddB,     setShowAddB]     = useState(false);
   const [showAddE,     setShowAddE]     = useState(false);
   const [editExpense,  setEditExpense]  = useState(null);
@@ -496,42 +497,48 @@ export default function RiadDashboard() {
   }, [bookings, blocked, expenses, year, nextId, currency, rate, commission, recurring, icsUrl, lastSync, ignoredBlocks]);
 
   // ── Firestore — onSnapshot temps réel ────────────────────────────────────
-  // CORRECTION : onSnapshot (live) au lieu de getDoc (one-shot)
-  // lastSavedModified empêche de ré-appliquer notre propre write
-  const [cloudStatus,    setCloudStatus]    = useState("");
-  const saveTimer        = useRef(null);
-  const isFromFirebase   = useRef(false);
-  const lastSavedModified = useRef("");          // ← NOUVEAU
+  // ARCHITECTURE CLÉ :
+  // hasHydrated = false au démarrage → bloque toute écriture Firestore
+  // tant que onSnapshot n'a pas répondu au moins une fois.
+  // Cela empêche les mobiles d'écraser Firestore avec leur vieux localStorage.
+  const [cloudStatus,     setCloudStatus]    = useState("");
+  const saveTimer         = useRef(null);
+  const isFromFirebase    = useRef(false);
+  const lastSavedModified = useRef("");
+  const hasHydrated       = useRef(false);  // ← CLÉ : false jusqu'au 1er onSnapshot
 
   useEffect(() => {
-    let initialLoad = true;
-
     const unsub = onSnapshot(DOC_REF, (snap) => {
-      if (!snap.exists()) { setCloudStatus("saved"); initialLoad = false; return; }
+      // Annuler tout timer de save en attente issu du chargement localStorage
+      if (saveTimer.current) { clearTimeout(saveTimer.current); saveTimer.current = null; }
+
+      if (!snap.exists()) {
+        // Firestore vide → on devient la source de vérité, on peut écrire
+        hasHydrated.current = true;
+        setCloudStatus("saved");
+        return;
+      }
       const data = snap.data();
 
-      // C'est notre propre écriture qui revient → ignorer
+      // Notre propre write qui revient → juste confirmer, ne rien appliquer
       if (data.lastModified && data.lastModified === lastSavedModified.current) {
+        hasHydrated.current = true;
         setCloudStatus("saved");
-        initialLoad = false;
         return;
       }
 
-      // Un save local est en cours (debounce actif) → ignorer le snapshot entrant
-      if (!initialLoad && saveTimer.current) {
-        initialLoad = false;
-        return;
-      }
-
-      // Les données locales sont plus récentes qu'un write d'un autre appareil → ignorer
-      const localModified  = localStorage.getItem("riad_last_modified");
+      // Comparer timestamps : qui a les données les plus récentes ?
+      const localModified  = localStorage.getItem("riad_last_modified") || "";
       const remoteModified = data.lastModified || "";
-      if (!initialLoad && localModified && remoteModified && localModified > remoteModified) {
-        initialLoad = false;
+
+      if (localModified && remoteModified && localModified > remoteModified) {
+        // Local plus récent (ex: Restore vient d'être fait sur ce device)
+        // → on garde le local, on devient source de vérité
+        hasHydrated.current = true;
         return;
       }
 
-      // Appliquer les données Firestore
+      // Firestore est plus récent (ou pas de date locale) → on applique
       isFromFirebase.current = true;
       if (data.bookings)               setBookings(data.bookings);
       if (data.blocked)                setBlocked(data.blocked);
@@ -545,30 +552,88 @@ export default function RiadDashboard() {
       if (data.ignoredBlocks)          setIgnoredBlocks(data.ignoredBlocks);
       saveStorage(data);
       setCloudStatus("saved");
-      initialLoad = false;
-    }, () => setCloudStatus("error"));
+      hasHydrated.current = true;
+    }, () => { hasHydrated.current = true; setCloudStatus("error"); });
 
     return () => unsub();
   }, []);
 
   // ── Save Firestore avec debounce ──────────────────────────────────────────
-  // CORRECTION : reset isFromFirebase.current + mémoriser lastSavedModified
+  // N'écrit JAMAIS dans Firestore avant que onSnapshot ait répondu (hasHydrated)
+  // Cela empêche le localStorage mobile de démarrage d'écraser Firestore
   useEffect(() => {
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+
     if (isFromFirebase.current) {
-      isFromFirebase.current = false;   // reset le flag après avoir consommé l'update
+      isFromFirebase.current = false;
       return;
     }
-    if (saveTimer.current) clearTimeout(saveTimer.current);
+
+    // Bloquer toute écriture tant que onSnapshot n'a pas répondu
+    if (!hasHydrated.current) return;
+
     setCloudStatus("saving");
     saveTimer.current = setTimeout(() => {
       const now = new Date().toISOString();
-      lastSavedModified.current = now;  // mémoriser notre write pour l'ignorer dans onSnapshot
+      lastSavedModified.current = now;
       localStorage.setItem("riad_last_modified", now);
       saveCloud({ bookings, blocked, expenses, year, nextId, currency, rate, commission, recurring, icsUrl, lastSync, ignoredBlocks, lastModified: now })
         .then(() => setCloudStatus("saved"))
-        .catch(() => setCloudStatus("error"));
+        .catch(() => {
+          setCloudStatus("error");
+          showToast("❌ Sauvegarde cloud échouée — vérifiez votre connexion");
+        });
     }, 1500);
   }, [bookings, blocked, expenses, year, nextId, currency, rate, commission, recurring, icsUrl, lastSync, ignoredBlocks]);
+
+  // ── Fonction partagée : appliquer les données Firestore si plus récentes ──
+  // Utilisée par visibilitychange ET le polling iOS
+  const applyIfNewer = useRef(null);
+  applyIfNewer.current = (data) => {
+    if (!data) return;
+    if (data.lastModified && data.lastModified === lastSavedModified.current) return;
+    const localModified  = localStorage.getItem("riad_last_modified") || "";
+    const remoteModified = data.lastModified || "";
+    if (localModified && remoteModified && localModified >= remoteModified) return;
+    isFromFirebase.current = true;
+    if (data.bookings)               setBookings(data.bookings);
+    if (data.blocked)                setBlocked(data.blocked);
+    if (data.expenses)               setExpenses(data.expenses);
+    if (data.recurring)              setRecurring(data.recurring);
+    if (data.rate)                   setRate(data.rate);
+    if (data.currency)               setCurrency(data.currency);
+    if (data.commission !== undefined) setCommission(data.commission);
+    if (data.icsUrl)                 setIcsUrl(data.icsUrl);
+    if (data.lastSync)               setLastSync(data.lastSync);
+    if (data.ignoredBlocks)          setIgnoredBlocks(data.ignoredBlocks);
+    saveStorage(data);
+    setCloudStatus("saved");
+  };
+
+  const pollFirestore = () => {
+    import("firebase/firestore").then(({ getDoc }) => {
+      getDoc(DOC_REF).then((snap) => {
+        if (snap.exists()) applyIfNewer.current(snap.data());
+      }).catch(() => {});
+    });
+  };
+
+  // ── Re-sync au retour au premier plan (visibilitychange) ──────────────────
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") pollFirestore();
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
+  }, []);
+
+  // ── Polling de secours toutes les 30s (iOS tue onSnapshot en arrière-plan) ─
+  // onSnapshot reste la source principale — le polling ne fait rien si Firestore
+  // n'est pas plus récent que le localStorage local.
+  useEffect(() => {
+    const id = setInterval(pollFirestore, 30000);
+    return () => clearInterval(id);
+  }, []);
 
   // ── Refs courants ─────────────────────────────────────────────────────────
   const icsUrlRef        = useRef(icsUrl);       useEffect(() => { icsUrlRef.current = icsUrl; }, [icsUrl]);
@@ -938,10 +1003,13 @@ export default function RiadDashboard() {
     if (toAdd.length===0) showToast(t("toastAlreadyGenerated"));
     else showToast(`✅ ${toAdd.length} ${lang==="fr"?`dépense${toAdd.length>1?"s":""} générée${toAdd.length>1?"s":""}`:`expense${toAdd.length>1?"s":""} generated`} ${year}`);
   };
+  // Un séjour est considéré encaissé si marqué payé OU si le checkout est passé
+  const isEffectivelyPaid = (b) => b.paid || b.checkOut <= todayStr;
+
   const togglePaid = (id) => {
     const b = bookings.find(x=>x.id===id);
     if (b && b.checkOut <= todayStr) {
-      showToast(lang==="fr"?"✅ Séjour terminé — considéré encaissé":"✅ Completed stay — considered paid");
+      showToast(lang==="fr"?"✅ Séjour terminé — automatiquement encaissé":"✅ Completed stay — automatically paid");
       return;
     }
     setBookings(prev=>prev.map(b=>b.id===id?{...b,paid:!b.paid}:b));
@@ -960,7 +1028,13 @@ export default function RiadDashboard() {
       const co = new Date(b.checkOut); co.setHours(0,0,0,0);
       return {...b, type:"departure", daysUntil: Math.round((co-now)/86400000)};
     }).filter(b => b.daysUntil >= 0 && b.daysUntil <= 7);
-    return [...arrivals, ...departures].sort((a,b) => a.daysUntil - b.daysUntil || (a.type==="arrival"?1:0) - (b.type==="arrival"?1:0) || (a.checkOut||a.checkIn||"").localeCompare(b.checkOut||b.checkIn||""));
+    // À égalité de jours : départ avant arrivée (le client part le matin, le suivant arrive après)
+    return [...arrivals, ...departures].sort((a,b) => {
+      if (a.daysUntil !== b.daysUntil) return a.daysUntil - b.daysUntil;
+      // Même jour : départ toujours avant arrivée
+      if (a.type !== b.type) return a.type === "departure" ? -1 : 1;
+      return 0;
+    });
   }, [bookings]);
 
   // ── Notifications push ────────────────────────────────────────────────────
@@ -1150,7 +1224,7 @@ export default function RiadDashboard() {
       +"<table>"+rows
       +"<tr class='total'><td>"+t("recapTotal")+"</td><td>"+Math.round(netTot).toLocaleString("fr-MA")+" MAD · "+Math.round(netTot/rate).toLocaleString("fr-FR")+" €</td></tr>"
       +"</table>"
-      +"<p>"+t("recapPayment")+" : <span class='badge "+(b.paid?"paid":"unpaid")+"'>"+(b.paid?t("paidStatus"):t("unpaidStatus"))+"</span></p>"
+      +"<p>"+t("recapPayment")+" : <span class='badge "+(b.paid?"paid":"unpaid")+"'>"+(isEffectivelyPaid(b)?t("paidStatus"):t("unpaidStatus"))+"</span></p>"
       +"<div class='footer'>Kasbah Blanca · "+new Date().toLocaleDateString(loc)+"</div>"
       +"<scr"+"ipt>window.onload=function(){window.print()}</scr"+"ipt>"
       +"</body></html>";
@@ -1189,6 +1263,34 @@ export default function RiadDashboard() {
   return (
     <>
     <style>{`
+      /* ── Reset mobile iOS / Android ──────────────────────────────────── */
+
+      /* iOS : empêche le zoom auto sur focus des inputs (déclenché si fontSize < 16px)  */
+      input, select, textarea { font-size: 16px !important; }
+
+      /* iOS : scroll momentum natif */
+      * { -webkit-overflow-scrolling: touch; }
+
+      /* iOS/Android : supprimer le flash bleu au tap + désactiver double-tap zoom */
+      button, a, [role="button"] {
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+
+      /* iOS : empêcher le rubber-band scroll sur le body */
+      html, body {
+        overscroll-behavior: none;
+        -webkit-text-size-adjust: 100%;
+      }
+
+      /* iOS safe-area : toast au-dessus de la home bar iPhone */
+      .safe-bottom {
+        padding-bottom: max(16px, env(safe-area-inset-bottom)) !important;
+      }
+
+      /* Dark mode */
       [data-theme="dark"] {
         --color-background-primary: #1a1a1a;
         --color-background-secondary: #252525;
@@ -1216,16 +1318,23 @@ export default function RiadDashboard() {
       }
       [data-theme="dark"] input::placeholder { color: #555; }
       * { transition: background-color 0.2s, color 0.2s, border-color 0.2s; }
+
+      /* iOS tap-through fix : désactive les boutons du modal pendant 400ms
+         Empêche le tap sur ✕ de traverser vers le bouton Supprimer du modal */
+      @keyframes modalIn {
+        0%   { opacity: 0; transform: scale(0.95); pointer-events: none; }
+        60%  { opacity: 1; transform: scale(1);    pointer-events: none; }
+        100% { opacity: 1; transform: scale(1);    pointer-events: auto; }
+      }
+      .modal-card {
+        animation: modalIn 0.4s ease forwards;
+      }
+      .modal-overlay {
+        animation: none;
+      }
     `}</style>
 
-    <div style={{fontFamily:"var(--font-sans)",maxWidth:940,margin:"0 auto",padding:"1.5rem 1rem",position:"relative",background:"var(--color-background-primary)",minHeight:"100vh"}}>
-
-      {/* Toast */}
-      {toast && (
-        <div style={{position:"fixed",bottom:24,left:"50%",transform:"translateX(-50%)",background:"var(--color-background-primary)",border:"0.5px solid var(--color-border-secondary)",borderRadius:"var(--border-radius-lg)",padding:"10px 20px",fontSize:13,fontWeight:500,boxShadow:"0 4px 16px rgba(0,0,0,0.12)",zIndex:9999,whiteSpace:"nowrap"}}>
-          {toast}
-        </div>
-      )}
+    <div style={{fontFamily:"var(--font-sans)",maxWidth:940,margin:"0 auto",padding:"1.5rem 1rem",paddingBottom:"calc(1.5rem + env(safe-area-inset-bottom, 0px))",position:"relative",background:"var(--color-background-primary)",minHeight:"-webkit-fill-available"}}>
 
       {/* ── Header ──────────────────────────────────────────────────────── */}
       <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:"1.25rem",flexWrap:"wrap",gap:12}}>
@@ -1442,20 +1551,20 @@ export default function RiadDashboard() {
                   <tbody>
                     {[...list].sort((a,b)=>new Date(a.checkIn)-new Date(b.checkIn)).map(b=>(
                       <tr key={b.id} style={{borderBottom:"0.5px solid var(--color-border-tertiary)"}}>
-                        <td style={{padding:"8px"}}><button onClick={()=>togglePaid(b.id)} title={b.paid?t("markUnpaid"):t("markPaid")} style={{border:"none",background:"none",cursor:"pointer",fontSize:14}}>{b.paid?"✅":"⏳"}</button></td>
+                        <td style={{padding:"8px"}}><button onClick={()=>togglePaid(b.id)} title={b.paid?t("markUnpaid"):t("markPaid")} style={{border:"none",background:"none",cursor:"pointer",fontSize:14}}>{isEffectivelyPaid(b)?"✅":"⏳"}</button></td>
                         <td style={{padding:"8px",fontWeight:500}}>{b.name||<span style={{color:"var(--color-text-tertiary)"}}>—</span>}</td>
                         <td style={{padding:"8px",whiteSpace:"nowrap"}}>{fmtDate(b.checkIn,locale)}</td>
                         <td style={{padding:"8px",whiteSpace:"nowrap"}}>{fmtDate(b.checkOut,locale)}</td>
                         <td style={{padding:"8px",color:"var(--color-text-secondary)"}}>{b.nights}n</td>
                         <td style={{padding:"8px",color:"var(--color-text-secondary)",textAlign:"center"}}>{b.guests?<span style={{fontWeight:500}}>👥 {b.guests}</span>:"—"}</td>
                         <td style={{padding:"8px"}}><span style={{fontSize:11,padding:"2px 6px",borderRadius:99,background:"var(--color-background-secondary)"}}>{b.platform}</span></td>
-                        <td style={{padding:"8px",fontWeight:500,color:b.paid?"#2e7d32":"var(--color-text-warning)"}}>{b.amount>0?fmtBoth(netAmount(b),rate):<span style={{fontSize:12}}>{t("toEnter")}</span>}</td>
+                        <td style={{padding:"8px",fontWeight:500,color:isEffectivelyPaid(b)?"#2e7d32":"var(--color-text-warning)"}}>{b.amount>0?fmtBoth(netAmount(b),rate):<span style={{fontSize:12}}>{t("toEnter")}</span>}</td>
                       </tr>
                     ))}
                   </tbody>
                   <tfoot>
                     <tr>
-                      <td colSpan={5} style={{padding:"8px",fontWeight:500,fontSize:13}}>{t("total")} · {list.filter(b=>b.paid).length}/{list.length} {lang==="fr"?`payé${list.filter(b=>b.paid).length>1?"s":""}`:  "paid"}</td>
+                      <td colSpan={5} style={{padding:"8px",fontWeight:500,fontSize:13}}>{t("total")} · {list.filter(b=>isEffectivelyPaid(b)).length}/{list.length} {lang==="fr"?`payé${list.filter(b=>isEffectivelyPaid(b)).length>1?"s":""}`:  "paid"}</td>
                       <td style={{padding:"8px",fontWeight:600,color:"var(--color-text-info)",textAlign:"center"}}>👥 {list.reduce((s,b)=>s+(parseInt(b.guests)||0),0)}</td>
                       <td></td>
                       <td style={{padding:"8px",fontWeight:600,color}}>{fmtBoth(list.reduce((s,b)=>s+netAmount(b),0),rate)}</td>
@@ -1469,7 +1578,7 @@ export default function RiadDashboard() {
       })()}
 
       {/* ── Tabs ────────────────────────────────────────────────────────── */}
-      <div style={{borderBottom:"0.5px solid var(--color-border-tertiary)",marginBottom:"1.5rem",overflowX:"auto"}}>
+      <div style={{borderBottom:"0.5px solid var(--color-border-tertiary)",marginBottom:"1.5rem",overflowX:"auto",WebkitOverflowScrolling:"touch",msOverflowStyle:"none",scrollbarWidth:"none"}}>
         {tabBtn("calendar", t("tabCalendar"))}
         {tabBtn("bookings", `${t("tabBookings")}${pendingCount>0?` (${pendingCount} ⚠)`:""}`)}
         {tabBtn("chart",    t("tabChart"))}
@@ -1704,10 +1813,12 @@ export default function RiadDashboard() {
                                 <span style={{marginLeft:6,fontSize:11,fontWeight:600,color:b.paid?"#2e7d32":"#856404"}}>{b.paid?t("paidStatus"):t("unpaidStatus")}</span>
                               </div>
                               <div style={{display:"flex",gap:6,alignItems:"center"}}>
-                                <button onClick={()=>togglePaid(b.id)} style={{fontSize:13,border:"none",background:"none",cursor:"pointer",padding:"0 2px"}}>{b.paid?"✅":"⏳"}</button>
+                                <button onClick={()=>togglePaid(b.id)} style={{fontSize:13,border:"none",background:"none",cursor:"pointer",padding:"0 2px"}}>{isEffectivelyPaid(b)?"✅":"⏳"}</button>
                                 <button onClick={()=>printRecap(b)} style={{fontSize:13,border:"none",background:"none",cursor:"pointer",padding:"0 2px"}}>📄</button>
                                 <button onClick={()=>setEditBooking({...b})} style={{fontSize:11,color:"var(--color-text-info)",border:"none",background:"none",cursor:"pointer",padding:"0 4px"}}>✏️</button>
-                                <button onClick={()=>{setBookings(prev=>prev.filter(x=>x.id!==b.id));showToast(t("toastBookingDel"));}} style={{fontSize:12,color:"var(--color-text-danger)",border:"none",background:"none",cursor:"pointer",padding:"0 4px"}}>✕</button>
+                                <button
+  onClick={()=>setConfirmDelete({label:`${b.name||b.id} · ${b.nights}n · ${b.platform}`,onConfirm:()=>{setBookings(prev=>prev.filter(x=>x.id!==b.id));showToast(t("toastBookingDel"));}})}
+  style={{fontSize:12,color:"var(--color-text-danger)",border:"none",background:"none",cursor:"pointer",padding:"8px",minWidth:36,minHeight:36}}>✕</button>
                               </div>
                             </div>
                             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"3px 8px",fontSize:12,color:"var(--color-text-secondary)",marginBottom:8}}>
@@ -1792,10 +1903,12 @@ export default function RiadDashboard() {
                                 }
                               </td>
                               <td style={{padding:"10px 6px",textAlign:"right",whiteSpace:"nowrap"}}>
-                                <button onClick={()=>togglePaid(b.id)} title={b.paid?t("markUnpaid"):t("markPaid")} style={{fontSize:11,border:"none",background:"none",cursor:"pointer",padding:"2px 4px"}}>{b.paid?"✅":"⏳"}</button>
+                                <button onClick={()=>togglePaid(b.id)} title={isEffectivelyPaid(b)?t("markUnpaid"):t("markPaid")} style={{fontSize:11,border:"none",background:"none",cursor:"pointer",padding:"2px 4px"}}>{isEffectivelyPaid(b)?"✅":"⏳"}</button>
                                 <button onClick={()=>printRecap(b)} title={lang==="fr"?"Fiche récap PDF":"PDF summary"} style={{fontSize:11,border:"none",background:"none",cursor:"pointer",padding:"2px 4px"}}>📄</button>
                                 <button onClick={()=>setEditBooking({...b})} style={{fontSize:11,color:"var(--color-text-info)",border:"none",background:"none",cursor:"pointer",padding:"2px 4px"}}>✏️</button>
-                                <button onClick={()=>{setBookings(prev=>prev.filter(x=>x.id!==b.id));showToast(t("toastBookingDel"));}} style={{fontSize:11,color:"var(--color-text-danger)",border:"none",background:"none",cursor:"pointer",padding:"2px 4px"}}>✕</button>
+                                <button
+  onClick={()=>setConfirmDelete({label:`${b.name||b.id} · ${b.nights}n · ${b.platform}`,onConfirm:()=>{setBookings(prev=>prev.filter(x=>x.id!==b.id));showToast(t("toastBookingDel"));}})}
+  style={{fontSize:11,color:"var(--color-text-danger)",border:"none",background:"none",cursor:"pointer",padding:"8px",minWidth:36,minHeight:36}}>✕</button>
                               </td>
                             </tr>
                           ))}
@@ -1909,7 +2022,7 @@ export default function RiadDashboard() {
                             <span style={{fontSize:12,color:"var(--color-text-secondary)"}}>{fmtDate(b.checkIn,locale)} → {fmtDate(b.checkOut,locale)}</span>
                             <span style={{fontSize:12,color:"var(--color-text-tertiary)"}}>{b.nights}n</span>
                             <span style={{fontSize:12,fontWeight:500,color:"var(--color-text-success)",marginLeft:"auto"}}>{b.amount>0?fmtBoth(netAmount(b),rate):"—"}</span>
-                            <span style={{fontSize:11}}>{b.paid?"✅":"⏳"}</span>
+                            <span style={{fontSize:11}}>{isEffectivelyPaid(b)?"✅":"⏳"}</span>
                             {b.notes && <p style={{margin:"2px 0 0",width:"100%",fontSize:11,color:"var(--color-text-secondary)",fontStyle:"italic"}}>📝 {b.notes}</p>}
                           </div>
                         );
@@ -2243,6 +2356,35 @@ export default function RiadDashboard() {
       )}
 
     </div>
+
+    {/* ── Toast — hors container pour position:fixed fiable sur iOS PWA ── */}
+    {toast && (
+      <div className="safe-bottom" style={{position:"fixed",bottom:24,left:"50%",transform:"translateX(-50%)",background:"var(--color-background-primary)",border:"0.5px solid var(--color-border-secondary)",borderRadius:"var(--border-radius-lg)",padding:"10px 20px",fontSize:13,fontWeight:500,boxShadow:"0 4px 16px rgba(0,0,0,0.12)",zIndex:9999,whiteSpace:"nowrap"}}>
+        {toast}
+      </div>
+    )}
+
+    {/* ── Modal confirmation suppression ── */}
+    {confirmDelete && (
+      <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.55)",zIndex:10000,display:"flex",alignItems:"center",justifyContent:"center",padding:"1.5rem",boxSizing:"border-box"}}>
+        <div className="modal-card" style={{background:"var(--color-background-primary)",borderRadius:16,padding:"1.5rem",paddingBottom:"max(1.5rem, calc(env(safe-area-inset-bottom, 0px) + 1rem))",width:"100%",maxWidth:320,boxShadow:"0 12px 40px rgba(0,0,0,0.3)",boxSizing:"border-box"}}>
+          <p style={{margin:"0 0 6px",fontSize:17,fontWeight:600}}>🗑️ {lang==="fr"?"Supprimer ?":"Delete?"}</p>
+          <p style={{margin:"0 0 20px",fontSize:14,color:"var(--color-text-secondary)",lineHeight:1.4}}>{confirmDelete.label}</p>
+          <div style={{display:"flex",gap:12}}>
+            <button
+              onClick={()=>{confirmDelete.onConfirm();setConfirmDelete(null);}}
+              style={{flex:1,padding:"14px",background:C_RESERVED,color:"#fff",border:"none",borderRadius:10,fontSize:16,fontWeight:700,cursor:"pointer",WebkitAppearance:"none",minHeight:48}}>
+              {lang==="fr"?"Supprimer":"Delete"}
+            </button>
+            <button
+              onClick={()=>setConfirmDelete(null)}
+              style={{flex:1,padding:"14px",background:"var(--color-background-secondary)",color:"var(--color-text-primary)",border:"1px solid var(--color-border-secondary)",borderRadius:10,fontSize:16,cursor:"pointer",WebkitAppearance:"none",minHeight:48}}>
+              {lang==="fr"?"Annuler":"Cancel"}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
     </>
   );
 }
