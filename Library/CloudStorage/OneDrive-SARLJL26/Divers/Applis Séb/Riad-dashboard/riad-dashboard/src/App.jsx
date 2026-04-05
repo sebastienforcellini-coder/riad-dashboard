@@ -263,6 +263,7 @@ const MONTHS_FR    = ["Jan","Fév","Mar","Avr","Mai","Jun","Jul","Aoû","Sep","O
 const MONTHS_EN    = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const STORAGE_KEY  = "riad_dashboard_v1";
 const DEFAULT_RATE = 10.83;
+const _v = 3;
 const BUILD_VERSION = "2026-04-05-v3";
 const C_RESERVED   = "#c0392b"; // v2
 const C_BLOCKED    = "#2980b9";
