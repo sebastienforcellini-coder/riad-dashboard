@@ -1441,65 +1441,68 @@ export default function RiadDashboard() {
         </div>
       )}
 
-      {/* ── KPIs accueil — Occupation + Moy/nuit UNIQUEMENT ─────────────── */}
-      {/* CORRECTION : suppression des blocs "Situation à date" et "CA confirmé / Bénéfice projeté" */}
+      {/* ── KPIs accueil — 4 cartes ──────────────────────────────────────── */}
       <div style={{display:"flex",gap:12,flexWrap:"wrap",marginBottom:"1.5rem"}}>
-        {[
-          {
-            label: t("occupation"),
-            value: occupancy+"%",
-            sub:   `${totalNights} ${t("payingNights")} + ${persoNights} ${t("persoNights")}`,
-            color: "var(--color-text-info)",
-            mini:  true,
-          },
-          {
-            label: t("avgNight"),
-            value: avgNight ? fmtBoth(avgNight,rate) : "—",
-            sub:   t("onAmounts"),
-            color: "var(--color-text-secondary)",
-            mini:  false,
-          },
-        ].map(k => (
-          <div key={k.label} style={{...mc, flex:"1 1 200px", borderLeft:"3px solid var(--color-text-info)"}}>
-            <p style={{margin:0,fontSize:11,color:"var(--color-text-secondary)",textTransform:"uppercase",letterSpacing:"0.05em"}}>{k.label}</p>
-            <div style={{margin:"6px 0 2px"}}>
-              <p style={{margin:0,fontSize:18,fontWeight:500,color:k.color}}>
-                {typeof k.value==="string" && k.value.includes("·") ? k.value.split("·")[0].trim() : k.value}
-              </p>
-              {typeof k.value==="string" && k.value.includes("·") && (
-                <p style={{margin:0,fontSize:12,color:"var(--color-text-tertiary)"}}>{k.value.split("·")[1]?.trim()}</p>
-              )}
-            </div>
-            <p style={{margin:0,fontSize:11,color:"var(--color-text-tertiary)"}}>{k.sub}</p>
-            {k.mini && (() => {
-              const curMonth = new Date().getMonth();
-              return (
-                <div style={{marginTop:8,display:"flex",flexDirection:"column",gap:4}}>
-                  {[0,1,2,3].map(offset => {
-                    const mi         = (curMonth + offset) % 12;
-                    const daysInMonth= new Date(year, mi+1, 0).getDate();
-                    const n          = payingBookings.reduce((s,b)=>s+nightsInMonth(b,mi),0);
-                    const p          = persoBookings.reduce((s,b)=>s+nightsInMonth(b,mi),0);
-                    const rate2      = Math.round(((n+p)/daysInMonth)*100);
-                    const col        = rate2>=70?"#2e7d32":rate2>=40?"#856404":"#c0392b";
-                    return (
-                      <div key={mi}>
-                        <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"var(--color-text-tertiary)",marginBottom:2}}>
-                          <span>{months[mi]}</span>
-                          <span style={{color:col,fontWeight:500}}>{rate2}%</span>
-                        </div>
-                        <div style={{background:"var(--color-border-tertiary)",borderRadius:99,height:4,overflow:"hidden",display:"flex"}}>
-                          <div style={{width:`${Math.round((n/daysInMonth)*100)}%`,height:"100%",background:C_RESERVED,borderRadius:99}} />
-                          <div style={{width:`${Math.round((p/daysInMonth)*100)}%`,height:"100%",background:C_BLOCKED,borderRadius:99,marginLeft:1}} />
-                        </div>
+        {/* Occupation */}
+        <div style={{...mc,flex:"1 1 160px",borderLeft:"3px solid var(--color-text-info)"}}>
+          <p style={{margin:0,fontSize:11,color:"var(--color-text-secondary)",textTransform:"uppercase",letterSpacing:"0.05em"}}>{t("occupation")}</p>
+          <p style={{margin:"6px 0 2px",fontSize:18,fontWeight:500,color:"var(--color-text-info)"}}>{occupancy}%</p>
+          <p style={{margin:0,fontSize:11,color:"var(--color-text-tertiary)"}}>{totalNights} {t("payingNights")} + {persoNights} {t("persoNights")}</p>
+          {(() => {
+            const curMonth = new Date().getMonth();
+            return (
+              <div style={{marginTop:8,display:"flex",flexDirection:"column",gap:4}}>
+                {[0,1,2,3].map(offset => {
+                  const mi          = (curMonth + offset) % 12;
+                  const daysInMonth = new Date(year, mi+1, 0).getDate();
+                  const n           = payingBookings.reduce((s,b)=>s+nightsInMonth(b,mi),0);
+                  const p           = persoBookings.reduce((s,b)=>s+nightsInMonth(b,mi),0);
+                  const rate2       = Math.round(((n+p)/daysInMonth)*100);
+                  const col         = rate2>=70?"#2e7d32":rate2>=40?"#856404":"#c0392b";
+                  return (
+                    <div key={mi}>
+                      <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"var(--color-text-tertiary)",marginBottom:2}}>
+                        <span>{months[mi]}</span>
+                        <span style={{color:col,fontWeight:500}}>{rate2}%</span>
                       </div>
-                    );
-                  })}
-                </div>
-              );
-            })()}
-          </div>
-        ))}
+                      <div style={{background:"var(--color-border-tertiary)",borderRadius:99,height:4,overflow:"hidden",display:"flex"}}>
+                        <div style={{width:`${Math.round((n/daysInMonth)*100)}%`,height:"100%",background:C_RESERVED,borderRadius:99}} />
+                        <div style={{width:`${Math.round((p/daysInMonth)*100)}%`,height:"100%",background:C_BLOCKED,borderRadius:99,marginLeft:1}} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
+        </div>
+        {/* Moy/nuit */}
+        <div style={{...mc,flex:"1 1 160px",borderLeft:"3px solid var(--color-text-secondary)"}}>
+          <p style={{margin:0,fontSize:11,color:"var(--color-text-secondary)",textTransform:"uppercase",letterSpacing:"0.05em"}}>{t("avgNight")}</p>
+          <p style={{margin:"6px 0 2px",fontSize:18,fontWeight:500,color:"var(--color-text-secondary)"}}>{avgNight ? fmtMAD(avgNight) : "—"}</p>
+          {avgNight > 0 && <p style={{margin:0,fontSize:12,color:"var(--color-text-tertiary)"}}>{fmtEUR(avgNight/rate)}</p>}
+          <p style={{margin:"4px 0 0",fontSize:11,color:"var(--color-text-tertiary)"}}>{t("onAmounts")}</p>
+        </div>
+        {/* Dépenses annuelles */}
+        <div style={{...mc,flex:"1 1 160px",borderLeft:"3px solid var(--color-text-danger)"}}>
+          <p style={{margin:0,fontSize:11,color:"var(--color-text-secondary)",textTransform:"uppercase",letterSpacing:"0.05em"}}>{t("expenses")} {year}</p>
+          <p style={{margin:"6px 0 2px",fontSize:18,fontWeight:500,color:"var(--color-text-danger)"}}>{fmtMAD(totalExp)}</p>
+          <p style={{margin:0,fontSize:12,color:"var(--color-text-tertiary)"}}>{fmtEUR(totalExp/rate)}</p>
+          <p style={{margin:"4px 0 0",fontSize:11,color:"var(--color-text-tertiary)"}}>{fmtMAD(Math.round(totalExp/12))}/mois</p>
+        </div>
+        {/* Bénéfice net */}
+        {(() => {
+          const netProfit = totalRevenue - totalExp;
+          const col = netProfit >= 0 ? "#BA7517" : "var(--color-text-danger)";
+          return (
+            <div style={{...mc,flex:"1 1 160px",borderLeft:`3px solid ${col}`}}>
+              <p style={{margin:0,fontSize:11,color:"var(--color-text-secondary)",textTransform:"uppercase",letterSpacing:"0.05em"}}>{lang==="fr"?"Bénéfice net":"Net profit"} {year}</p>
+              <p style={{margin:"6px 0 2px",fontSize:18,fontWeight:500,color:col}}>{netProfit>=0?"+":""}{fmtMAD(netProfit)}</p>
+              <p style={{margin:0,fontSize:12,color:"var(--color-text-tertiary)"}}>{netProfit>=0?"+":""}{fmtEUR(netProfit/rate)}</p>
+              <p style={{margin:"4px 0 0",fontSize:11,color:"var(--color-text-tertiary)"}}>{lang==="fr"?"revenus − dépenses":"revenue − expenses"}</p>
+            </div>
+          );
+        })()}
       </div>
 
       {/* ── Stats panels — Échues / À venir / CA total ───────────────────── */}
@@ -1576,7 +1579,6 @@ export default function RiadDashboard() {
         {tabBtn("calendar", t("tabCalendar"))}
         {tabBtn("bookings", `${t("tabBookings")}${pendingCount>0?` (${pendingCount} ⚠)`:""}`)}
         {tabBtn("chart",    t("tabChart"))}
-        {tabBtn("occupation", lang==="fr"?"Occupation":"Occupancy")}
         {tabBtn("expenses", t("tabExpenses"))}
       </div>
 
@@ -1928,121 +1930,127 @@ export default function RiadDashboard() {
       {/* ══════════════════════════════════════════════════════════════════ */}
       {tab==="chart" && (
         <div>
-          <div style={{...rc,marginBottom:"1.25rem"}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:8,marginBottom:"1rem"}}>
-              <p style={{margin:0,fontSize:14,fontWeight:500}}>{t("chartTitle")} — {year}</p>
-              <div style={{display:"flex",gap:16,alignItems:"center",flexWrap:"wrap"}}>
-                <span style={{display:"flex",alignItems:"center",gap:5,fontSize:12,color:"var(--color-text-secondary)"}}><div style={{width:12,height:12,borderRadius:2,background:"#2e7d32",flexShrink:0}}/>{t("seriesRevenue")}</span>
-                <span style={{display:"flex",alignItems:"center",gap:5,fontSize:12,color:"var(--color-text-secondary)"}}><div style={{width:12,height:12,borderRadius:2,background:C_RESERVED,flexShrink:0}}/>{t("seriesExpenses")}</span>
-                <span style={{display:"flex",alignItems:"center",gap:5,fontSize:12,color:"var(--color-text-secondary)"}}><div style={{width:12,height:12,borderRadius:2,background:C_BLOCKED,flexShrink:0}}/>{t("seriesProfit")}</span>
-                <span style={{fontSize:11,color:"var(--color-text-tertiary)"}}>· {lang==="fr"?"cliquez pour le détail":"click for details"}</span>
-              </div>
-            </div>
-            <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={monthlyData} barGap={4} barCategoryGap="30%"
-                onClick={e=>{ if(e&&e.activeTooltipIndex!=null){ const i=e.activeTooltipIndex; setSelectedMonth(selectedMonth===i?null:i); }}}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border-tertiary)" vertical={false} />
-                <XAxis dataKey="name" tick={({x,y,payload})=>{
-                  const i=months.indexOf(payload.value); const active=selectedMonth===i;
-                  return <text x={x} y={y+12} textAnchor="middle" fontSize={12} fill={active?"var(--color-text-primary)":"var(--color-text-secondary)"} fontWeight={active?700:400}>{payload.value}</text>;
-                }} axisLine={false} tickLine={false} />
-                <YAxis tick={{fontSize:11,fill:"var(--color-text-secondary)"}} axisLine={false} tickLine={false} tickFormatter={v=>v===0?"0":currency==="EUR"?`${Math.round(v/rate/1000)}k€`:`${Math.round(v/1000)}k`} />
-                <Tooltip content={<TT />} cursor={{fill:"var(--color-background-secondary)",radius:4}} />
-                <Bar dataKey="Revenus"  name={t("seriesRevenue")}  fill="#2e7d32"   radius={[3,3,0,0]} />
-                <Bar dataKey="Dépenses" name={t("seriesExpenses")} fill={C_RESERVED} radius={[3,3,0,0]} />
-                <Bar dataKey="Bénéfice" name={t("seriesProfit")}   fill={C_BLOCKED}  radius={[3,3,0,0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+          {/* ── Tableau bilan mensuel ──────────────────────────────────── */}
+          <div style={rc}>
+            <p style={{margin:"0 0 1rem",fontSize:14,fontWeight:500}}>{t("chartTitle")} — {year}</p>
 
-          {/* Panneau détail mensuel */}
-          {selectedMonth !== null && (() => {
-            const mi        = selectedMonth;
-            const mName     = months[mi];
-            const mBookings = payingBookings.filter(b => {
-              const mStart = new Date(year,mi,1); const mEnd = new Date(year,mi+1,1);
-              return new Date(b.checkIn) < mEnd && new Date(b.checkOut) > mStart;
-            });
-            const mExpenses = yearExpenses.filter(e => new Date(e.date).getMonth() === mi);
-            const mRevenue  = mBookings.reduce((s,b) => s+netAmount(b), 0);
-            const mExp      = mExpenses.reduce((s,e) => s+e.amount, 0);
-            const mProfit   = mRevenue - mExp;
-            const mPastRev  = mBookings.filter(b=>b.checkOut<=todayStr).reduce((s,b)=>s+netAmount(b),0);
-            const mFutRev   = mBookings.filter(b=>b.checkIn>todayStr).reduce((s,b)=>s+netAmount(b),0);
-            return (
-              <div style={{...rc,marginBottom:"1.25rem",borderLeft:"3px solid var(--color-text-primary)"}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1.25rem",flexWrap:"wrap",gap:8}}>
-                  <p style={{margin:0,fontSize:15,fontWeight:600}}>{mName} {year}</p>
-                  <div style={{display:"flex",gap:8}}>
-                    <button onClick={()=>exportMonthlyPDF(mi)} style={{fontSize:12,padding:"4px 10px",background:C_RESERVED,color:"#fff",border:"none",borderRadius:6,cursor:"pointer"}}>📄 PDF</button>
-                    <button onClick={()=>setSelectedMonth(null)} style={{fontSize:12,background:"none",border:"none",cursor:"pointer",color:"var(--color-text-secondary)"}}>{t("closeBtn")}</button>
-                  </div>
-                </div>
-                <div style={{display:"flex",gap:10,flexWrap:"wrap",marginBottom:"1.25rem"}}>
-                  {[
-                    {label:t("netRevenue"), value:fmtBoth(mRevenue,rate), color:"var(--color-text-success)"},
-                    {label:t("expenses"),   value:fmtBoth(mExp,rate),     color:"var(--color-text-danger)"},
-                    {label:t("netProfit"),  value:fmtBoth(mProfit,rate),  color:mProfit>=0?"var(--color-text-success)":"var(--color-text-danger)"},
-                  ].map(k=>(
-                    <div key={k.label} style={{...mc,flex:"1 1 150px"}}>
-                      <p style={{margin:0,fontSize:10,color:"var(--color-text-secondary)",textTransform:"uppercase",letterSpacing:"0.05em"}}>{k.label}</p>
-                      <p style={{margin:"4px 0 0",fontSize:16,fontWeight:500,color:k.color}}>{k.value.split("·")[0].trim()}</p>
-                      <p style={{margin:0,fontSize:11,color:"var(--color-text-tertiary)"}}>{k.value.split("·")[1]?.trim()}</p>
-                    </div>
-                  ))}
-                  <div style={{...mc,flex:"1 1 150px"}}>
-                    <p style={{margin:0,fontSize:10,color:"var(--color-text-secondary)",textTransform:"uppercase",letterSpacing:"0.05em"}}>{t("collected")} / {t("confirmed")}</p>
-                    <p style={{margin:"4px 0 0",fontSize:14,fontWeight:500,color:C_RESERVED}}>{mPastRev>0?fmtMAD(mPastRev):"—"}</p>
-                    <p style={{margin:0,fontSize:11,color:C_BLOCKED}}>{mFutRev>0?fmtMAD(mFutRev):"—"}</p>
-                  </div>
-                </div>
-                <div style={{marginBottom:"1.25rem"}}>
-                  <MonthCalendar year={year} month={mi} bookings={bookings} blocked={blocked} monthName={mName} />
-                </div>
-                {mBookings.length > 0 && (
-                  <div style={{marginBottom:"1rem"}}>
-                    <p style={{margin:"0 0 8px",fontSize:12,fontWeight:500,color:"var(--color-text-secondary)",textTransform:"uppercase",letterSpacing:"0.05em"}}>{t("tabBookings")} · {mBookings.length}</p>
-                    <div style={{display:"flex",flexDirection:"column",gap:6}}>
-                      {[...mBookings].sort((a,b)=>new Date(a.checkIn)-new Date(b.checkIn)).map(b=>{
-                        const isPast   = b.checkOut <= todayStr;
-                        const isFuture = b.checkIn  > todayStr;
-                        const tag = isPast   ? {label:lang==="fr"?"Échu":"Past",    color:C_RESERVED}
-                                  : isFuture ? {label:lang==="fr"?"À venir":"Upcoming",color:C_BLOCKED}
-                                  :            {label:lang==="fr"?"En cours":"Ongoing",color:"#BA7517"};
-                        return (
-                          <div key={b.id} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",background:"var(--color-background-secondary)",borderRadius:8,flexWrap:"wrap",borderLeft:`3px solid ${tag.color}`}}>
-                            <span style={{fontSize:11,fontWeight:600,color:tag.color,minWidth:52}}>{tag.label}</span>
-                            <span style={{fontSize:13,fontWeight:500,flex:1,minWidth:80}}>{b.name||b.id}</span>
-                            <span style={{fontSize:12,color:"var(--color-text-secondary)"}}>{fmtDate(b.checkIn,locale)} → {fmtDate(b.checkOut,locale)}</span>
-                            <span style={{fontSize:12,color:"var(--color-text-tertiary)"}}>{b.nights}n</span>
-                            <span style={{fontSize:12,fontWeight:500,color:"var(--color-text-success)",marginLeft:"auto"}}>{b.amount>0?fmtBoth(netAmount(b),rate):"—"}</span>
-                            <span style={{fontSize:11}}>{isEffectivelyPaid(b)?"✅":"⏳"}</span>
-                            {b.notes && <p style={{margin:"2px 0 0",width:"100%",fontSize:11,color:"var(--color-text-secondary)",fontStyle:"italic"}}>📝 {b.notes}</p>}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-                {mBookings.length === 0 && <p style={{fontSize:13,color:"var(--color-text-tertiary)",margin:"0 0 1rem"}}>{t("noBookings")}</p>}
-                {mExpenses.length > 0 && (
-                  <div>
-                    <p style={{margin:"0 0 8px",fontSize:12,fontWeight:500,color:"var(--color-text-secondary)",textTransform:"uppercase",letterSpacing:"0.05em"}}>{t("tabExpenses")} · {mExpenses.length}</p>
-                    <div style={{display:"flex",flexDirection:"column",gap:4}}>
-                      {[...mExpenses].sort((a,b)=>new Date(a.date)-new Date(b.date)).map(e=>(
-                        <div key={e.id} style={{display:"flex",alignItems:"center",gap:10,padding:"6px 12px",background:"var(--color-background-secondary)",borderRadius:6,flexWrap:"wrap"}}>
-                          <span style={{fontSize:11,padding:"2px 8px",borderRadius:99,background:"var(--color-background-warning)",color:"var(--color-text-warning)",fontWeight:500}}>{tCat(e.category)}</span>
-                          <span style={{fontSize:12,flex:1,color:"var(--color-text-secondary)"}}>{e.description}</span>
-                          <span style={{fontSize:12,fontWeight:500,color:"var(--color-text-danger)"}}>{fmtBoth(e.amount,rate)}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {mExpenses.length === 0 && <p style={{fontSize:13,color:"var(--color-text-tertiary)",margin:0}}>{lang==="fr"?"Aucune dépense ce mois.":"No expenses this month."}</p>}
+            {/* En-tête desktop */}
+            {!isMobile && (
+              <div style={{display:"grid",gridTemplateColumns:"38px 34px 38px 1fr 1fr 1fr 1fr 100px",gap:6,padding:"0 8px 8px",borderBottom:"0.5px solid var(--color-border-tertiary)",fontSize:11,color:"var(--color-text-tertiary)"}}>
+                <span></span>
+                <span style={{textAlign:"center"}}>{lang==="fr"?"Nuits":"Nights"}</span>
+                <span style={{textAlign:"center"}}>%</span>
+                <span style={{textAlign:"right"}}>{lang==="fr"?"Brut":"Gross"}</span>
+                <span style={{textAlign:"right"}}>{lang==="fr"?"Net":"Net"}</span>
+                <span style={{textAlign:"right"}}>{lang==="fr"?"Dépenses":"Expenses"}</span>
+                <span style={{textAlign:"right"}}>{lang==="fr"?"Bénéfice":"Profit"}</span>
+                <span></span>
               </div>
-            );
-          })()}
+            )}
+
+            {/* Lignes mensuelles */}
+            {months.map((m, mi) => {
+              const daysInMonth  = new Date(year, mi+1, 0).getDate();
+              const mBookings    = payingBookings.filter(b => {
+                const mStart = new Date(year,mi,1); const mEnd = new Date(year,mi+1,1);
+                return new Date(b.checkIn) < mEnd && new Date(b.checkOut) > mStart;
+              });
+              const mNights  = mBookings.reduce((s,b)=>s+nightsInMonth(b,mi),0);
+              const mGross   = mBookings.reduce((s,b)=>s+b.amount*nightsInMonth(b,mi),0);
+              const mNet     = mBookings.reduce((s,b)=>s+(b.platform==="Airbnb"?b.amount*(1-commission):b.amount)*nightsInMonth(b,mi),0);
+              const mExp     = yearExpenses.filter(e=>new Date(e.date).getMonth()===mi).reduce((s,e)=>s+e.amount,0);
+              const mProfit  = mNet - mExp;
+              const fillPct  = Math.round((mNights/daysInMonth)*100);
+              const isCurr   = mi===new Date().getMonth() && year===new Date().getFullYear();
+              const profitCol= mProfit>0?"#2e7d32":mProfit<0?"#c0392b":"var(--color-text-tertiary)";
+              // Libellé occupation
+              const occLabel = fillPct>=70?(lang==="fr"?"Excellent":"Excellent"):fillPct>=40?(lang==="fr"?"Bon":"Good"):fillPct>0?(lang==="fr"?"Faible":"Low"):(lang==="fr"?"Libre":"Free");
+              const occCol   = fillPct>=70?"#2e7d32":fillPct>=40?"#856404":fillPct>0?"#c0392b":"var(--color-text-tertiary)";
+              const occBg    = fillPct>=70?"#e8f5e9":fillPct>=40?"#fff3cd":fillPct>0?"#fdecea":"var(--color-background-secondary)";
+              // Libellé bénéfice
+              const profLabel= mProfit>0?(lang==="fr"?"Bén.":"Profit"):mProfit<0?(lang==="fr"?"Déf.":"Loss"):"—";
+              const profBg   = mProfit>0?"#e8f5e9":mProfit<0?"#fdecea":"var(--color-background-secondary)";
+              const profLbl  = mProfit>0?"#1b5e20":mProfit<0?"#c0392b":"var(--color-text-tertiary)";
+
+              return isMobile ? (
+                /* ── MOBILE : carte compacte ── */
+                <div key={m} style={{padding:"10px 8px",borderBottom:"0.5px solid var(--color-border-tertiary)",background:isCurr?"var(--color-background-secondary)":"transparent",borderLeft:isCurr?"3px solid #378ADD":"3px solid transparent"}}>
+                  {/* Ligne 1 : mois + % + bénéfice */}
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:mNights>0?6:0}}>
+                    <div style={{display:"flex",alignItems:"center",gap:8}}>
+                      <span style={{fontSize:14,fontWeight:isCurr?500:400,minWidth:28}}>{m}</span>
+                      <span style={{fontSize:11,padding:"1px 6px",borderRadius:99,background:occBg,color:occCol,fontWeight:500}}>{fillPct}% · {occLabel}</span>
+                    </div>
+                    <span style={{fontSize:13,fontWeight:500,color:profitCol}}>{mProfit>0?"+":""}{mProfit!==0?fmtMAD(mProfit):"—"}</span>
+                  </div>
+                  {/* Ligne 2 : nuits · net · dépenses (si réservations) */}
+                  {mNights>0 && (
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:4,fontSize:12}}>
+                      <div>
+                        <div style={{fontSize:10,color:"var(--color-text-tertiary)",marginBottom:1}}>{lang==="fr"?"Nuits":"Nights"}</div>
+                        <div style={{fontWeight:500,color:"var(--color-text-secondary)"}}>{mNights}n</div>
+                      </div>
+                      <div>
+                        <div style={{fontSize:10,color:"var(--color-text-tertiary)",marginBottom:1}}>Net</div>
+                        <div style={{fontWeight:500,color:"#2e7d32"}}>{fmtMAD(mNet)}</div>
+                      </div>
+                      <div>
+                        <div style={{fontSize:10,color:"var(--color-text-tertiary)",marginBottom:1}}>{lang==="fr"?"Dép.":"Exp."}</div>
+                        <div style={{fontWeight:500,color:"#c0392b"}}>{fmtMAD(mExp)}</div>
+                      </div>
+                    </div>
+                  )}
+                  {mNights===0 && (
+                    <div style={{fontSize:11,color:"var(--color-text-tertiary)",marginTop:2}}>{lang==="fr"?"Dép.":"Exp."} {fmtMAD(mExp)}</div>
+                  )}
+                </div>
+              ) : (
+                /* ── DESKTOP : ligne tableau ── */
+                <div key={m} style={{display:"grid",gridTemplateColumns:"38px 34px 38px 1fr 1fr 1fr 1fr 100px",gap:6,padding:"9px 8px",borderBottom:"0.5px solid var(--color-border-tertiary)",alignItems:"center",background:isCurr?"var(--color-background-secondary)":"transparent",borderLeft:isCurr?"3px solid #378ADD":"3px solid transparent"}}>
+                  <span style={{fontSize:13,fontWeight:isCurr?500:400,color:isCurr?"var(--color-text-primary)":"var(--color-text-secondary)"}}>{m}</span>
+                  <span style={{fontSize:12,textAlign:"center",color:"var(--color-text-secondary)",fontWeight:mNights>0?500:400}}>{mNights>0?`${mNights}n`:"—"}</span>
+                  <span style={{fontSize:11,textAlign:"center",fontWeight:500,color:occCol}}>{fillPct>0?`${fillPct}%`:"—"}</span>
+                  <span style={{fontSize:12,textAlign:"right",color:"var(--color-text-secondary)"}}>{mGross>0?fmtMAD(mGross):"—"}</span>
+                  <span style={{fontSize:12,textAlign:"right",color:mNet>0?"#2e7d32":"var(--color-text-tertiary)",fontWeight:mNet>0?500:400}}>{mNet>0?fmtMAD(mNet):"—"}</span>
+                  <span style={{fontSize:12,textAlign:"right",color:"#c0392b"}}>{fmtMAD(mExp)}</span>
+                  <span style={{fontSize:12,textAlign:"right",fontWeight:500,color:profitCol}}>{mProfit>0?"+":""}{fmtMAD(mProfit)}</span>
+                  <span style={{textAlign:"right"}}>
+                    <span style={{fontSize:11,padding:"2px 7px",borderRadius:99,fontWeight:500,background:occBg,color:occCol,whiteSpace:"nowrap"}}>
+                      {occLabel} · {profLabel}
+                    </span>
+                  </span>
+                </div>
+              );
+            })}
+
+            {/* Total annuel */}
+            {(() => {
+              const totalGrossYear = payingBookings.reduce((s,b)=>s+b.amount*b.nights,0);
+              const netProfit = totalRevenue - totalExp;
+              return isMobile ? (
+                <div style={{padding:"12px 8px",display:"flex",justifyContent:"space-between",alignItems:"center",borderTop:"1px solid var(--color-border-secondary)"}}>
+                  <span style={{fontSize:13,fontWeight:500}}>{lang==="fr"?"Total":"Total"} · {totalNights}n</span>
+                  <div style={{textAlign:"right"}}>
+                    <div style={{fontSize:13,fontWeight:500,color:"#2e7d32"}}>{fmtMAD(totalRevenue)}</div>
+                    <div style={{fontSize:11,color:netProfit>=0?"#BA7517":"#c0392b"}}>
+                      {netProfit>=0?"+":""}{fmtMAD(netProfit)} {lang==="fr"?"bénéfice":"profit"}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div style={{display:"grid",gridTemplateColumns:"38px 34px 38px 1fr 1fr 1fr 1fr 100px",gap:6,padding:"11px 8px",borderTop:"1px solid var(--color-border-secondary)",alignItems:"center"}}>
+                  <span style={{fontSize:13,fontWeight:500}}>{lang==="fr"?"Total":"Total"}</span>
+                  <span style={{fontSize:12,textAlign:"center",fontWeight:500,color:"var(--color-text-secondary)"}}>{totalNights}n</span>
+                  <span style={{fontSize:11,textAlign:"center",fontWeight:500,color:"var(--color-text-secondary)"}}>{Math.round((totalNights/365)*100)}%</span>
+                  <span style={{fontSize:12,textAlign:"right",fontWeight:500}}>{fmtMAD(totalGrossYear)}</span>
+                  <span style={{fontSize:12,textAlign:"right",fontWeight:500,color:"#2e7d32"}}>{fmtMAD(totalRevenue)}</span>
+                  <span style={{fontSize:12,textAlign:"right",fontWeight:500,color:"#c0392b"}}>{fmtMAD(totalExp)}</span>
+                  <span style={{fontSize:13,textAlign:"right",fontWeight:500,color:netProfit>=0?"#BA7517":"#c0392b"}}>{netProfit>=0?"+":""}{fmtMAD(netProfit)}</span>
+                  <span></span>
+                </div>
+              );
+            })()}
+          </div>
 
           {/* Nuits réservées par mois */}
           <div style={rc}>
