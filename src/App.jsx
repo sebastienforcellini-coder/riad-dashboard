@@ -1483,23 +1483,23 @@ export default function RiadDashboard() {
           {avgNight > 0 && <p style={{margin:0,fontSize:12,color:"var(--color-text-tertiary)"}}>{fmtEUR(avgNight/rate)}</p>}
           <p style={{margin:"4px 0 0",fontSize:11,color:"var(--color-text-tertiary)"}}>{t("onAmounts")}</p>
         </div>
-        {/* Dépenses annuelles */}
+        {/* Dépenses à date */}
         <div style={{...mc,flex:"1 1 160px",borderLeft:"3px solid var(--color-text-danger)"}}>
-          <p style={{margin:0,fontSize:11,color:"var(--color-text-secondary)",textTransform:"uppercase",letterSpacing:"0.05em"}}>{t("expenses")} {year}</p>
-          <p style={{margin:"6px 0 2px",fontSize:18,fontWeight:500,color:"var(--color-text-danger)"}}>{fmtMAD(totalExp)}</p>
-          <p style={{margin:0,fontSize:12,color:"var(--color-text-tertiary)"}}>{fmtEUR(totalExp/rate)}</p>
-          <p style={{margin:"4px 0 0",fontSize:11,color:"var(--color-text-tertiary)"}}>{fmtMAD(Math.round(totalExp/12))}/mois</p>
+          <p style={{margin:0,fontSize:11,color:"var(--color-text-secondary)",textTransform:"uppercase",letterSpacing:"0.05em"}}>{lang==="fr"?"Dépenses à date":"Expenses to date"}</p>
+          <p style={{margin:"6px 0 2px",fontSize:18,fontWeight:500,color:"var(--color-text-danger)"}}>{fmtMAD(pastExp)}</p>
+          <p style={{margin:0,fontSize:12,color:"var(--color-text-tertiary)"}}>{fmtEUR(pastExp/rate)}</p>
+          {futureExp>0 && <p style={{margin:"4px 0 0",fontSize:11,color:"var(--color-text-tertiary)"}}>+ {fmtMAD(futureExp)} {lang==="fr"?"à venir":"upcoming"}</p>}
         </div>
-        {/* Bénéfice net */}
+        {/* Bénéfice net à date */}
         {(() => {
-          const netProfit = totalRevenue - totalExp;
+          const netProfit = pastRevenue - pastExp;
           const col = netProfit >= 0 ? "#BA7517" : "var(--color-text-danger)";
           return (
             <div style={{...mc,flex:"1 1 160px",borderLeft:`3px solid ${col}`}}>
-              <p style={{margin:0,fontSize:11,color:"var(--color-text-secondary)",textTransform:"uppercase",letterSpacing:"0.05em"}}>{lang==="fr"?"Bénéfice net":"Net profit"} {year}</p>
+              <p style={{margin:0,fontSize:11,color:"var(--color-text-secondary)",textTransform:"uppercase",letterSpacing:"0.05em"}}>{lang==="fr"?"Bénéfice net à date":"Net profit to date"}</p>
               <p style={{margin:"6px 0 2px",fontSize:18,fontWeight:500,color:col}}>{netProfit>=0?"+":""}{fmtMAD(netProfit)}</p>
               <p style={{margin:0,fontSize:12,color:"var(--color-text-tertiary)"}}>{netProfit>=0?"+":""}{fmtEUR(netProfit/rate)}</p>
-              <p style={{margin:"4px 0 0",fontSize:11,color:"var(--color-text-tertiary)"}}>{lang==="fr"?"revenus − dépenses":"revenue − expenses"}</p>
+              <p style={{margin:"4px 0 0",fontSize:11,color:"var(--color-text-tertiary)"}}>{lang==="fr"?"encaissé − dépenses réelles":"collected − actual expenses"}</p>
             </div>
           );
         })()}
@@ -1510,7 +1510,7 @@ export default function RiadDashboard() {
         {[
           {key:"past",   label:t("pastBookings"),       value:fmtBoth(pastRevenue,rate),    sub:pastBookings_.length+" "+(pastBookings_.length>1?t("staysDonePlural"):t("staysDone")),     color:"#2e7d32"},
           {key:"future", label:t("futureBookings"),      value:fmtBoth(futureRevenue,rate),  sub:futureBookings_.length+" "+(futureBookings_.length>1?t("staysAheadPlural"):t("staysAhead")), color:C_BLOCKED},
-          {key:"all",    label:`${t("caTotal")} ${year}`,value:fmtBoth(totalRevenue,rate),   sub:(Math.round((pastRevenue/totalRevenue)*100)||0)+"% "+t("encaisse")+" · "+(Math.round((futureRevenue/totalRevenue)*100)||0)+"% "+t("aVenir"), color:"#BA7517"},
+          {key:"all",    label:`${t("caTotal")} ${year}`,value:fmtBoth(totalRevenue,rate),   sub:(Math.round((pastRevenue/totalRevenue)*100)||0)+"% "+t("encaisse")+" · "+(Math.round((futureRevenue/totalRevenue)*100)||0)+"% "+t("aVenir"), color:"#7F77DD"},
         ].map(card => (
           <div key={card.key}
             onClick={()=>setStatsPanel(statsPanel===card.key?null:card.key)}
