@@ -1975,34 +1975,23 @@ export default function RiadDashboard() {
               return isMobile ? (
                 /* ── MOBILE : carte compacte ── */
                 <div key={m} style={{padding:"10px 8px",borderBottom:"0.5px solid var(--color-border-tertiary)",background:isCurr?"var(--color-background-secondary)":"transparent",borderLeft:isCurr?"3px solid #378ADD":"3px solid transparent"}}>
-                  {/* Ligne 1 : mois + % + bénéfice */}
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:mNights>0?6:0}}>
-                    <div style={{display:"flex",alignItems:"center",gap:8}}>
-                      <span style={{fontSize:14,fontWeight:isCurr?500:400,minWidth:28}}>{m}</span>
-                      <span style={{fontSize:11,padding:"1px 6px",borderRadius:99,background:occBg,color:occCol,fontWeight:500}}>{fillPct}% · {occLabel}</span>
+                  {/* Ligne unique : mois | badge | nuits | net | dép | bénéfice */}
+                  <div style={{display:"grid",gridTemplateColumns:"32px 90px 30px 1fr 1fr 1fr",alignItems:"center",gap:6}}>
+                    <span style={{fontSize:13,fontWeight:isCurr?500:400}}>{m}</span>
+                    <span style={{fontSize:10,padding:"2px 6px",borderRadius:99,background:occBg,color:occCol,fontWeight:500,textAlign:"center",whiteSpace:"nowrap"}}>{fillPct}% · {occLabel}</span>
+                    <span style={{fontSize:12,color:"var(--color-text-secondary)",textAlign:"center"}}>{mNights>0?`${mNights}n`:"—"}</span>
+                    <div style={{textAlign:"right"}}>
+                      {mNights>0 && <><div style={{fontSize:9,color:"var(--color-text-tertiary)"}}>Net</div><div style={{fontSize:11,fontWeight:500,color:"#2e7d32"}}>{fmtMAD(mNet)}</div></>}
                     </div>
-                    <span style={{fontSize:13,fontWeight:500,color:profitCol}}>{mProfit>0?"+":""}{mProfit!==0?fmtMAD(mProfit):"—"}</span>
+                    <div style={{textAlign:"right"}}>
+                      <div style={{fontSize:9,color:"var(--color-text-tertiary)"}}>{lang==="fr"?"Dép.":"Exp."}</div>
+                      <div style={{fontSize:11,fontWeight:500,color:"#c0392b"}}>{fmtMAD(mExp)}</div>
+                    </div>
+                    <div style={{textAlign:"right"}}>
+                      <div style={{fontSize:9,color:"var(--color-text-tertiary)"}}>{lang==="fr"?"Bén.":"Profit"}</div>
+                      <div style={{fontSize:11,fontWeight:500,color:profitCol}}>{mProfit>0?"+":""}{fmtMAD(mProfit)}</div>
+                    </div>
                   </div>
-                  {/* Ligne 2 : nuits · net · dépenses (si réservations) */}
-                  {mNights>0 && (
-                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:4,fontSize:12}}>
-                      <div>
-                        <div style={{fontSize:10,color:"var(--color-text-tertiary)",marginBottom:1}}>{lang==="fr"?"Nuits":"Nights"}</div>
-                        <div style={{fontWeight:500,color:"var(--color-text-secondary)"}}>{mNights}n</div>
-                      </div>
-                      <div>
-                        <div style={{fontSize:10,color:"var(--color-text-tertiary)",marginBottom:1}}>Net</div>
-                        <div style={{fontWeight:500,color:"#2e7d32"}}>{fmtMAD(mNet)}</div>
-                      </div>
-                      <div>
-                        <div style={{fontSize:10,color:"var(--color-text-tertiary)",marginBottom:1}}>{lang==="fr"?"Dép.":"Exp."}</div>
-                        <div style={{fontWeight:500,color:"#c0392b"}}>{fmtMAD(mExp)}</div>
-                      </div>
-                    </div>
-                  )}
-                  {mNights===0 && (
-                    <div style={{fontSize:11,color:"var(--color-text-tertiary)",marginTop:2}}>{lang==="fr"?"Dép.":"Exp."} {fmtMAD(mExp)}</div>
-                  )}
                 </div>
               ) : (
                 /* ── DESKTOP : ligne tableau ── */
