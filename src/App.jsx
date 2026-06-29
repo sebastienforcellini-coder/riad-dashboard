@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo, useRef, useEffect, Fragment } from "react";
 import * as XLSX from "xlsx";
 import { initializeApp } from "firebase/app";
 import { getFirestore, doc, setDoc, onSnapshot } from "firebase/firestore";
@@ -439,6 +439,7 @@ export default function RiadDashboard() {
   const [lastSync,     setLastSync]     = useState(null);
   const [bookingSearch,setBookingSearch]= useState("");
   const [platformFilter,setPlatformFilter]= useState("all");
+  const [monthFilter,  setMonthFilter]  = useState("all");
   const [showUndoSync, setShowUndoSync] = useState(false);
 
   // ── Auto exchange rate ────────────────────────────────────────────────────
@@ -1733,6 +1734,18 @@ export default function RiadDashboard() {
           <div style={{display:"flex",gap:8,marginBottom:"1rem",flexWrap:"wrap",alignItems:"center"}}>
             <input type="text" placeholder={lang==="fr"?"🔍 Rechercher (nom, code)...":"🔍 Search (name, code)..."} value={bookingSearch} onChange={e=>setBookingSearch(e.target.value)}
               style={{flex:1,minWidth:180,padding:"6px 10px",fontSize:13,borderRadius:6,border:"0.5px solid var(--color-border-secondary)",background:"var(--color-background-secondary)"}} />
+            {(() => {
+              const monthsPresent = [...new Set(yearBookings.map(b=>new Date(b.checkIn).getMonth()))].sort((a,b)=>b-a);
+              return (
+                <select value={monthFilter} onChange={e=>setMonthFilter(e.target.value)}
+                  style={{width:"auto",minWidth:130,padding:"6px 10px",fontSize:13,borderRadius:6,border:"0.5px solid var(--color-border-secondary)",background:"var(--color-background-secondary)"}}>
+                  <option value="all">{lang==="fr"?"Tous les mois":"All months"}</option>
+                  {monthsPresent.map(mi=>(
+                    <option key={mi} value={mi}>{months[mi]} {year}</option>
+                  ))}
+                </select>
+              );
+            })()}
             <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
               {["all",...new Set(yearBookings.map(b=>b.platform))].map(p=>(
                 <button key={p} onClick={()=>setPlatformFilter(p)}
@@ -1788,17 +1801,37 @@ export default function RiadDashboard() {
             const filteredBookings = yearBookings.filter(b => {
               const matchSearch   = !bookingSearch || (b.name||"").toLowerCase().includes(bookingSearch.toLowerCase()) || (b.id||"").toLowerCase().includes(bookingSearch.toLowerCase());
               const matchPlatform = platformFilter==="all" || b.platform===platformFilter;
-              return matchSearch && matchPlatform;
+              const matchMonth    = monthFilter==="all" || new Date(b.checkIn).getMonth()===+monthFilter;
+              return matchSearch && matchPlatform && matchMonth;
             });
+            // Groupe les réservations par mois, du plus récent au plus ancien
+            const groupByMonth = (list) => {
+              const sorted = [...list].sort((a,b)=>new Date(b.checkIn)-new Date(a.checkIn));
+              const groups = [];
+              let cur = null;
+              sorted.forEach(b => {
+                const d = new Date(b.checkIn);
+                const key = `${d.getFullYear()}-${d.getMonth()}`;
+                if (!cur || cur.key !== key) {
+                  cur = { key, label:`${months[d.getMonth()]} ${d.getFullYear()}`, items:[] };
+                  groups.push(cur);
+                }
+                cur.items.push(b);
+              });
+              return groups;
+            };
             return (
               <div style={rc}>
                 {filteredBookings.length===0
-                  ? <p style={{color:"var(--color-text-tertiary)",fontSize:13,textAlign:"center",padding:"1.5rem 0"}}>{bookingSearch||platformFilter!=="all" ? (lang==="fr"?"Aucun résultat":"No results") : `${t("noBookYear")} ${year}.`}</p>
+                  ? <p style={{color:"var(--color-text-tertiary)",fontSize:13,textAlign:"center",padding:"1.5rem 0"}}>{bookingSearch||platformFilter!=="all"||monthFilter!=="all" ? (lang==="fr"?"Aucun résultat":"No results") : `${t("noBookYear")} ${year}.`}</p>
                   : isMobile
                     /* ── MOBILE : cartes ── */
                     ? (
                       <div style={{display:"flex",flexDirection:"column",gap:10}}>
-                        {[...filteredBookings].sort((a,b)=>new Date(a.checkIn)-new Date(b.checkIn)).map(b=>(
+                        {groupByMonth(filteredBookings).map(g=>(
+                          <div key={g.key} style={{display:"flex",flexDirection:"column",gap:10}}>
+                            <p style={{margin:"6px 0 0",fontSize:12,fontWeight:600,textTransform:"capitalize",color:"var(--color-text-tertiary)",borderBottom:"0.5px solid var(--color-border-tertiary)",paddingBottom:4}}>{g.label} · {g.items.length}</p>
+                            {g.items.map(b=>(
                           <div key={b.id} style={{background:"var(--color-background-secondary)",borderRadius:10,padding:"12px 14px",borderLeft:`3px solid ${C_RESERVED}`}}>
                             <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}}>
                               <div>
@@ -1849,6 +1882,8 @@ export default function RiadDashboard() {
                               )
                             }
                           </div>
+                            ))}
+                          </div>
                         ))}
                         <div style={{padding:"10px 0",fontWeight:500,fontSize:13,borderTop:"0.5px solid var(--color-border-tertiary)",color:"var(--color-text-success)"}}>
                           {t("total")} : {fmtBoth(totalRevenue,rate)}
@@ -1866,7 +1901,10 @@ export default function RiadDashboard() {
                           </tr>
                         </thead>
                         <tbody>
-                          {[...filteredBookings].sort((a,b)=>new Date(a.checkIn)-new Date(b.checkIn)).map(b=>(
+                          {groupByMonth(filteredBookings).map(g=>(
+                            <Fragment key={g.key}>
+                              <tr><td colSpan={9} style={{padding:"14px 6px 6px",fontSize:12,fontWeight:600,textTransform:"capitalize",color:"var(--color-text-tertiary)"}}>{g.label} · {g.items.length}</td></tr>
+                              {g.items.map(b=>(
                             <tr key={b.id} style={{borderBottom:"0.5px solid var(--color-border-tertiary)"}}>
                               <td style={{padding:"10px 6px",whiteSpace:"nowrap"}}>{fmtDate(b.checkIn,locale)}</td>
                               <td style={{padding:"10px 6px",whiteSpace:"nowrap"}}>{fmtDate(b.checkOut,locale)}</td>
@@ -1906,6 +1944,8 @@ export default function RiadDashboard() {
   style={{fontSize:11,color:"var(--color-text-danger)",border:"none",background:"none",cursor:"pointer",padding:"8px",minWidth:36,minHeight:36}}>✕</button>
                               </td>
                             </tr>
+                              ))}
+                            </Fragment>
                           ))}
                         </tbody>
                         <tfoot>
