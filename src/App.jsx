@@ -1,7 +1,8 @@
 import { useState, useMemo, useRef, useEffect, Fragment } from "react";
 import * as XLSX from "xlsx";
 import { initializeApp } from "firebase/app";
-import { getFirestore, doc, setDoc, onSnapshot } from "firebase/firestore";
+import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "firebase/firestore";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut } from "firebase/auth";
 
 const translations = {
   fr: {
@@ -197,7 +198,11 @@ const translations = {
 // ── Firebase ──────────────────────────────────────────────────────────────────
 const firebaseConfig = {
   apiKey: "AIzaSyCcNPo3-u0tAQjZdvJ7ns1pIpz-Puc6p7Q",
-  authDomain: "riad-dashboard.firebaseapp.com",
+  // En production, l'authentification passe par le domaine du site (proxy /__/auth
+  // dans vercel.json) : indispensable pour Safari / iPhone qui bloquent les
+  // cookies tiers. En local, on garde le domaine Firebase par défaut.
+  authDomain: typeof window !== "undefined" && window.location.hostname === "riad-dashboard.vercel.app"
+    ? "riad-dashboard.vercel.app" : "riad-dashboard.firebaseapp.com",
   projectId: "riad-dashboard",
   storageBucket: "riad-dashboard.firebasestorage.app",
   messagingSenderId: "1057977040208",
@@ -206,6 +211,7 @@ const firebaseConfig = {
 const app    = initializeApp(firebaseConfig);
 const db     = getFirestore(app);
 const DOC_REF = doc(db, "riad", "data");
+const authApi = getAuth(app);
 
 // ── Parsers ───────────────────────────────────────────────────────────────────
 function parseIcs(text) {
@@ -409,7 +415,7 @@ function DropZone({ label, sub, accept, onFile, color }) {
 // ═════════════════════════════════════════════════════════════════════════════
 // MAIN APP
 // ═════════════════════════════════════════════════════════════════════════════
-export default function RiadDashboard() {
+function RiadDashboard() {
   const [bookings,     setBookings]     = useState([]);
   const [blocked,      setBlocked]      = useState([]);
   const [expenses,     setExpenses]     = useState([]);
@@ -451,7 +457,7 @@ export default function RiadDashboard() {
   const [recurring,    setRecurring]    = useState([]);
   const [showAddR,     setShowAddR]     = useState(false);
   const [rForm,        setRForm]        = useState({category:"Ménage",description:"",amount:"",months:[]});
-  const [icsUrl,       setIcsUrl]       = useState(import.meta.env.VITE_ICS_URL || "");
+  const [icsUrl,       setIcsUrl]       = useState("");
   const [icsUrlBooking, setIcsUrlBooking] = useState("");
   const [showIcsUrl,   setShowIcsUrl]   = useState(false);
   const [syncStatus,   setSyncStatus]   = useState("");
@@ -729,7 +735,8 @@ export default function RiadDashboard() {
     if (!url) return;
     setSyncStatus("syncing");
     try {
-      const res = await fetch("/api/sync", { method: "POST" });
+      const token = await authApi.currentUser?.getIdToken();
+      const res = await fetch("/api/sync", { method: "POST", headers: token ? { Authorization: `Bearer ${token}` } : {} });
       const j = await res.json().catch(() => ({}));
       if (!res.ok || !j.success) throw new Error(j.error || j.message || `HTTP ${res.status}`);
       setSyncStatus("ok");
@@ -2406,6 +2413,76 @@ export default function RiadDashboard() {
         </div>
       </div>
     )}
+    </>
+  );
+}
+
+// ── Connexion (Google) ────────────────────────────────────────────────────────
+// Le tableau de bord n'est monté qu'une fois l'utilisateur connecté ET autorisé
+// (liste d'e-mails dans Firestore config/access, appliquée par les règles).
+const gateBox  = { minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center", padding:24, fontFamily:"Georgia, serif", background:"var(--color-background-primary, #fff)" };
+const gateCard = { maxWidth:360, width:"100%", textAlign:"center", border:"0.5px solid #ddd", borderRadius:12, padding:"32px 24px" };
+const gateBtn  = { padding:"10px 18px", fontSize:15, borderRadius:8, border:"0.5px solid #999", background:"#fff", cursor:"pointer" };
+
+export default function App() {
+  const [user, setUser]     = useState(undefined); // undefined = en cours, null = déconnecté
+  const [access, setAccess] = useState("pending"); // pending | ok | denied | error
+  const [err, setErr]       = useState("");
+
+  useEffect(() => {
+    getRedirectResult(authApi).catch((e) => setErr(e.code || e.message));
+    return onAuthStateChanged(authApi, (u) => { setUser(u); setAccess("pending"); });
+  }, []);
+
+  useEffect(() => {
+    if (!user) return;
+    getDoc(DOC_REF)
+      .then(() => setAccess("ok"))
+      .catch((e) => setAccess(e.code === "permission-denied" ? "denied" : "error"));
+  }, [user]);
+
+  const login = async () => {
+    setErr("");
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: "select_account" });
+    try { await signInWithPopup(authApi, provider); }
+    catch (e) {
+      if (["auth/popup-blocked","auth/operation-not-supported-in-this-environment","auth/cancelled-popup-request"].includes(e.code))
+        await signInWithRedirect(authApi, provider);
+      else if (e.code !== "auth/popup-closed-by-user") setErr(e.code || e.message);
+    }
+  };
+  const logout = async () => {
+    try { localStorage.removeItem(STORAGE_KEY); localStorage.removeItem("riad_last_modified"); } catch {}
+    await signOut(authApi);
+  };
+
+  if (user === undefined || (user && access === "pending"))
+    return <div style={gateBox}><p style={{color:"#888"}}>Chargement…</p></div>;
+
+  if (!user) return (
+    <div style={gateBox}><div style={gateCard}>
+      <h1 style={{fontSize:22,fontWeight:400,margin:"0 0 6px"}}>Kasbah Blanca Marrakech</h1>
+      <p style={{fontSize:13,color:"#888",margin:"0 0 24px"}}>Tableau de bord locatif</p>
+      <button onClick={login} style={gateBtn}>Se connecter avec Google</button>
+      {err && <p style={{fontSize:12,color:"#c0392b",marginTop:16}}>Connexion impossible ({err})</p>}
+    </div></div>
+  );
+
+  if (access !== "ok") return (
+    <div style={gateBox}><div style={gateCard}>
+      <p style={{fontSize:15,margin:"0 0 8px"}}>{access === "denied" ? "Accès non autorisé" : "Base injoignable"}</p>
+      <p style={{fontSize:13,color:"#888",margin:"0 0 20px"}}>{access === "denied" ? `Le compte ${user.email} n'a pas accès à ce tableau de bord.` : "Vérifiez votre connexion puis réessayez."}</p>
+      <button onClick={logout} style={gateBtn}>Changer de compte</button>
+    </div></div>
+  );
+
+  return (
+    <>
+      <RiadDashboard />
+      <div style={{textAlign:"center",fontSize:11,color:"#999",padding:"24px 0 40px"}}>
+        {user.email} · <button onClick={logout} style={{background:"none",border:"none",color:"#999",textDecoration:"underline",cursor:"pointer",fontSize:11}}>Se déconnecter</button>
+      </div>
     </>
   );
 }

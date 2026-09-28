@@ -9,21 +9,9 @@
 //   4. Une réservation du flux est reconnue par son code OU par ses dates.
 //   5. Flux illisible → aucune écriture.
 // ─────────────────────────────────────────────────────────────────────────────
-import { initializeApp, getApps } from "firebase/app";
-import { getFirestore, doc, getDoc, runTransaction } from "firebase/firestore";
+import { db } from "./admin.js";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyCcNPo3-u0tAQjZdvJ7ns1pIpz-Puc6p7Q",
-  authDomain: "riad-dashboard.firebaseapp.com",
-  projectId: "riad-dashboard",
-  storageBucket: "riad-dashboard.firebasestorage.app",
-  messagingSenderId: "1057977040208",
-  appId: "1:1057977040208:web:48f77a326d8cbbb777c055",
-};
-
-const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
-const db  = getFirestore(app);
-const DOC = doc(db, "riad", "data");
+const DOC = db.doc("riad/data");
 
 const toISO = (s) => { const d = String(s).replace(/[^\d]/g, "").slice(0, 8); return `${d.slice(0,4)}-${d.slice(4,6)}-${d.slice(6,8)}`; };
 const nightsBetween = (a, b) => Math.round((new Date(b) - new Date(a)) / 86400000);
@@ -146,8 +134,8 @@ function applyFeeds(data, feeds) {
 }
 
 export async function runSync({ dryRun = false } = {}) {
-  const first = await getDoc(DOC);
-  if (!first.exists()) throw new Error("Base Firestore introuvable");
+  const first = await DOC.get();
+  if (!first.exists) throw new Error("Base Firestore introuvable");
   const cfg = first.data();
   const sources = { airbnb: cfg.icsUrl, booking: cfg.icsUrlBooking };
   if (!sources.airbnb && !sources.booking) return { success: false, message: "Aucune URL iCal configurée" };
@@ -168,7 +156,7 @@ export async function runSync({ dryRun = false } = {}) {
       wouldAdd: r.newOnes.map(({ id, platform, checkIn, checkOut, nights }) => ({ id, platform, checkIn, checkOut, nights })) };
   }
 
-  return runTransaction(db, async (tx) => {
+  return db.runTransaction(async (tx) => {
     const snap = await tx.get(DOC);
     const r = applyFeeds(snap.data() || {}, feeds);
     const now = new Date().toISOString();

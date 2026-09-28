@@ -1,2 +1,12 @@
 {
+  "rewrites": [
+    {
+      "source": "/__/auth/:path*",
+      "destination": "https://riad-dashboard.firebaseapp.com/__/auth/:path*"
+    },
+    {
+      "source": "/__/firebase/:path*",
+      "destination": "https://riad-dashboard.firebaseapp.com/__/firebase/:path*"
+    }
+  ]
 }

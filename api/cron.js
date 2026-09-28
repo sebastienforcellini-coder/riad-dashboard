@@ -1,10 +1,10 @@
 // Synchro automatique (cron-job.org, toutes les 6 h), protégée par CRON_SECRET
+import { checkCaller } from "./_lib/admin.js";
 import { runSync } from "./_lib/sync-core.js";
 
 export default async function handler(req, res) {
-  if (req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
+  const caller = await checkCaller(req);
+  if (!caller || caller.kind !== "cron") return res.status(401).json({ error: "Unauthorized" });
   try {
     const result = await runSync();
     console.log("Cron sync:", JSON.stringify(result));
