@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, useEffect, Fragment } from "react";
 import * as XLSX from "xlsx";
 import { initializeApp } from "firebase/app";
-import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "firebase/firestore";
+import { getFirestore, doc, setDoc, getDoc, onSnapshot, collection, getDocs, query, orderBy, limit } from "firebase/firestore";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut } from "firebase/auth";
 
 const translations = {
@@ -465,7 +465,7 @@ function RiadDashboard() {
   const [bookingSearch,setBookingSearch]= useState("");
   const [platformFilter,setPlatformFilter]= useState("all");
   const [monthFilter,  setMonthFilter]  = useState("all");
-  const [showUndoSync, setShowUndoSync] = useState(false);
+  const [rescue, setRescue] = useState(null); // null = fermé, sinon { loading, list, error, busy }
 
   // ── Auto exchange rate ────────────────────────────────────────────────────
   useEffect(() => {
@@ -705,28 +705,6 @@ function RiadDashboard() {
     return true;
   };
 
-  // ── Auto-backup avant sync ────────────────────────────────────────────────
-  const autoBackupBeforeSync = () => {
-    try {
-      const snapshot = JSON.stringify({ bookings, blocked, expenses, recurring, rate, currency, commission, ignoredBlocks, lastSync, version:1, backedUpAt: new Date().toISOString() });
-      localStorage.setItem("riad_pre_sync_backup", snapshot);
-    } catch(e) { console.warn("Pre-sync backup failed", e); }
-  };
-
-  const restorePreSyncBackup = () => {
-    try {
-      const raw = localStorage.getItem("riad_pre_sync_backup");
-      if (!raw) { showToast(lang==="fr"?"Aucun backup pré-sync disponible":"No pre-sync backup available"); return; }
-      const data = JSON.parse(raw);
-      if (data.bookings)      setBookings(data.bookings);
-      if (data.blocked)       setBlocked(data.blocked);
-      if (data.expenses)      setExpenses(data.expenses);
-      if (data.recurring)     setRecurring(data.recurring);
-      if (data.ignoredBlocks) setIgnoredBlocks(data.ignoredBlocks);
-      showToast(lang==="fr"?"✅ Sync annulée — état restauré":"✅ Sync cancelled — state restored");
-    } catch(e) { showToast(lang==="fr"?"❌ Erreur restauration":"❌ Restore error"); }
-  };
-
   // ── Sync iCal (côté serveur) ──────────────────────────────────────────────
   // Le serveur lit Firestore, fusionne le flux Airbnb et n'écrit que les
   // réservations et blocages. L'appareil ne fait que déclencher puis recevoir
@@ -753,20 +731,50 @@ function RiadDashboard() {
     }
   };
 
-  // ── Export de la sauvegarde pré-sync (lecture seule) ──────────────────────
-  const exportPreSyncBackup = () => {
+  // ── Secours : sauvegardes automatiques du serveur ─────────────────────────
+  const authHeaders = async () => {
+    const token = await authApi.currentUser?.getIdToken();
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  };
+  const openRescue = async () => {
+    setRescue({ loading: true, list: [] });
     try {
-      const raw = localStorage.getItem("riad_pre_sync_backup");
-      if (!raw) { showToast(lang==="fr"?"Aucune sauvegarde de secours sur cet appareil":"No rescue backup on this device"); return; }
-      const data = JSON.parse(raw);
+      const snap = await getDocs(query(collection(db, "backups"), orderBy("createdAt", "desc"), limit(60)));
+      setRescue({ loading: false, list: snap.docs.map(d => ({ id: d.id, ...d.data() })) });
+    } catch (e) { setRescue({ loading: false, list: [], error: e.message }); }
+  };
+  const backupNow = async () => {
+    setRescue(r => ({ ...r, busy: true }));
+    try {
+      const res = await fetch("/api/backup", { method: "POST", headers: await authHeaders() });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok || !j.success) throw new Error(j.error || `HTTP ${res.status}`);
+      showToast("🛟 Sauvegarde créée");
+      await openRescue();
+    } catch (e) { showToast(`❌ Sauvegarde impossible (${e.message})`); setRescue(r => ({ ...r, busy: false })); }
+  };
+  const loadBackup = async (id) => {
+    const snap = await getDoc(doc(db, "backups", id, "payload", "data"));
+    if (!snap.exists()) throw new Error("copie introuvable");
+    return snap.data();
+  };
+  const downloadBackup = async (b) => {
+    try {
+      const data = await loadBackup(b.id);
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
       const href = URL.createObjectURL(blob);
       const a = document.createElement("a");
-      const stamp = (data.backedUpAt || new Date().toISOString()).slice(0,16).replace(/[:T]/g,"-");
-      a.href = href; a.download = `riad_secours_${stamp}.json`;
+      a.href = href; a.download = `riad_secours_${b.createdAt.slice(0,16).replace(/[:T]/g,"-")}.json`;
       a.click(); URL.revokeObjectURL(href);
-      showToast(`🛟 ${(data.bookings||[]).length} réas · ${(data.expenses||[]).length} dépenses · ${(data.recurring||[]).length} récurrentes`);
-    } catch(e) { showToast(lang==="fr"?"❌ Sauvegarde de secours illisible":"❌ Rescue backup unreadable"); }
+    } catch (e) { showToast(`❌ Téléchargement impossible (${e.message})`); }
+  };
+  const restoreBackup = async (b) => {
+    const when = new Date(b.createdAt).toLocaleString(locale);
+    if (!window.confirm(`Restaurer l'état du ${when} (${b.counts?.bookings ?? "?"} réservations, ${b.counts?.expenses ?? "?"} dépenses) ?\n\nTout ce qui a été saisi depuis sera perdu.`)) return;
+    try {
+      const data = await loadBackup(b.id);
+      if (applyBackup(data, { confirmed: true })) setRescue(null);
+    } catch (e) { showToast(`❌ Restauration impossible (${e.message})`); }
   };
 
   // ── Import iCal ───────────────────────────────────────────────────────────
@@ -831,15 +839,12 @@ function RiadDashboard() {
     showToast(t("toastJsonDL"));
   };
 
-  const importJSON = (file) => {
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      try {
-        const data = JSON.parse(e.target.result);
-        if (!data.version) throw new Error("Invalid format");
+  // Applique une sauvegarde (fichier Restore ou copie Secours). Renvoie true si appliquée.
+  const applyBackup = (data, { confirmed = false } = {}) => {
+        if (!data || !data.version) throw new Error("Invalid format");
         const incoming = (data.bookings || []).length;
         const shrinks = remoteBookingCount !== null && incoming < remoteBookingCount - GUARD_MAX_DROP;
-        if (shrinks && !window.confirm(`Ce fichier contient ${incoming} réservations, la base en contient ${remoteBookingCount}. Restaurer quand même ?`)) return;
+        if (shrinks && !confirmed && !window.confirm(`Ce fichier contient ${incoming} réservations, la base en contient ${remoteBookingCount}. Restaurer quand même ?`)) return false;
         const manuals = (data.bookings||[]).filter(b => b.id.startsWith("MAN-"));
         const filteredBlocked = (data.blocked||[]).filter(bl =>
           bl.type === "personal" ||
@@ -874,7 +879,14 @@ function RiadDashboard() {
         if (data.nextId)        setNextId(data.nextId);
         saveCloud(cloudData, { force: shrinks });
         showToast(`✅ ${lang==="fr"?"Sauvegarde restaurée":"Backup restored"} · ${data.bookings?.length||0} ${lang==="fr"?"réservations":"bookings"} · ${data.expenses?.length||0} ${lang==="fr"?"dépenses":"expenses"}`);
-      } catch { showToast(t("toastJsonInvalid")); }
+        return true;
+  };
+
+  const importJSON = (file) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try { applyBackup(JSON.parse(e.target.result)); }
+      catch { showToast(t("toastJsonInvalid")); }
     };
     reader.readAsText(file);
   };
@@ -1362,10 +1374,9 @@ function RiadDashboard() {
           <button onClick={()=>setDarkMode(d=>!d)} style={{padding:"4px 10px",fontSize:14,background:"none",border:"0.5px solid var(--color-border-secondary)",borderRadius:6,cursor:"pointer"}}>{darkMode?"☀️":"🌙"}</button>
           <button onClick={()=>setShowIcsUrl(r=>!r)} style={{padding:"4px 10px",fontSize:13,background:icsUrl?"#e8f5e9":"none",border:`0.5px solid ${icsUrl?"#2e7d32":"var(--color-border-secondary)"}`,borderRadius:6,color:icsUrl?"#2e7d32":"var(--color-text-secondary)"}}>🔄 {icsUrl?t("autoSyncOn"):t("configSync")}</button>
           {icsUrl && <button onClick={()=>syncIcs()} style={{padding:"4px 10px",fontSize:13,background:"none",border:"0.5px solid var(--color-border-secondary)",borderRadius:6}}>{syncStatus==="syncing"?"⏳":"↻"} {t("sync")}</button>}
-          {showUndoSync && <button onClick={restorePreSyncBackup} style={{padding:"4px 10px",fontSize:13,background:"#856404",color:"#fff",border:"none",borderRadius:6,cursor:"pointer"}}>↩ {lang==="fr"?"Annuler sync":"Undo sync"}</button>}
           <button onClick={()=>setShowRate(r=>!r)} style={{padding:"4px 10px",fontSize:13,background:"none",border:"0.5px solid var(--color-border-secondary)",borderRadius:6}}>1€ = {rate} MAD</button>
           <button onClick={exportJSON} style={{padding:"4px 10px",fontSize:13,background:"none",border:"0.5px solid var(--color-border-secondary)",borderRadius:6}}>{t("backup")}</button>
-          <button onClick={exportPreSyncBackup} title="Exporter la copie de secours de cet appareil" style={{padding:"4px 10px",fontSize:13,background:"#fff3cd",border:"0.5px solid #856404",borderRadius:6,color:"#856404"}}>🛟 Secours</button>
+          <button onClick={openRescue} title="Sauvegardes automatiques du serveur" style={{padding:"4px 10px",fontSize:13,background:"#fff3cd",border:"0.5px solid #856404",borderRadius:6,color:"#856404"}}>🛟 Secours</button>
           <label style={{padding:"4px 10px",fontSize:13,background:"none",border:"0.5px solid var(--color-border-secondary)",borderRadius:6,cursor:"pointer",display:"inline-flex",alignItems:"center"}}>
             {t("restore")}
             <input type="file" accept=".json" style={{display:"none"}} onChange={e=>{if(e.target.files[0]){importJSON(e.target.files[0]);e.target.value="";}}} />
@@ -2386,6 +2397,33 @@ function RiadDashboard() {
     </div>
 
     {/* ── Toast — hors container pour position:fixed fiable sur iOS PWA ── */}
+    {rescue && (
+      <div onClick={()=>setRescue(null)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.35)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+        <div onClick={e=>e.stopPropagation()} role="dialog" aria-label="Sauvegardes de secours" style={{background:"var(--color-background-primary, #fff)",borderRadius:12,padding:"20px 20px 16px",width:"100%",maxWidth:520,maxHeight:"80vh",display:"flex",flexDirection:"column"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+            <p style={{margin:0,fontSize:16}}>🛟 Sauvegardes de secours</p>
+            <button onClick={()=>setRescue(null)} aria-label="Fermer" style={{background:"none",border:"none",fontSize:18,cursor:"pointer"}}>✕</button>
+          </div>
+          <p style={{margin:"0 0 12px",fontSize:12,color:"var(--color-text-tertiary)"}}>Copie complète de la base toutes les 6 h, conservée 14 jours.</p>
+          <button onClick={backupNow} disabled={rescue.busy} style={{alignSelf:"flex-start",padding:"6px 12px",fontSize:13,borderRadius:6,border:"0.5px solid #856404",background:"#fff3cd",color:"#856404",cursor:"pointer",marginBottom:12}}>{rescue.busy?"⏳ Sauvegarde…":"+ Sauvegarder maintenant"}</button>
+          <div style={{overflowY:"auto",flex:1}}>
+            {rescue.loading && <p style={{fontSize:13,color:"var(--color-text-tertiary)"}}>Chargement…</p>}
+            {rescue.error && <p style={{fontSize:13,color:"var(--color-text-danger)"}}>Impossible de lire les sauvegardes ({rescue.error})</p>}
+            {!rescue.loading && !rescue.error && rescue.list.length===0 && <p style={{fontSize:13,color:"var(--color-text-tertiary)"}}>Aucune sauvegarde pour l'instant. La première sera créée au prochain passage automatique, ou tout de suite avec le bouton ci-dessus.</p>}
+            {rescue.list.map(b => (
+              <div key={b.id} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 0",borderTop:"0.5px solid var(--color-border-tertiary, #eee)",flexWrap:"wrap"}}>
+                <div style={{flex:1,minWidth:180}}>
+                  <p style={{margin:0,fontSize:13}}>{new Date(b.createdAt).toLocaleString(locale,{weekday:"short",day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"})}</p>
+                  <p style={{margin:0,fontSize:11,color:"var(--color-text-tertiary)"}}>{b.counts?.bookings ?? "?"} réas · {b.counts?.expenses ?? "?"} dépenses{b.reason && b.reason!=="cron" ? ` · ${b.reason.startsWith("manuel")?"manuelle":b.reason}` : ""}</p>
+                </div>
+                <button onClick={()=>downloadBackup(b)} style={{padding:"4px 10px",fontSize:12,borderRadius:6,border:"0.5px solid var(--color-border-secondary)",background:"none",cursor:"pointer"}}>Télécharger</button>
+                <button onClick={()=>restoreBackup(b)} style={{padding:"4px 10px",fontSize:12,borderRadius:6,border:"none",background:"#856404",color:"#fff",cursor:"pointer"}}>Restaurer</button>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    )}
     {toast && (
       <div className="safe-bottom" style={{position:"fixed",bottom:24,left:"50%",transform:"translateX(-50%)",background:"var(--color-background-primary)",border:"0.5px solid var(--color-border-secondary)",borderRadius:"var(--border-radius-lg)",padding:"10px 20px",fontSize:13,fontWeight:500,boxShadow:"0 4px 16px rgba(0,0,0,0.12)",zIndex:9999,whiteSpace:"nowrap"}}>
         {toast}
