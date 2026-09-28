@@ -13,7 +13,7 @@ const translations = {
     syncPanelDesc:"Airbnb → Calendrier → Lien iCal → copiez l'URL ici. Le calendrier se rafraîchit automatiquement tous les jours à 6h.",
     syncNow:"↻ Synchroniser maintenant",syncDelete:"✕ Supprimer",lastSync:"Dernière sync",
     syncDelay:"⚠️ Le flux iCal Airbnb est mis à jour avec 15–30 min de délai. Pour une résa toute récente, importez le .ics manuellement via la zone de dépôt.",
-    rateLabel:"Taux de change :",commissionLabel:"Commission conciergerie Airbnb :",
+    rateLabel:"Taux de change :",commissionLabel:"Commission conciergerie (Airbnb, Booking) :",
     alertsTitle:"ARRIVÉES & DÉPARTS — 7 PROCHAINS JOURS",
     enableNotif:"🔔 Activer notifications",notifOn:"🔔 Notifs ON · Désactiver",
     arrivalToday:"Arrivée aujourd'hui !",arrivalTomorrow:"Arrivée demain",arrivalIn:"Arrivée dans",
@@ -107,7 +107,7 @@ const translations = {
     syncPanelDesc:"Airbnb → Calendar → iCal link → paste the URL here. Calendar refreshes automatically every day at 6am.",
     syncNow:"↻ Sync now",syncDelete:"✕ Remove",lastSync:"Last sync",
     syncDelay:"⚠️ Airbnb's iCal feed updates with a 15–30 min delay. For a brand-new booking, import the .ics file manually via the drop zone.",
-    rateLabel:"Exchange rate:",commissionLabel:"Airbnb concierge commission:",
+    rateLabel:"Exchange rate:",commissionLabel:"Concierge commission (Airbnb, Booking):",
     alertsTitle:"ARRIVALS & DEPARTURES — NEXT 7 DAYS",
     enableNotif:"🔔 Enable notifications",notifOn:"🔔 Notifs ON · Disable",
     arrivalToday:"Arrival today!",arrivalTomorrow:"Arrival tomorrow",arrivalIn:"Arrival in",
@@ -258,6 +258,9 @@ function parseCsvAirbnb(text) {
 // ── Constants ─────────────────────────────────────────────────────────────────
 const EXPENSE_CATS = ["Ménage","Gouvernante","Pisciniste","Frais Airbnb","Maintenance","Fournitures","Taxes/CFE","Internet","Eau/Électricité","Assurance","Autre"];
 const PLATFORMS    = ["Direct","Airbnb","Booking.com","Gens de confiance","Perso","Autre"];
+// Plateformes gérées par la conciergerie : commission appliquée sur le montant
+const COMM_PLATFORMS = ["Airbnb","Booking.com"];
+const hasComm = (b) => COMM_PLATFORMS.includes(b?.platform);
 const MONTHS_FR    = ["Jan","Fév","Mar","Avr","Mai","Jun","Jul","Aoû","Sep","Oct","Nov","Déc"];
 const MONTHS_EN    = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const STORAGE_KEY  = "riad_dashboard_v1";
@@ -449,6 +452,7 @@ export default function RiadDashboard() {
   const [showAddR,     setShowAddR]     = useState(false);
   const [rForm,        setRForm]        = useState({category:"Ménage",description:"",amount:"",months:[]});
   const [icsUrl,       setIcsUrl]       = useState(import.meta.env.VITE_ICS_URL || "");
+  const [icsUrlBooking, setIcsUrlBooking] = useState("");
   const [showIcsUrl,   setShowIcsUrl]   = useState(false);
   const [syncStatus,   setSyncStatus]   = useState("");
   const [lastSync,     setLastSync]     = useState(null);
@@ -499,6 +503,7 @@ export default function RiadDashboard() {
       if (saved.commission !== undefined) setCommission(saved.commission);
       if (saved.recurring)               setRecurring(saved.recurring);
       if (saved.icsUrl)                  setIcsUrl(saved.icsUrl);
+      if (saved.icsUrlBooking)           setIcsUrlBooking(saved.icsUrlBooking);
       if (saved.lastSync)                setLastSync(saved.lastSync);
     }
   }, []);
@@ -508,8 +513,8 @@ export default function RiadDashboard() {
   }, [ignoredBlocks]);
 
   useEffect(() => {
-    saveStorage({ bookings, blocked, expenses, year, nextId, currency, rate, commission, recurring, icsUrl, lastSync, ignoredBlocks });
-  }, [bookings, blocked, expenses, year, nextId, currency, rate, commission, recurring, icsUrl, lastSync, ignoredBlocks]);
+    saveStorage({ bookings, blocked, expenses, year, nextId, currency, rate, commission, recurring, icsUrl, icsUrlBooking, lastSync, ignoredBlocks });
+  }, [bookings, blocked, expenses, year, nextId, currency, rate, commission, recurring, icsUrl, icsUrlBooking, lastSync, ignoredBlocks]);
 
   // ── Firestore — onSnapshot temps réel ────────────────────────────────────
   // ARCHITECTURE CLÉ :
@@ -564,6 +569,7 @@ export default function RiadDashboard() {
       if (data.currency)               setCurrency(data.currency);
       if (data.commission !== undefined) setCommission(data.commission);
       if (data.icsUrl)                 setIcsUrl(data.icsUrl);
+      if (data.icsUrlBooking !== undefined) setIcsUrlBooking(data.icsUrlBooking);
       if (data.lastSync)               setLastSync(data.lastSync);
       if (data.ignoredBlocks)          setIgnoredBlocks(data.ignoredBlocks);
       saveStorage(data);
@@ -602,14 +608,14 @@ export default function RiadDashboard() {
       const now = new Date().toISOString();
       lastSavedModified.current = now;
       localStorage.setItem("riad_last_modified", now);
-      saveCloud({ bookings, blocked, expenses, year, nextId, currency, rate, commission, recurring, icsUrl, lastSync, ignoredBlocks, lastModified: now })
+      saveCloud({ bookings, blocked, expenses, year, nextId, currency, rate, commission, recurring, icsUrl, icsUrlBooking, lastSync, ignoredBlocks, lastModified: now })
         .then((ok) => setCloudStatus(ok ? "saved" : "error"))
         .catch(() => {
           setCloudStatus("error");
           showToast("❌ Sauvegarde cloud échouée — vérifiez votre connexion");
         });
     }, 1500);
-  }, [bookings, blocked, expenses, year, nextId, currency, rate, commission, recurring, icsUrl, lastSync, ignoredBlocks]);
+  }, [bookings, blocked, expenses, year, nextId, currency, rate, commission, recurring, icsUrl, icsUrlBooking, lastSync, ignoredBlocks]);
 
   // ── Fonction partagée : appliquer les données Firestore si plus récentes ──
   // Utilisée par visibilitychange ET le polling iOS
@@ -630,6 +636,7 @@ export default function RiadDashboard() {
     if (data.currency)               setCurrency(data.currency);
     if (data.commission !== undefined) setCommission(data.commission);
     if (data.icsUrl)                 setIcsUrl(data.icsUrl);
+    if (data.icsUrlBooking !== undefined) setIcsUrlBooking(data.icsUrlBooking);
     if (data.lastSync)               setLastSync(data.lastSync);
     if (data.ignoredBlocks)          setIgnoredBlocks(data.ignoredBlocks);
     saveStorage(data);
@@ -726,9 +733,11 @@ export default function RiadDashboard() {
       const j = await res.json().catch(() => ({}));
       if (!res.ok || !j.success) throw new Error(j.error || j.message || `HTTP ${res.status}`);
       setSyncStatus("ok");
-      if (!silent) showToast(lang === "fr"
+      const errs = Object.keys(j.errors || {});
+      if (!silent) showToast((lang === "fr"
         ? `✅ Synchronisé · ${j.added} nouvelle${j.added > 1 ? "s" : ""} · ${j.known} déjà connue${j.known > 1 ? "s" : ""}`
-        : `✅ Synced · ${j.added} new · ${j.known} already known`);
+        : `✅ Synced · ${j.added} new · ${j.known} already known`)
+        + (errs.length ? ` · ⚠️ ${errs.join(", ")} injoignable` : ""));
       pollFirestore();
     } catch (e) {
       console.warn("Sync error", e);
@@ -806,7 +815,7 @@ export default function RiadDashboard() {
 
   // ── Export / Import JSON ──────────────────────────────────────────────────
   const exportJSON = () => {
-    const data = { bookings, blocked, expenses, rate, currency, recurring, ignoredBlocks, lastSync, lastModified: new Date().toISOString(), exportedAt: new Date().toISOString(), version: 1, nextId };
+    const data = { bookings, blocked, expenses, rate, currency, commission, icsUrl, icsUrlBooking, recurring, ignoredBlocks, lastSync, lastModified: new Date().toISOString(), exportedAt: new Date().toISOString(), version: 1, nextId };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement("a");
@@ -841,6 +850,7 @@ export default function RiadDashboard() {
           currency:      data.currency     || "MAD",
           commission:    data.commission   ?? 0.20,
           icsUrl:        data.icsUrl       || "",
+          icsUrlBooking: data.icsUrlBooking || icsUrlBooking || "",
           ignoredBlocks: data.ignoredBlocks || [],
           lastSync:      data.lastSync     || null,
           version:       1,
@@ -868,7 +878,7 @@ export default function RiadDashboard() {
   const persoBookings  = useMemo(()=>yearBookings.filter(b=>b.platform==="Perso"),[yearBookings]);
   const yearExpenses   = useMemo(()=>expenses.filter(e=>new Date(e.date).getFullYear()===year),[expenses,year]);
   const totalStay  = (b) => b.amount * b.nights;
-  const netAmount  = (b) => b.platform==="Airbnb" ? totalStay(b)*(1-commission) : totalStay(b);
+  const netAmount  = (b) => hasComm(b) ? totalStay(b)*(1-commission) : totalStay(b);
   const totalRevenue = useMemo(()=>payingBookings.reduce((s,b)=>s+netAmount(b),0),[payingBookings,commission]);
   const totalGross   = useMemo(()=>payingBookings.reduce((s,b)=>s+totalStay(b),0),[payingBookings]);
   const totalExp     = useMemo(()=>yearExpenses.reduce((s,e)=>s+e.amount,0),[yearExpenses]);
@@ -1042,9 +1052,9 @@ export default function RiadDashboard() {
     const bRows = [["Code","Nom","Plateforme","Arrivée","Départ","Nuits","Occupants","Tarif/nuit brut (MAD)","Tarif/nuit net (MAD)","Tarif/nuit net (€)","Total brut (MAD)","Commission (MAD)","Total net (MAD)","Total net (€)"]];
     [...yearBookings].sort((a,b)=>new Date(a.checkIn)-new Date(b.checkIn)).forEach(b => {
       const gross      = b.amount;
-      const netNight   = b.platform==="Airbnb" ? gross*(1-commission) : gross;
+      const netNight   = hasComm(b) ? gross*(1-commission) : gross;
       const totalGrossB= gross * b.nights;
-      const commAmt    = b.platform==="Airbnb" ? totalGrossB * commission : 0;
+      const commAmt    = hasComm(b) ? totalGrossB * commission : 0;
       const totalNetB  = totalGrossB - commAmt;
       bRows.push([b.id,b.name||"",b.platform,b.checkIn,b.checkOut,b.nights,b.guests||"",gross,+netNight.toFixed(2),+(netNight/rate).toFixed(2),totalGrossB,+commAmt.toFixed(2),+totalNetB.toFixed(2),+(totalNetB/rate).toFixed(2)]);
     });
@@ -1072,7 +1082,7 @@ export default function RiadDashboard() {
       const bs    = yearBookings.filter(b=>b.platform===p);
       const n     = bs.reduce((s,b)=>s+b.nights,0);
       const gross = bs.reduce((s,b)=>s+b.amount*b.nights,0);
-      const comm  = p==="Airbnb" ? gross*commission : 0;
+      const comm  = hasComm({platform:p}) ? gross*commission : 0;
       const net   = gross - comm;
       pRows.push([p,bs.length,n,+gross.toFixed(2),+comm.toFixed(2),+net.toFixed(2),+(net/rate).toFixed(2),n?Math.round(net/n):0]);
     });
@@ -1083,7 +1093,7 @@ export default function RiadDashboard() {
     monthlyData.forEach((d,i) => {
       const mB    = payingBookings.filter(b=>new Date(b.checkIn).getMonth()===i);
       const mGross= mB.reduce((s,b)=>s+b.amount*b.nights,0);
-      const mComm = mB.filter(b=>b.platform==="Airbnb").reduce((s,b)=>s+b.amount*b.nights*commission,0);
+      const mComm = mB.filter(hasComm).reduce((s,b)=>s+b.amount*b.nights*commission,0);
       const mNet  = mGross - mComm;
       const mBenef= mNet - d.Dépenses;
       mRows.push([d.name,+mGross.toFixed(2),+mComm.toFixed(2),+mNet.toFixed(2),+(mNet/rate).toFixed(2),d.Dépenses,+(d.Dépenses/rate).toFixed(2),+mBenef.toFixed(2),+(mBenef/rate).toFixed(2)]);
@@ -1164,8 +1174,8 @@ export default function RiadDashboard() {
   // ── Recap PDF ─────────────────────────────────────────────────────────────
   const printRecap = (b) => {
     const total   = totalStay(b);
-    const netTot  = b.platform==="Airbnb" ? total*(1-commission) : total;
-    const commAmt = b.platform==="Airbnb" ? total*commission : 0;
+    const netTot  = hasComm(b) ? total*(1-commission) : total;
+    const commAmt = hasComm(b) ? total*commission : 0;
     const loc     = locale;
     const rows = [
       [t("recapClient"),   b.name||"—"],
@@ -1176,7 +1186,7 @@ export default function RiadDashboard() {
       [t("recapDuration"), `${b.nights} ${b.nights>1?t("recapNights"):t("recapNight")}`],
       ...(b.guests?[[t("recapGuests"),`${b.guests} ${b.guests>1?t("recapPersons"):t("recapPerson")}`]]:[]),
       [t("recapRateGross"), b.amount.toLocaleString("fr-MA")+" MAD"],
-      ...(b.platform==="Airbnb"?[[`${t("recapCommission")} (-${Math.round(commission*100)}%)`,"−"+Math.round(commAmt).toLocaleString("fr-MA")+" MAD"]]:[]),
+      ...(hasComm(b)?[[`${t("recapCommission")} (-${Math.round(commission*100)}%)`,"−"+Math.round(commAmt).toLocaleString("fr-MA")+" MAD"]]:[]),
     ].map(([l,v])=>"<tr><td>"+l+"</td><td>"+v+"</td></tr>").join("");
     const html = "<!DOCTYPE html><html><head><meta charset='UTF-8'><title>Recap</title>"
       +"<style>body{font-family:Georgia,serif;max-width:520px;margin:40px auto;padding:0 20px}"
@@ -1379,6 +1389,11 @@ export default function RiadDashboard() {
             <input type="url" placeholder="https://www.airbnb.fr/calendar/ical/..." value={icsUrl} onChange={e=>setIcsUrl(e.target.value)} style={{flex:1,minWidth:200,padding:"6px 10px",fontSize:12,borderRadius:6,border:"0.5px solid var(--color-border-secondary)"}} />
             <button onClick={()=>syncIcs()} style={{padding:"6px 14px",fontSize:12,background:C_RESERVED,color:"#fff",border:"none",borderRadius:6,cursor:"pointer"}} disabled={!icsUrl}>{t("syncNow")}</button>
             {icsUrl && <button onClick={()=>{setIcsUrl("");setSyncStatus("");setLastSync(null);}} style={{padding:"6px 10px",fontSize:12,background:"none",border:"0.5px solid var(--color-border-secondary)",borderRadius:6,cursor:"pointer",color:"var(--color-text-danger)"}}>{t("syncDelete")}</button>}
+          </div>
+          <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap",marginTop:8}}>
+            <span style={{fontSize:12,color:"var(--color-text-secondary)",minWidth:120}}>🅱️ Booking (iCal)</span>
+            <input type="url" placeholder="https://ical.booking.com/v1/export?t=..." value={icsUrlBooking} onChange={e=>setIcsUrlBooking(e.target.value.trim())} style={{flex:1,minWidth:200,padding:"6px 10px",fontSize:12,borderRadius:6,border:"0.5px solid var(--color-border-secondary)"}} />
+            {icsUrlBooking && <button onClick={()=>setIcsUrlBooking("")} style={{padding:"6px 10px",fontSize:12,background:"none",border:"0.5px solid var(--color-border-secondary)",borderRadius:6,cursor:"pointer",color:"var(--color-text-danger)"}}>{t("syncDelete")}</button>}
           </div>
           {lastSync && <p style={{margin:"8px 0 0",fontSize:11,color:"var(--color-text-tertiary)"}}>{t("lastSync")} : {new Date(lastSync).toLocaleString(locale)}</p>}
           <p style={{margin:"8px 0 0",fontSize:11,color:"var(--color-text-warning)",background:"var(--color-background-warning)",borderRadius:6,padding:"6px 10px"}}>{t("syncDelay")}</p>
@@ -1841,12 +1856,12 @@ export default function RiadDashboard() {
                                     ? (
                                       <div>
                                         <p style={{margin:0,fontSize:12,color:"var(--color-text-tertiary)"}}>
-                                          {b.platform==="Airbnb"
+                                          {hasComm(b)
                                             ? <><span style={{textDecoration:"line-through",marginRight:4}}>{fmtMAD(b.amount)}</span>{fmtBoth(b.amount*(1-commission),rate)}</>
                                             : fmtBoth(b.amount,rate)
                                           } <span style={{fontSize:10}}>/{t("nightSingle")}</span>
                                         </p>
-                                        {b.platform==="Airbnb"
+                                        {hasComm(b)
                                           ? <><p style={{margin:0,fontSize:13,color:"var(--color-text-tertiary)",textDecoration:"line-through"}}>{fmtMAD(totalStay(b))}</p><p style={{margin:0,fontSize:14,fontWeight:600,color:C_RESERVED}}>{fmtBoth(netAmount(b),rate)} <span style={{fontSize:11,fontWeight:400}}>(-{Math.round(commission*100)}%)</span></p></>
                                           : <p style={{margin:0,fontSize:14,fontWeight:600,color:C_RESERVED}}>{fmtBoth(totalStay(b),rate)}</p>
                                         }
@@ -1894,7 +1909,7 @@ export default function RiadDashboard() {
                                   : (
                                     <span onClick={()=>{setEditId(b.id);setEditAmt(b.amount||"");}} style={{cursor:"pointer",color:"var(--color-text-secondary)"}}>
                                       {b.amount>0
-                                        ? b.platform==="Airbnb"
+                                        ? hasComm(b)
                                           ? <span><span style={{fontSize:11,textDecoration:"line-through",marginRight:4}}>{fmtMAD(b.amount)}</span><span style={{fontWeight:500}}>{fmtBoth(b.amount*(1-commission),rate)}</span><span style={{fontSize:10,color:"var(--color-text-tertiary)"}}>/{t("nightSingle")}</span></span>
                                           : <span>{fmtBoth(b.amount,rate)}<span style={{fontSize:10,color:"var(--color-text-tertiary)"}}>/{t("nightSingle")}</span></span>
                                         : <span style={{fontSize:12,textDecoration:"underline dotted",color:"var(--color-text-warning)"}}>{t("enterRate")}</span>
@@ -1905,7 +1920,7 @@ export default function RiadDashboard() {
                               </td>
                               <td style={{padding:"10px 6px"}}>
                                 {b.amount>0
-                                  ? b.platform==="Airbnb"
+                                  ? hasComm(b)
                                     ? <span><span style={{fontSize:11,color:"var(--color-text-tertiary)",textDecoration:"line-through",marginRight:4}}>{fmtMAD(b.amount*b.nights)}</span><span style={{fontWeight:500,color:"var(--color-text-success)"}}>{fmtBoth(netAmount(b),rate)}</span></span>
                                     : <span style={{fontWeight:500,color:"var(--color-text-success)"}}>{fmtBoth(b.amount*b.nights,rate)}</span>
                                   : <span style={{fontSize:12,color:"var(--color-text-tertiary)"}}>—</span>
@@ -1972,7 +1987,7 @@ export default function RiadDashboard() {
               });
               const mNights  = mBookings.reduce((s,b)=>s+nightsInMonth(b,mi),0);
               const mGross   = mBookings.reduce((s,b)=>s+b.amount*nightsInMonth(b,mi),0);
-              const mNet     = mBookings.reduce((s,b)=>s+(b.platform==="Airbnb"?b.amount*(1-commission):b.amount)*nightsInMonth(b,mi),0);
+              const mNet     = mBookings.reduce((s,b)=>s+(hasComm(b)?b.amount*(1-commission):b.amount)*nightsInMonth(b,mi),0);
               const mExp     = yearExpenses.filter(e=>new Date(e.date).getMonth()===mi).reduce((s,e)=>s+e.amount,0);
               const mProfit  = mNet - mExp;
               const fillPct  = Math.round((mNights/daysInMonth)*100);
