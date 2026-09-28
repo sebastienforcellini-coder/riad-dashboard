@@ -9,6 +9,10 @@ export default defineConfig({
       registerType: 'autoUpdate',
       workbox: {
         navigateFallbackDenylist: [/^\/api\//, /^\/__\//],
+        // La nouvelle version prend la main dès son téléchargement (plus de version bloquée)
+        skipWaiting: true,
+        clientsClaim: true,
+        cleanupOutdatedCaches: true,
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
         runtimeCaching: [
           // Firebase Firestore
