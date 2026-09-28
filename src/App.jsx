@@ -281,8 +281,23 @@ function loadStorage() {
 function saveStorage(data) {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch {}
 }
-async function saveCloud(data) {
-  try { await setDoc(DOC_REF, data); } catch(e) { console.warn("Cloud save failed", e); }
+// ── Garde-fou anti-écrasement ───────────────────────────────────────────────
+// Nombre de réservations connu dans Firestore (mis à jour à chaque lecture).
+// Toute écriture qui en ferait disparaître plus de GUARD_MAX_DROP est bloquée,
+// sauf force explicite (Restore confirmé par l'utilisateur).
+let remoteBookingCount = null;
+const GUARD_MAX_DROP = 3;
+const noteRemote = (data) => { if (data && Array.isArray(data.bookings)) remoteBookingCount = data.bookings.length; };
+
+async function saveCloud(data, { force = false } = {}) {
+  const n = Array.isArray(data.bookings) ? data.bookings.length : null;
+  if (!force && n !== null && remoteBookingCount !== null && n < remoteBookingCount - GUARD_MAX_DROP) {
+    console.warn(`Garde-fou : écriture bloquée (${n} réservations locales, ${remoteBookingCount} dans la base)`);
+    window.dispatchEvent(new CustomEvent("riad-guard", { detail: { local: n, remote: remoteBookingCount } }));
+    return false;
+  }
+  try { await setDoc(DOC_REF, data); if (n !== null) remoteBookingCount = n; return true; }
+  catch(e) { console.warn("Cloud save failed", e); return false; }
 }
 
 // ── MonthCalendar ─────────────────────────────────────────────────────────────
@@ -519,6 +534,7 @@ export default function RiadDashboard() {
         return;
       }
       const data = snap.data();
+      noteRemote(data);
 
       // Notre propre write qui revient → juste confirmer, ne rien appliquer
       if (data.lastModified && data.lastModified === lastSavedModified.current) {
@@ -558,6 +574,15 @@ export default function RiadDashboard() {
     return () => unsub();
   }, []);
 
+  // ── Alerte garde-fou ──────────────────────────────────────────────────────
+  useEffect(() => {
+    const onGuard = (e) => showToast(lang === "fr"
+      ? `🛡️ Sauvegarde bloquée : cet appareil a ${e.detail.local} réservations, la base en a ${e.detail.remote}. Rechargez la page.`
+      : `🛡️ Save blocked: ${e.detail.local} bookings here, ${e.detail.remote} in the database. Reload the page.`);
+    window.addEventListener("riad-guard", onGuard);
+    return () => window.removeEventListener("riad-guard", onGuard);
+  }, [lang]);
+
   // ── Save Firestore avec debounce ──────────────────────────────────────────
   // N'écrit JAMAIS dans Firestore avant que onSnapshot ait répondu (hasHydrated)
   // Cela empêche le localStorage mobile de démarrage d'écraser Firestore
@@ -578,7 +603,7 @@ export default function RiadDashboard() {
       lastSavedModified.current = now;
       localStorage.setItem("riad_last_modified", now);
       saveCloud({ bookings, blocked, expenses, year, nextId, currency, rate, commission, recurring, icsUrl, lastSync, ignoredBlocks, lastModified: now })
-        .then(() => setCloudStatus("saved"))
+        .then((ok) => setCloudStatus(ok ? "saved" : "error"))
         .catch(() => {
           setCloudStatus("error");
           showToast("❌ Sauvegarde cloud échouée — vérifiez votre connexion");
@@ -591,6 +616,7 @@ export default function RiadDashboard() {
   const applyIfNewer = useRef(null);
   applyIfNewer.current = (data) => {
     if (!data) return;
+    noteRemote(data);
     if (data.lastModified && data.lastModified === lastSavedModified.current) return;
     const localModified  = localStorage.getItem("riad_last_modified") || "";
     const remoteModified = data.lastModified || "";
@@ -688,96 +714,43 @@ export default function RiadDashboard() {
     } catch(e) { showToast(lang==="fr"?"❌ Erreur restauration":"❌ Restore error"); }
   };
 
-  // ── Sync iCal ─────────────────────────────────────────────────────────────
+  // ── Sync iCal (côté serveur) ──────────────────────────────────────────────
+  // Le serveur lit Firestore, fusionne le flux Airbnb et n'écrit que les
+  // réservations et blocages. L'appareil ne fait que déclencher puis recevoir
+  // le résultat via onSnapshot : il ne peut plus écraser la base.
   const syncIcs = async (url = icsUrl, silent = false) => {
     if (!url) return;
-    autoBackupBeforeSync();
-    const syncTime = new Date().toISOString();
-    try { localStorage.setItem("riad_last_modified", syncTime); } catch {}
     setSyncStatus("syncing");
-    setShowUndoSync(false);
-
-    let text = null;
     try {
-      const res = await fetch(`/api/ical?url=${encodeURIComponent(url)}`);
-      if (res.ok) { const tx = await res.text(); if (tx.includes("BEGIN:VCALENDAR")) text = tx; }
-    } catch {}
-    if (!text) try {
-      const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`);
-      if (res.ok) { const j = await res.json(); if (j?.contents?.includes("BEGIN:VCALENDAR")) text = j.contents; }
-    } catch {}
-
-    if (!text) {
-      setSyncStatus("error");
-      if (!silent) showToast(t("toastSyncFail"));
-      return;
-    }
-    try {
-      const { bookings: newB, blocked: newBl } = parseIcs(text);
-      if (!newB.length && !newBl.length) throw new Error("Empty");
-
-      let currentBookings = bookingsRef.current;
-      try {
-        const stored = localStorage.getItem("riad_dashboard_v1");
-        if (stored) { const parsed = JSON.parse(stored); if (parsed.bookings?.length > 0) currentBookings = parsed.bookings; }
-      } catch {}
-
-      const existing = Object.fromEntries(currentBookings.map(b=>[b.id,{
-        amount:b.amount, name:b.name||"", guests:b.guests||"",
-        paid:b.paid||false, nameEdited:b.nameEdited||false, notes:b.notes||""
-      }]));
-      const updatedFromIcal = newB.map(b=>({...b,
-        amount:     existing[b.id]?.amount ?? 0,
-        name:       existing[b.id]?.nameEdited ? existing[b.id].name : (existing[b.id]?.name || b.name || ""),
-        guests:     existing[b.id]?.guests ?? "",
-        paid:       existing[b.id]?.paid   ?? false,
-        nameEdited: existing[b.id]?.nameEdited ?? false,
-        notes:      existing[b.id]?.notes ?? "",
-      }));
-      const notInIcal    = currentBookings.filter(b => !newB.some(nb => nb.id === b.id));
-      const finalBookings = [...updatedFromIcal, ...notInIcal];
-
-      const syncNow = new Date().toISOString();
-      lastSavedModified.current = syncNow;
-      localStorage.setItem("riad_last_modified", syncNow);
-      try {
-        const stored = localStorage.getItem("riad_dashboard_v1");
-        const currentData = stored ? JSON.parse(stored) : {};
-        await saveCloud({...currentData, bookings: finalBookings, lastModified: syncNow});
-      } catch(e) { console.warn("Sync cloud save failed", e); }
-
-      setBookings(finalBookings);
-      setBlocked(prev => {
-        const personal = prev.filter(b => b.type === "personal");
-        let currentIgnored = ignoredBlocksRef.current;
-        try {
-          const stored = localStorage.getItem("riad_dashboard_v1");
-          if (stored) { const p = JSON.parse(stored); if (p.ignoredBlocks) currentIgnored = p.ignoredBlocks; }
-        } catch {}
-        const allBookings = [...newB.map(b2 => ({
-          ...b2,
-          amount:     (prev.find(p=>p.id===b2.id)||{}).amount ?? 0,
-          name:       (prev.find(p=>p.id===b2.id)||{}).nameEdited ? (prev.find(p=>p.id===b2.id)||{}).name : b2.name,
-          nameEdited: (prev.find(p=>p.id===b2.id)||{}).nameEdited ?? false,
-        })), ...prev.filter(b2 => b2.id?.startsWith("MAN-"))];
-        const filtered = newBl.filter(bl => {
-          const uid = bl.uid || (bl.start+"_"+bl.end);
-          if (currentIgnored.includes(uid)) return false;
-          return !isBlockFullyCovered(bl, allBookings, prev);
-        });
-        return [...filtered, ...personal];
-      });
-
-      const now = new Date().toISOString();
-      setLastSync(now);
+      const res = await fetch("/api/sync", { method: "POST" });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok || !j.success) throw new Error(j.error || j.message || `HTTP ${res.status}`);
       setSyncStatus("ok");
-      setShowUndoSync(true);
-      setTimeout(() => setShowUndoSync(false), 30000);
-      if (!silent) showToast(`✅ ${lang==="fr"?"Calendrier synchronisé":"Calendar synced"} · ${newB.length} ${lang==="fr"?"réservations":"bookings"}`);
-    } catch(e) {
+      if (!silent) showToast(lang === "fr"
+        ? `✅ Synchronisé · ${j.added} nouvelle${j.added > 1 ? "s" : ""} · ${j.known} déjà connue${j.known > 1 ? "s" : ""}`
+        : `✅ Synced · ${j.added} new · ${j.known} already known`);
+      pollFirestore();
+    } catch (e) {
+      console.warn("Sync error", e);
       setSyncStatus("error");
-      if (!silent) showToast(t("toastSyncCalError"));
+      if (!silent) showToast(`${t("toastSyncFail")} (${e.message})`);
     }
+  };
+
+  // ── Export de la sauvegarde pré-sync (lecture seule) ──────────────────────
+  const exportPreSyncBackup = () => {
+    try {
+      const raw = localStorage.getItem("riad_pre_sync_backup");
+      if (!raw) { showToast(lang==="fr"?"Aucune sauvegarde de secours sur cet appareil":"No rescue backup on this device"); return; }
+      const data = JSON.parse(raw);
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const href = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      const stamp = (data.backedUpAt || new Date().toISOString()).slice(0,16).replace(/[:T]/g,"-");
+      a.href = href; a.download = `riad_secours_${stamp}.json`;
+      a.click(); URL.revokeObjectURL(href);
+      showToast(`🛟 ${(data.bookings||[]).length} réas · ${(data.expenses||[]).length} dépenses · ${(data.recurring||[]).length} récurrentes`);
+    } catch(e) { showToast(lang==="fr"?"❌ Sauvegarde de secours illisible":"❌ Rescue backup unreadable"); }
   };
 
   // ── Import iCal ───────────────────────────────────────────────────────────
@@ -848,6 +821,9 @@ export default function RiadDashboard() {
       try {
         const data = JSON.parse(e.target.result);
         if (!data.version) throw new Error("Invalid format");
+        const incoming = (data.bookings || []).length;
+        const shrinks = remoteBookingCount !== null && incoming < remoteBookingCount - GUARD_MAX_DROP;
+        if (shrinks && !window.confirm(`Ce fichier contient ${incoming} réservations, la base en contient ${remoteBookingCount}. Restaurer quand même ?`)) return;
         const manuals = (data.bookings||[]).filter(b => b.id.startsWith("MAN-"));
         const filteredBlocked = (data.blocked||[]).filter(bl =>
           bl.type === "personal" ||
@@ -879,7 +855,7 @@ export default function RiadDashboard() {
         if (data.currency)      setCurrency(data.currency);
         if (data.ignoredBlocks) setIgnoredBlocks(data.ignoredBlocks);
         if (data.nextId)        setNextId(data.nextId);
-        saveCloud(cloudData).catch(e => console.warn("Cloud save failed", e));
+        saveCloud(cloudData, { force: shrinks });
         showToast(`✅ ${lang==="fr"?"Sauvegarde restaurée":"Backup restored"} · ${data.bookings?.length||0} ${lang==="fr"?"réservations":"bookings"} · ${data.expenses?.length||0} ${lang==="fr"?"dépenses":"expenses"}`);
       } catch { showToast(t("toastJsonInvalid")); }
     };
@@ -1372,6 +1348,7 @@ export default function RiadDashboard() {
           {showUndoSync && <button onClick={restorePreSyncBackup} style={{padding:"4px 10px",fontSize:13,background:"#856404",color:"#fff",border:"none",borderRadius:6,cursor:"pointer"}}>↩ {lang==="fr"?"Annuler sync":"Undo sync"}</button>}
           <button onClick={()=>setShowRate(r=>!r)} style={{padding:"4px 10px",fontSize:13,background:"none",border:"0.5px solid var(--color-border-secondary)",borderRadius:6}}>1€ = {rate} MAD</button>
           <button onClick={exportJSON} style={{padding:"4px 10px",fontSize:13,background:"none",border:"0.5px solid var(--color-border-secondary)",borderRadius:6}}>{t("backup")}</button>
+          <button onClick={exportPreSyncBackup} title="Exporter la copie de secours de cet appareil" style={{padding:"4px 10px",fontSize:13,background:"#fff3cd",border:"0.5px solid #856404",borderRadius:6,color:"#856404"}}>🛟 Secours</button>
           <label style={{padding:"4px 10px",fontSize:13,background:"none",border:"0.5px solid var(--color-border-secondary)",borderRadius:6,cursor:"pointer",display:"inline-flex",alignItems:"center"}}>
             {t("restore")}
             <input type="file" accept=".json" style={{display:"none"}} onChange={e=>{if(e.target.files[0]){importJSON(e.target.files[0]);e.target.value="";}}} />
