@@ -13,7 +13,7 @@ export default defineConfig({
         skipWaiting: true,
         clientsClaim: true,
         cleanupOutdatedCaches: true,
-        globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         runtimeCaching: [
           // Firebase Firestore
           {
@@ -64,8 +64,8 @@ export default defineConfig({
         name: 'Kasbah Blanca Marrakech',
         short_name: 'Kasbah Blanca',
         description: 'Tableau de bord locatif',
-        theme_color: '#f5ede8',
-        background_color: '#ffffff',
+        theme_color: '#12524A',
+        background_color: '#F6F5F1',
         display: 'standalone',
         orientation: 'portrait',
         scope: '/',

@@ -7,15 +7,15 @@ import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRe
 const translations = {
   fr: {
     title:"Kasbah Blanca Marrakech",subtitle:"Tableau de bord locatif",
-    saving:"⏳ Sauvegarde...",synced:"☁️ Synchronisé",offline:"⚠️ Hors ligne",
-    syncOk:"✅ Airbnb",syncFail:"⚠️ Sync échouée",configSync:"Configurer sync",
+    saving:"Sauvegarde…",synced:"Synchronisé",offline:"Hors ligne",
+    syncOk:"Calendriers à jour à",syncFail:"Synchro échouée",configSync:"Configurer sync",
     autoSyncOn:"Auto-sync ON",sync:"Sync",backup:"💾 Backup",restore:"📂 Restore",
     syncPanelTitle:"🔄 Synchronisation automatique Airbnb",
     syncPanelDesc:"Airbnb → Calendrier → Lien iCal → copiez l'URL ici. Le calendrier se rafraîchit automatiquement tous les jours à 6h.",
     syncNow:"↻ Synchroniser maintenant",syncDelete:"✕ Supprimer",lastSync:"Dernière sync",
     syncDelay:"⚠️ Le flux iCal Airbnb est mis à jour avec 15–30 min de délai. Pour une résa toute récente, importez le .ics manuellement via la zone de dépôt.",
     rateLabel:"Taux de change :",commissionLabel:"Commission conciergerie (Airbnb, Booking) :",
-    alertsTitle:"ARRIVÉES & DÉPARTS — 7 PROCHAINS JOURS",
+    alertsTitle:"Arrivées et départs, 7 prochains jours",
     enableNotif:"🔔 Activer notifications",notifOn:"🔔 Notifs ON · Désactiver",
     arrivalToday:"Arrivée aujourd'hui !",arrivalTomorrow:"Arrivée demain",arrivalIn:"Arrivée dans",
     departureToday:"Départ aujourd'hui !",departureTomorrow:"Départ demain",departureIn:"Départ dans",days:"j",
@@ -32,7 +32,7 @@ const translations = {
     personalPeriods:"🔵 Périodes bloquées (vacances perso)",
     noPersonalPeriods:"Aucune période personnelle bloquée.",
     blockDates:"+ Bloquer dates ↗",
-    airbnbUnavail:"Indisponibilités Airbnb — cliquez \"→ Réservation\" si c'est une résa directe",
+    airbnbUnavail:"Indisponibilités Airbnb, cliquez \"→ Réservation\" si c'est une résa directe",
     toBooking:"→ Réservation",
     addBooking:"+ Ajouter ↗",bookingsSummary:"réservations",noAmountSet:"sans montant",
     colArrival:"Arrivée",colDeparture:"Départ",colCode:"Code",colName:"Nom",
@@ -79,15 +79,15 @@ const translations = {
     toastBookingDel:"Réservation supprimée",toastExpenseDel:"Dépense supprimée",
     toastBlockedDel:"Période supprimée",toastAirbnbDel:"Blocage supprimé",
     toastRecurringDel:"Récurrente supprimée",
-    toastConverted:"✅ Converti en réservation — saisissez le montant",
-    toastConvertedFull:"✅ Converti en réservation — saisissez le nom et le montant",
+    toastConverted:"✅ Converti en réservation, saisissez le montant",
+    toastConvertedFull:"✅ Converti en réservation, saisissez le nom et le montant",
     toastAlreadyGenerated:"⚠️ Ces mois sont déjà générés",
     toastNotifOn:"✅ Notifications activées !",toastNotifOff:"🔕 Notifications désactivées",
     toastNotifFail:"❌ Notifications non supportées sur ce navigateur",toastNotifDenied:"❌ Permission refusée",
     toastIcsEmpty:"❌ Aucun événement trouvé dans ce fichier.",toastIcsError:"❌ Erreur de lecture du fichier .ics",
-    toastCsvEmpty:"❌ Aucun montant trouvé — vérifiez que c'est bien l'export Finances Airbnb.",
+    toastCsvEmpty:"❌ Aucun montant trouvé, vérifiez que c'est bien l'export Finances Airbnb.",
     toastCsvError:"❌ Erreur de lecture du fichier CSV",
-    toastJsonInvalid:"❌ Fichier JSON invalide",toastSyncFail:"❌ Sync échouée — vérifiez l'URL Airbnb",
+    toastJsonInvalid:"❌ Fichier JSON invalide",toastSyncFail:"❌ Sync échouée, vérifiez l'URL Airbnb",
     toastSyncCalError:"❌ Erreur de lecture du calendrier",
     recapTitle:"Récapitulatif de réservation",recapClient:"Client",recapCode:"Code",
     recapPlatform:"Plateforme",recapArrival:"Arrivée",recapDeparture:"Départ",
@@ -101,15 +101,15 @@ const translations = {
   },
   en: {
     title:"Kasbah Blanca Marrakech",subtitle:"Rental dashboard",
-    saving:"⏳ Saving...",synced:"☁️ Synced",offline:"⚠️ Offline",
-    syncOk:"✅ Airbnb",syncFail:"⚠️ Sync failed",configSync:"Setup sync",
+    saving:"Saving…",synced:"Synced",offline:"Offline",
+    syncOk:"Calendars synced at",syncFail:"Sync failed",configSync:"Setup sync",
     autoSyncOn:"Auto-sync ON",sync:"Sync",backup:"💾 Backup",restore:"📂 Restore",
     syncPanelTitle:"🔄 Automatic Airbnb sync",
     syncPanelDesc:"Airbnb → Calendar → iCal link → paste the URL here. Calendar refreshes automatically every day at 6am.",
     syncNow:"↻ Sync now",syncDelete:"✕ Remove",lastSync:"Last sync",
     syncDelay:"⚠️ Airbnb's iCal feed updates with a 15–30 min delay. For a brand-new booking, import the .ics file manually via the drop zone.",
     rateLabel:"Exchange rate:",commissionLabel:"Concierge commission (Airbnb, Booking):",
-    alertsTitle:"ARRIVALS & DEPARTURES — NEXT 7 DAYS",
+    alertsTitle:"Arrivals and departures, next 7 days",
     enableNotif:"🔔 Enable notifications",notifOn:"🔔 Notifs ON · Disable",
     arrivalToday:"Arrival today!",arrivalTomorrow:"Arrival tomorrow",arrivalIn:"Arrival in",
     departureToday:"Departure today!",departureTomorrow:"Departure tomorrow",departureIn:"Departure in",days:"d",
@@ -126,7 +126,7 @@ const translations = {
     personalPeriods:"🔵 Blocked periods (personal)",
     noPersonalPeriods:"No personal periods blocked.",
     blockDates:"+ Block dates ↗",
-    airbnbUnavail:"Airbnb unavailabilities — click \"→ Booking\" if it's a direct booking",
+    airbnbUnavail:"Airbnb unavailabilities, click \"→ Booking\" if it's a direct booking",
     toBooking:"→ Booking",
     addBooking:"+ Add ↗",bookingsSummary:"bookings",noAmountSet:"no amount",
     colArrival:"Arrival",colDeparture:"Departure",colCode:"Code",colName:"Name",
@@ -173,15 +173,15 @@ const translations = {
     toastBookingDel:"Booking deleted",toastExpenseDel:"Expense deleted",
     toastBlockedDel:"Period deleted",toastAirbnbDel:"Block deleted",
     toastRecurringDel:"Recurring deleted",
-    toastConverted:"✅ Converted to booking — enter the amount",
-    toastConvertedFull:"✅ Converted to booking — enter name and amount",
+    toastConverted:"✅ Converted to booking, enter the amount",
+    toastConvertedFull:"✅ Converted to booking, enter name and amount",
     toastAlreadyGenerated:"⚠️ These months are already generated",
     toastNotifOn:"✅ Notifications enabled!",toastNotifOff:"🔕 Notifications disabled",
     toastNotifFail:"❌ Notifications not supported on this browser",toastNotifDenied:"❌ Permission denied",
     toastIcsEmpty:"❌ No events found in this file.",toastIcsError:"❌ Error reading the .ics file",
-    toastCsvEmpty:"❌ No amounts found — make sure this is the Airbnb Finance export.",
+    toastCsvEmpty:"❌ No amounts found, make sure this is the Airbnb Finance export.",
     toastCsvError:"❌ Error reading the CSV file",
-    toastJsonInvalid:"❌ Invalid JSON file",toastSyncFail:"❌ Sync failed — check the Airbnb URL",
+    toastJsonInvalid:"❌ Invalid JSON file",toastSyncFail:"❌ Sync failed, check the Airbnb URL",
     toastSyncCalError:"❌ Error reading the calendar",
     recapTitle:"Booking summary",recapClient:"Guest",recapCode:"Code",
     recapPlatform:"Platform",recapArrival:"Arrival",recapDeparture:"Departure",
@@ -271,11 +271,14 @@ const MONTHS_FR    = ["Jan","Fév","Mar","Avr","Mai","Jun","Jul","Aoû","Sep","O
 const MONTHS_EN    = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const STORAGE_KEY  = "riad_dashboard_v1";
 const DEFAULT_RATE = 10.83;
-const C_RESERVED   = "#c0392b";
-const C_BLOCKED    = "#2980b9";
-const C_AVAIL      = "#e8f5e9";
-const C_TODAY_BG   = "#fff3cd";
-const C_TODAY_FG   = "#856404";
+// Couleurs : définies dans src/theme.css (clair + sombre)
+const C_RESERVED   = "var(--kb-booked)";
+const C_BLOCKED    = "var(--kb-perso)";
+const C_AVAIL      = "var(--kb-avail-bg)";
+const C_TODAY_BG   = "var(--kb-today-bg)";
+const C_TODAY_FG   = "var(--kb-today-fg)";
+// Bouton « Activer notifications » masqué : ne fonctionne qu'app ouverte et pas sur iPhone (à remplacer par des notifications serveur)
+const SHOW_NOTIF_BTN = false;
 
 const fmtMAD  = (n) => new Intl.NumberFormat("fr-MA",{minimumFractionDigits:0,maximumFractionDigits:0}).format(Math.round(n)) + " MAD";
 const fmtEUR  = (n) => new Intl.NumberFormat("fr-FR",{style:"currency",currency:"EUR",maximumFractionDigits:0}).format(Math.round(n));
@@ -331,7 +334,7 @@ function MonthCalendar({ year, month, bookings, blocked, monthName }) {
 
   return (
     <div style={{flex:"1 1 210px",minWidth:190,position:"relative"}}>
-      <p style={{margin:"0 0 8px",fontWeight:500,fontSize:13,textAlign:"center"}}>{monthName} {year}</p>
+      <p className="kb-month-title">{monthName} {year}</p>
       <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:2}}>
         {["L","M","M","J","V","S","D"].map((d,i)=>(
           <div key={i} style={{textAlign:"center",fontSize:10,color:"var(--color-text-tertiary)",padding:"2px 0"}}>{d}</div>
@@ -347,12 +350,12 @@ function MonthCalendar({ year, month, bookings, blocked, monthName }) {
           else if (isPerso)    { bg=C_BLOCKED;  color="#fff"; fw=500; }
           else if (isBlocked)  { bg=C_BLOCKED;  color="#fff"; fw=500; }
           else if (isToday)    { bg=C_TODAY_BG; color=C_TODAY_FG; fw=600; }
-          else if (d)          { bg=C_AVAIL;    color="#2e7d32"; }
+          else if (d)          { bg=C_AVAIL;    color="var(--kb-avail-fg)"; }
           else                 { bg="transparent"; color="var(--color-text-primary)"; }
-          if (isToday) { border="3px solid #FFD700"; fw=700; }
+          if (isToday) { border="2px solid var(--kb-saffron)"; fw=700; }
           return (
-            <div key={i}
-              style={{textAlign:"center",fontSize:12,padding:"5px 2px",background:bg,color,borderRadius:"var(--border-radius-md)",fontWeight:fw,border,boxSizing:"border-box",cursor:isInteractive?"pointer":"default",position:"relative"}}
+            <div key={i} className={d?"kb-day":undefined}
+              style={{textAlign:"center",fontSize:12,padding:"6px 2px",background:bg,color,borderRadius:"var(--border-radius-md)",fontWeight:fw,border,boxSizing:"border-box",cursor:isInteractive?"pointer":"default",position:"relative"}}
               onMouseEnter={isInteractive ? (e) => {
                 const info = getBookingForDay(d);
                 if (info) { const rect = e.currentTarget.getBoundingClientRect(); setTooltip({ x: rect.left + rect.width/2, y: rect.top - 8, info }); }
@@ -372,20 +375,21 @@ function MonthCalendar({ year, month, bookings, blocked, monthName }) {
       {tooltip && (
         <div
           onClick={() => setTooltip(null)}
+          className="kb-tooltip"
           style={{
             position:"fixed",top:tooltip.y,left:tooltip.x,
             transform:"translate(-50%, -100%)",
-            background:"#ffffff",border:"0.5px solid #ddd",borderRadius:8,
+            background:"var(--color-background-primary)",border:"1px solid var(--color-border-secondary)",borderRadius:8,
             padding:"8px 12px",fontSize:12,
             boxShadow:"0 4px 16px rgba(0,0,0,0.15)",
             zIndex:9999,minWidth:150,maxWidth:220,pointerEvents:"auto",
           }}
         >
           <p style={{margin:"0 0 4px",fontWeight:700,fontSize:13,color:tooltip.info.type==="reserved"?C_RESERVED:C_BLOCKED}}>{tooltip.info.name}</p>
-          {tooltip.info.platform && <p style={{margin:"0 0 2px",fontSize:11,color:"#888",fontWeight:500}}>{tooltip.info.platform}</p>}
-          <p style={{margin:0,fontSize:11,color:"#333"}}>{tooltip.info.checkIn} → {tooltip.info.checkOut}</p>
-          <p style={{margin:"2px 0 0",fontSize:12,fontWeight:600,color:"#333"}}>{tooltip.info.nights}n</p>
-          <div style={{position:"absolute",bottom:-5,left:"50%",width:10,height:10,background:"var(--color-background-primary)",border:"0.5px solid var(--color-border-secondary)",borderTop:"none",borderLeft:"none",transform:"translateX(-50%) rotate(45deg)"}} />
+          {tooltip.info.platform && <p style={{margin:"0 0 2px",fontSize:11,color:"var(--color-text-tertiary)",fontWeight:500}}>{tooltip.info.platform}</p>}
+          <p style={{margin:0,fontSize:11,color:"var(--color-text-secondary)"}}>{tooltip.info.checkIn} → {tooltip.info.checkOut}</p>
+          <p style={{margin:"2px 0 0",fontSize:12,fontWeight:600,color:"var(--color-text-primary)"}}>{tooltip.info.nights}n</p>
+          <div style={{position:"absolute",bottom:-5,left:"50%",width:10,height:10,background:"var(--color-background-primary)",border:"1px solid var(--color-border-secondary)",borderTop:"none",borderLeft:"none",transform:"translateX(-50%) rotate(45deg)"}} />
         </div>
       )}
     </div>
@@ -403,7 +407,7 @@ function DropZone({ label, sub, accept, onFile, color }) {
       onDragLeave={()=>setDrag(false)}
       onDrop={e=>{e.preventDefault();setDrag(false);process(e.dataTransfer.files[0]);}}
       onClick={()=>ref.current.click()}
-      style={{flex:1,border:`1.5px dashed ${drag?color:"var(--color-border-secondary)"}`,borderRadius:"var(--border-radius-lg)",padding:"1rem 1.25rem",cursor:"pointer",background:drag?"var(--color-background-secondary)":"transparent",transition:"all 0.15s",minWidth:200}}
+      style={{flex:1,border:`1.5px dashed ${drag?color:"var(--color-border-primary)"}`,borderRadius:"var(--border-radius-lg)",padding:"1rem 1.25rem",cursor:"pointer",background:drag?"var(--color-background-secondary)":"var(--color-background-primary)",transition:"all 0.15s",minWidth:200}}
     >
       <input ref={ref} type="file" accept={accept} style={{display:"none"}} onChange={e=>process(e.target.files[0])} />
       <p style={{margin:"0 0 3px",fontWeight:500,fontSize:14,color}}>{label}</p>
@@ -453,6 +457,8 @@ function RiadDashboard() {
   const [currency,     setCurrency]     = useState("MAD");
   const [rate,         setRate]         = useState(DEFAULT_RATE);
   const [showRate,     setShowRate]     = useState(false);
+  const [showTools,    setShowTools]    = useState(false);
+  const [upcomingAll,  setUpcomingAll]  = useState(false); // onglet Réservations : à venir, toutes années
   const [commission,   setCommission]   = useState(0.20);
   const [recurring,    setRecurring]    = useState([]);
   const [showAddR,     setShowAddR]     = useState(false);
@@ -618,7 +624,7 @@ function RiadDashboard() {
         .then((ok) => setCloudStatus(ok ? "saved" : "error"))
         .catch(() => {
           setCloudStatus("error");
-          showToast("❌ Sauvegarde cloud échouée — vérifiez votre connexion");
+          showToast("❌ Sauvegarde cloud échouée, vérifiez votre connexion");
         });
     }, 1500);
   }, [bookings, blocked, expenses, year, nextId, currency, rate, commission, recurring, icsUrl, icsUrlBooking, lastSync, ignoredBlocks]);
@@ -909,6 +915,28 @@ function RiadDashboard() {
   const avgNight     = totalNights ? Math.round(totalRevenue/totalNights) : 0;
   const pendingCount = payingBookings.filter(b=>b.amount===0).length;
   const todayStr     = today();
+  // Années proposées dans le sélecteur : de la plus ancienne donnée à la plus lointaine,
+  // au minimum année précédente → année suivante (plus de liste codée en dur)
+  const yearOptions = useMemo(() => {
+    const now = new Date().getFullYear();
+    let min = now - 1, max = now + 1;
+    const take = (d) => { const y = parseInt(String(d||"").slice(0,4),10); if (y>=2000 && y<=now+10) { if (y<min) min=y; if (y>max) max=y; } };
+    bookings.forEach(b => { take(b.checkIn); take(b.checkOut); });
+    expenses.forEach(e => take(e.date));
+    if (year < min) min = year;
+    if (year > max) max = year;
+    return Array.from({length:max-min+1}, (_,i)=>min+i);
+  }, [bookings, expenses, year]);
+  // Source de l'onglet Réservations : année choisie, ou toutes les réservations à venir (toutes années)
+  // Séjour qui a au moins une nuit dans la période [start, end[ (dates ISO "YYYY-MM-DD", départ exclu)
+  const pad2 = (n) => String(n).padStart(2,"0");
+  const overlapsPeriod = (b, start, end) => b.checkIn < end && b.checkOut > start;
+  const overlapsYear   = (b, y)    => overlapsPeriod(b, `${y}-01-01`, `${y+1}-01-01`);
+  const overlapsMonth  = (b, y, m) => overlapsPeriod(b, `${y}-${pad2(m+1)}-01`, m===11 ? `${y+1}-01-01` : `${y}-${pad2(m+2)}-01`);
+  // Liste : tout séjour ayant au moins une nuit dans l'année (y compris à cheval sur le 31/12).
+  // Les totaux (CA, nuits, taux) restent calculés sur yearBookings pour ne rien compter deux fois.
+  const listBookings = upcomingAll ? bookings.filter(b=>b.checkOut>todayStr) : bookings.filter(b=>overlapsYear(b,year));
+  const listRevenue  = upcomingAll ? listBookings.filter(b=>b.platform!=="Perso").reduce((s,b)=>s+netAmount(b),0) : totalRevenue;
   const pastBookings_   = payingBookings.filter(b=>b.checkOut <= todayStr);
   const futureBookings_ = payingBookings.filter(b=>b.checkIn > todayStr);
   const pastRevenue   = pastBookings_.reduce((s,b)=>s+netAmount(b),0);
@@ -1014,7 +1042,7 @@ function RiadDashboard() {
   const togglePaid = (id) => {
     const b = bookings.find(x=>x.id===id);
     if (b && b.checkOut <= todayStr) {
-      showToast(lang==="fr"?"✅ Séjour terminé — automatiquement encaissé":"✅ Completed stay — automatically paid");
+      showToast(lang==="fr"?"✅ Séjour terminé, automatiquement encaissé":"✅ Completed stay, automatically paid");
       return;
     }
     setBookings(prev=>prev.map(b=>b.id===id?{...b,paid:!b.paid}:b));
@@ -1232,12 +1260,12 @@ function RiadDashboard() {
   };
 
   // ── Style helpers ─────────────────────────────────────────────────────────
-  const rc  = {background:"var(--color-background-primary)",border:"0.5px solid var(--color-border-tertiary)",borderRadius:"var(--border-radius-lg)",padding:"1rem 1.25rem"};
-  const mc  = {background:"var(--color-background-secondary)",borderRadius:"var(--border-radius-md)",padding:"1rem",flex:"1 1 130px",minWidth:0};
+  const rc  = {background:"var(--color-background-primary)",border:"1px solid var(--color-border-tertiary)",borderRadius:"var(--border-radius-lg)",padding:isMobile?"1rem 0.75rem":"1.25rem 1.35rem",marginBottom:"1.25rem"};
+  const mc  = {background:"var(--color-background-secondary)",borderRadius:"var(--border-radius-md)",padding:"0.9rem 1rem",flex:"1 1 130px",minWidth:0};
   const inp = {width:"100%",boxSizing:"border-box",marginTop:4,marginBottom:12};
 
   const tabBtn = (id, lbl) => (
-    <button onClick={()=>setTab(id)} style={{border:"none",background:"none",padding:"8px 14px",cursor:"pointer",fontSize:14,fontWeight:tab===id?500:400,color:tab===id?"var(--color-text-primary)":"var(--color-text-secondary)",borderBottom:tab===id?"2px solid var(--color-text-primary)":"2px solid transparent",marginBottom:-1,whiteSpace:"nowrap"}}>{lbl}</button>
+    <button onClick={()=>setTab(id)} className={"kb-tab"+(tab===id?" on":"")} aria-current={tab===id?"page":undefined}>{lbl}</button>
   );
 
   const TT = ({active,payload,label}) => {
@@ -1261,128 +1289,96 @@ function RiadDashboard() {
   // ═════════════════════════════════════════════════════════════════════════
   return (
     <>
-    <style>{`
-      /* ── Reset mobile iOS / Android ──────────────────────────────────── */
 
-      /* iOS : empêche le zoom auto sur focus des inputs (déclenché si fontSize < 16px)  */
-      input, select, textarea { font-size: 16px !important; }
+    <div className="kb-app">
 
-      /* iOS : scroll momentum natif */
-      * { -webkit-overflow-scrolling: touch; }
+      {/* ── En-tête : marque, réglages, occupation en arches ─────────────── */}
+      <header className="kb-hero">
+        <div className="kb-hero-in">
+          <div className="kb-bar">
+            <div className="kb-brand">
+              <img src="/apple-touch-icon.png" alt="" />
+              <div style={{minWidth:0}}>
+                <h1>{t("title")}</h1>
+                <p className="kb-status">
+                  {cloudStatus && (
+                    <span><i className={"kb-dot"+(cloudStatus==="saving"?" saving":cloudStatus==="error"?" error":"")} />
+                      {cloudStatus==="saving" ? t("saving") : cloudStatus==="saved" ? t("synced") : cloudStatus==="error" ? t("offline") : ""}
+                    </span>
+                  )}
+                  {icsUrl && (
+                    <span>
+                      {syncStatus==="syncing" ? "↻ Sync…"
+                        : syncStatus==="ok" ? `${t("syncOk")} ${lastSync ? new Date(lastSync).toLocaleTimeString(locale,{hour:"2-digit",minute:"2-digit"}) : ""}`
+                        : syncStatus==="error" && !lastSync ? t("syncFail")
+                        : lastSync ? `${t("syncOk")} ${new Date(lastSync).toLocaleTimeString(locale,{hour:"2-digit",minute:"2-digit"})}`
+                        : ""}
+                    </span>
+                  )}
+                </p>
+              </div>
+            </div>
+            <div className="kb-ctrls">
+              <div className="kb-seg" role="group" aria-label={lang==="fr"?"Devise":"Currency"}>
+                {["MAD","EUR"].map(c=>(
+                  <button key={c} onClick={()=>setCurrency(c)} className={currency===c?"on":""} aria-pressed={currency===c}>{c}</button>
+                ))}
+              </div>
+              <select value={year} onChange={e=>setYear(+e.target.value)} aria-label={lang==="fr"?"Année":"Year"}>
+                {yearOptions.map(y=><option key={y}>{y}</option>)}
+              </select>
+              {icsUrl && <button className="kb-pill" onClick={()=>syncIcs()} disabled={syncStatus==="syncing"}>{syncStatus==="syncing"?"⏳":"↻"} {t("sync")}</button>}
+              <button className={"kb-pill kb-grow"+(showTools?" on":"")} onClick={()=>setShowTools(v=>!v)} aria-expanded={showTools} aria-label={lang==="fr"?"Réglages":"Settings"}>⚙︎<span className="kb-hide-m"> {lang==="fr"?"Réglages":"Settings"}</span></button>
+            </div>
+          </div>
 
-      /* iOS/Android : supprimer le flash bleu au tap + désactiver double-tap zoom */
-      button, a, [role="button"] {
-        -webkit-tap-highlight-color: transparent;
-        touch-action: manipulation;
-        -webkit-user-select: none;
-        user-select: none;
-      }
+          {showTools && (
+            <div className="kb-tools">
+              <button className="kb-pill" onClick={exportExcel}>⬇ Excel {year}</button>
+              <div className="kb-seg" role="group" aria-label="Langue">
+                {["fr","en"].map(l=>(
+                  <button key={l} onClick={()=>setLang(l)} className={lang===l?"on":""} aria-pressed={lang===l}>{l==="fr"?"FR":"EN"}</button>
+                ))}
+              </div>
+              <button className="kb-pill" onClick={()=>setDarkMode(d=>!d)}>{darkMode?"☀️ "+(lang==="fr"?"Mode clair":"Light mode"):"🌙 "+(lang==="fr"?"Mode sombre":"Dark mode")}</button>
+              <button className={"kb-pill"+(icsUrl?" ok":"")} onClick={()=>setShowIcsUrl(r=>!r)}>🔄 {icsUrl?t("autoSyncOn"):t("configSync")}</button>
+              <button className="kb-pill" onClick={()=>setShowRate(r=>!r)}>1€ = {rate} MAD · {Math.round(commission*100)} %</button>
+              <button className="kb-pill" onClick={exportJSON}>{t("backup")}</button>
+              <label className="kb-pill">
+                {t("restore")}
+                <input type="file" accept=".json" style={{display:"none"}} onChange={e=>{if(e.target.files[0]){importJSON(e.target.files[0]);e.target.value="";}}} />
+              </label>
+              <button className="kb-pill warn" onClick={openRescue} title={lang==="fr"?"Sauvegardes automatiques du serveur":"Server backups"}>🛟 {lang==="fr"?"Secours":"Rescue"}</button>
+            </div>
+          )}
 
-      /* iOS : empêcher le rubber-band scroll sur le body */
-      html, body {
-        overscroll-behavior: none;
-        -webkit-text-size-adjust: 100%;
-      }
-
-      /* iOS safe-area : toast au-dessus de la home bar iPhone */
-      .safe-bottom {
-        padding-bottom: max(16px, env(safe-area-inset-bottom)) !important;
-      }
-
-      /* Dark mode */
-      [data-theme="dark"] {
-        --color-background-primary: #1a1a1a;
-        --color-background-secondary: #252525;
-        --color-text-primary: #f0f0f0;
-        --color-text-secondary: #a0a0a0;
-        --color-text-tertiary: #666666;
-        --color-border-primary: #333333;
-        --color-border-secondary: #333333;
-        --color-border-tertiary: #2a2a2a;
-        --color-text-success: #4caf50;
-        --color-text-danger: #ef5350;
-        --color-text-warning: #ffa726;
-        --color-text-info: #42a5f5;
-        --color-background-warning: #3a2a0a;
-        --color-background-info: #0a1f3a;
-        --color-background-success: #0a2a0a;
-        color-scheme: dark;
-      }
-      [data-theme="dark"] input,
-      [data-theme="dark"] select,
-      [data-theme="dark"] button {
-        background-color: #252525;
-        color: #f0f0f0;
-        border-color: #333333;
-      }
-      [data-theme="dark"] input::placeholder { color: #555; }
-      * { transition: background-color 0.2s, color 0.2s, border-color 0.2s; }
-
-      /* iOS tap-through fix : désactive les boutons du modal pendant 400ms
-         Empêche le tap sur ✕ de traverser vers le bouton Supprimer du modal */
-      @keyframes modalIn {
-        0%   { opacity: 0; transform: scale(0.95); pointer-events: none; }
-        60%  { opacity: 1; transform: scale(1);    pointer-events: none; }
-        100% { opacity: 1; transform: scale(1);    pointer-events: auto; }
-      }
-      .modal-card {
-        animation: modalIn 0.4s ease forwards;
-      }
-      .modal-overlay {
-        animation: none;
-      }
-    `}</style>
-
-    <div style={{fontFamily:"var(--font-sans)",maxWidth:940,margin:"0 auto",padding:"1.5rem 1rem",paddingBottom:"calc(1.5rem + env(safe-area-inset-bottom, 0px))",position:"relative",background:"var(--color-background-primary)",minHeight:"-webkit-fill-available"}}>
-
-      {/* ── Header ──────────────────────────────────────────────────────── */}
-      <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:"1.25rem",flexWrap:"wrap",gap:12}}>
-        <div style={{display:"flex",alignItems:"center",gap:12}}>
-          <img src="/apple-touch-icon.png" alt="Kasbah Blanca" style={{width:48,height:48,borderRadius:12,objectFit:"cover",flexShrink:0,boxShadow:"0 2px 8px rgba(0,0,0,0.12)"}} />
-          <div>
-            <h1 style={{margin:0,fontSize:22,fontWeight:500}}>{t("title")}</h1>
-            <p style={{margin:"4px 0 0",fontSize:13,color:"var(--color-text-secondary)"}}>
-              {t("subtitle")} ·{" "}
-              {cloudStatus==="saving" ? t("saving") : cloudStatus==="saved" ? t("synced") : cloudStatus==="error" ? t("offline") : ""}
-              {icsUrl && (
-                <span style={{marginLeft:8}}>
-                  {syncStatus==="syncing" ? "🔄 Sync..."
-                    : syncStatus==="ok" ? `${t("syncOk")} ${lastSync ? new Date(lastSync).toLocaleTimeString(locale,{hour:"2-digit",minute:"2-digit"}) : ""}`
-                    : syncStatus==="error" && !lastSync ? t("syncFail")
-                    : lastSync ? `${t("syncOk")} ${new Date(lastSync).toLocaleTimeString(locale,{hour:"2-digit",minute:"2-digit"})}`
-                    : ""}
-                </span>
-              )}
-            </p>
+          {/* Occupation mois par mois */}
+          <div className="kb-arches" aria-label={`${t("occupation")} ${year}`}>
+            {months.map((m,mi)=>{
+              const now   = new Date();
+              const dim   = new Date(year, mi+1, 0).getDate();
+              const n     = payingBookings.reduce((s,b)=>s+nightsInMonth(b,mi),0);
+              const p     = persoBookings.reduce((s,b)=>s+nightsInMonth(b,mi),0);
+              const pctN  = Math.min(100, Math.round((n/dim)*100));
+              const pctP  = Math.min(100-pctN, Math.round((p/dim)*100));
+              const state = year<now.getFullYear() || (year===now.getFullYear() && mi<now.getMonth()) ? ""
+                          : year===now.getFullYear() && mi===now.getMonth() ? "now" : "fut";
+              return (
+                <div key={m} className={"kb-arch "+state} title={`${m} : ${pctN} % de nuits payantes (${n} n)${p?` + ${p} n perso`:""}`}>
+                  <div className="kb-arch-shape">
+                    <div className="kb-arch-fill" style={{height:`${pctN}%`}} />
+                    {pctP>0 && <div className="kb-arch-perso" style={{bottom:`${pctN}%`,height:`${pctP}%`}} />}
+                  </div>
+                  <b>{pctN}%</b>
+                  <span>{m}</span>
+                </div>
+              );
+            })}
           </div>
         </div>
-        <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
-          <select value={year} onChange={e=>setYear(+e.target.value)} style={{width:"auto"}}>
-            {[2024,2025,2026,2027].map(y=><option key={y}>{y}</option>)}
-          </select>
-          <button onClick={exportExcel} style={{whiteSpace:"nowrap"}}>⬇ Excel {year}</button>
-          <div style={{display:"flex",gap:4,background:"var(--color-background-secondary)",borderRadius:8,padding:3}}>
-            {["MAD","EUR"].map(c=>(
-              <button key={c} onClick={()=>setCurrency(c)} style={{border:"none",borderRadius:6,padding:"4px 12px",fontSize:13,fontWeight:currency===c?600:400,background:currency===c?"var(--color-background-primary)":"transparent",cursor:"pointer",color:currency===c?"var(--color-text-primary)":"var(--color-text-secondary)",boxShadow:currency===c?"0 1px 4px rgba(0,0,0,0.12)":"none",transition:"all .15s"}}>{c}</button>
-            ))}
-          </div>
-          <div style={{display:"flex",gap:4,background:"var(--color-background-secondary)",borderRadius:8,padding:3}}>
-            {["fr","en"].map(l=>(
-              <button key={l} onClick={()=>setLang(l)} style={{border:"none",borderRadius:6,padding:"4px 10px",fontSize:13,fontWeight:lang===l?600:400,background:lang===l?"var(--color-background-primary)":"transparent",cursor:"pointer",color:lang===l?"var(--color-text-primary)":"var(--color-text-secondary)",boxShadow:lang===l?"0 1px 4px rgba(0,0,0,0.12)":"none",transition:"all .15s"}}>{l==="fr"?"FR":"EN"}</button>
-            ))}
-          </div>
-          <button onClick={()=>setDarkMode(d=>!d)} style={{padding:"4px 10px",fontSize:14,background:"none",border:"0.5px solid var(--color-border-secondary)",borderRadius:6,cursor:"pointer"}}>{darkMode?"☀️":"🌙"}</button>
-          <button onClick={()=>setShowIcsUrl(r=>!r)} style={{padding:"4px 10px",fontSize:13,background:icsUrl?"#e8f5e9":"none",border:`0.5px solid ${icsUrl?"#2e7d32":"var(--color-border-secondary)"}`,borderRadius:6,color:icsUrl?"#2e7d32":"var(--color-text-secondary)"}}>🔄 {icsUrl?t("autoSyncOn"):t("configSync")}</button>
-          {icsUrl && <button onClick={()=>syncIcs()} style={{padding:"4px 10px",fontSize:13,background:"none",border:"0.5px solid var(--color-border-secondary)",borderRadius:6}}>{syncStatus==="syncing"?"⏳":"↻"} {t("sync")}</button>}
-          <button onClick={()=>setShowRate(r=>!r)} style={{padding:"4px 10px",fontSize:13,background:"none",border:"0.5px solid var(--color-border-secondary)",borderRadius:6}}>1€ = {rate} MAD</button>
-          <button onClick={exportJSON} style={{padding:"4px 10px",fontSize:13,background:"none",border:"0.5px solid var(--color-border-secondary)",borderRadius:6}}>{t("backup")}</button>
-          <button onClick={openRescue} title="Sauvegardes automatiques du serveur" style={{padding:"4px 10px",fontSize:13,background:"#fff3cd",border:"0.5px solid #856404",borderRadius:6,color:"#856404"}}>🛟 Secours</button>
-          <label style={{padding:"4px 10px",fontSize:13,background:"none",border:"0.5px solid var(--color-border-secondary)",borderRadius:6,cursor:"pointer",display:"inline-flex",alignItems:"center"}}>
-            {t("restore")}
-            <input type="file" accept=".json" style={{display:"none"}} onChange={e=>{if(e.target.files[0]){importJSON(e.target.files[0]);e.target.value="";}}} />
-          </label>
-        </div>
-      </div>
+      </header>
+
+      <main className="kb-main">
 
       {/* ── Panel taux + commission ──────────────────────────────────────── */}
       {showRate && (
@@ -1404,14 +1400,14 @@ function RiadDashboard() {
           <p style={{margin:"0 0 8px",fontWeight:500,fontSize:13}}>{t("syncPanelTitle")}</p>
           <p style={{margin:"0 0 10px",fontSize:12,color:"var(--color-text-tertiary)"}}>{t("syncPanelDesc")}</p>
           <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-            <input type="url" placeholder="https://www.airbnb.fr/calendar/ical/..." value={icsUrl} onChange={e=>setIcsUrl(e.target.value)} style={{flex:1,minWidth:200,padding:"6px 10px",fontSize:12,borderRadius:6,border:"0.5px solid var(--color-border-secondary)"}} />
+            <input type="url" placeholder="https://www.airbnb.fr/calendar/ical/..." value={icsUrl} onChange={e=>setIcsUrl(e.target.value)} style={{flex:1,minWidth:200,padding:"6px 10px",fontSize:12,borderRadius:6,border:"1px solid var(--color-border-secondary)"}} />
             <button onClick={()=>syncIcs()} style={{padding:"6px 14px",fontSize:12,background:C_RESERVED,color:"#fff",border:"none",borderRadius:6,cursor:"pointer"}} disabled={!icsUrl}>{t("syncNow")}</button>
-            {icsUrl && <button onClick={()=>{setIcsUrl("");setSyncStatus("");setLastSync(null);}} style={{padding:"6px 10px",fontSize:12,background:"none",border:"0.5px solid var(--color-border-secondary)",borderRadius:6,cursor:"pointer",color:"var(--color-text-danger)"}}>{t("syncDelete")}</button>}
+            {icsUrl && <button onClick={()=>{setIcsUrl("");setSyncStatus("");setLastSync(null);}} style={{padding:"6px 10px",fontSize:12,background:"none",border:"1px solid var(--color-border-secondary)",borderRadius:6,cursor:"pointer",color:"var(--color-text-danger)"}}>{t("syncDelete")}</button>}
           </div>
           <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap",marginTop:8}}>
             <span style={{fontSize:12,color:"var(--color-text-secondary)",minWidth:120}}>🅱️ Booking (iCal)</span>
-            <input type="url" placeholder="https://ical.booking.com/v1/export?t=..." value={icsUrlBooking} onChange={e=>setIcsUrlBooking(e.target.value.trim())} style={{flex:1,minWidth:200,padding:"6px 10px",fontSize:12,borderRadius:6,border:"0.5px solid var(--color-border-secondary)"}} />
-            {icsUrlBooking && <button onClick={()=>setIcsUrlBooking("")} style={{padding:"6px 10px",fontSize:12,background:"none",border:"0.5px solid var(--color-border-secondary)",borderRadius:6,cursor:"pointer",color:"var(--color-text-danger)"}}>{t("syncDelete")}</button>}
+            <input type="url" placeholder="https://ical.booking.com/v1/export?t=..." value={icsUrlBooking} onChange={e=>setIcsUrlBooking(e.target.value.trim())} style={{flex:1,minWidth:200,padding:"6px 10px",fontSize:12,borderRadius:6,border:"1px solid var(--color-border-secondary)"}} />
+            {icsUrlBooking && <button onClick={()=>setIcsUrlBooking("")} style={{padding:"6px 10px",fontSize:12,background:"none",border:"1px solid var(--color-border-secondary)",borderRadius:6,cursor:"pointer",color:"var(--color-text-danger)"}}>{t("syncDelete")}</button>}
           </div>
           {lastSync && <p style={{margin:"8px 0 0",fontSize:11,color:"var(--color-text-tertiary)"}}>{t("lastSync")} : {new Date(lastSync).toLocaleString(locale)}</p>}
           <p style={{margin:"8px 0 0",fontSize:11,color:"var(--color-text-warning)",background:"var(--color-background-warning)",borderRadius:6,padding:"6px 10px"}}>{t("syncDelay")}</p>
@@ -1420,124 +1416,91 @@ function RiadDashboard() {
 
       {/* ── Alertes arrivées / départs ───────────────────────────────────── */}
       {alerts.length > 0 && (
-        <div style={{marginBottom:"1.25rem",display:"flex",flexDirection:"column",gap:6}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
-            <span style={{fontSize:12,color:"var(--color-text-tertiary)",fontWeight:500}}>{t("alertsTitle")}</span>
-            {!notifEnabled && "Notification" in window && (
-              <button onClick={requestNotifPermission} style={{fontSize:11,padding:"3px 10px",borderRadius:6,border:"0.5px solid var(--color-border-secondary)",background:"none",cursor:"pointer",color:"var(--color-text-secondary)"}}>{t("enableNotif")}</button>
+        <section style={{marginBottom:"1.5rem",display:"flex",flexDirection:"column",gap:8}}>
+          <div className="kb-alerts-head">
+            <h2>{t("alertsTitle")}</h2>
+            {SHOW_NOTIF_BTN && !notifEnabled && "Notification" in window && (
+              <button className="kb-mini-btn" onClick={requestNotifPermission}>{t("enableNotif")}</button>
             )}
-            {notifEnabled && (
-              <button onClick={()=>{setNotifEnabled(false);showToast(t("toastNotifOff"));}} style={{fontSize:11,padding:"3px 10px",borderRadius:6,border:"0.5px solid #2e7d32",background:"none",cursor:"pointer",color:"#2e7d32"}}>{t("notifOn")}</button>
+            {SHOW_NOTIF_BTN && notifEnabled && (
+              <button className="kb-mini-btn" onClick={()=>{setNotifEnabled(false);showToast(t("toastNotifOff"));}} style={{color:"var(--color-text-success)",borderColor:"var(--color-text-success)"}}>{t("notifOn")}</button>
             )}
           </div>
           {alerts.map((b,i) => {
             const isArr = b.type === "arrival";
-            const bg  = isArr ? (b.daysUntil===0?"#fdecea":b.daysUntil<=2?"#fff3cd":"#e8f5e9") : (b.daysUntil===0?"#fce4ec":b.daysUntil<=2?"#fff8e1":"#e3f2fd");
-            const col = isArr ? (b.daysUntil===0?C_RESERVED:b.daysUntil<=2?"#856404":"#2e7d32") : (b.daysUntil===0?"#880e4f":b.daysUntil<=2?"#ff6f00":C_BLOCKED);
-            const icon= isArr ? (b.daysUntil===0?"🔴":b.daysUntil<=2?"🟡":"🟢") : (b.daysUntil===0?"🔵":b.daysUntil<=2?"🟠":"⚪");
+            const bg  = b.daysUntil===0 ? "var(--kb-danger-bg)" : b.daysUntil<=2 ? "var(--color-background-warning)" : isArr ? "var(--kb-accent-bg)" : "var(--kb-perso-bg)";
+            const col = b.daysUntil===0 ? "var(--color-text-danger)" : b.daysUntil<=2 ? "var(--color-text-warning)" : isArr ? "var(--kb-accent)" : "var(--kb-perso)";
+            const icon= isArr ? "🧳" : "🚪";
             const msg = isArr
               ? (b.daysUntil===0?t("arrivalToday"):b.daysUntil===1?t("arrivalTomorrow"):`${t("arrivalIn")} ${b.daysUntil}${t("days")}`)
               : (b.daysUntil===0?t("departureToday"):b.daysUntil===1?t("departureTomorrow"):`${t("departureIn")} ${b.daysUntil}${t("days")}`);
             return (
-              <div key={b.id+b.type} style={{background:bg,borderRadius:8,padding:"10px 14px",display:"flex",alignItems:"center",gap:10,flexWrap:"wrap",borderLeft:`3px solid ${col}`}}>
-                <span style={{fontSize:14}}>{icon}</span>
-                <span style={{fontWeight:600,color:col,fontSize:13,minWidth:130}}>{msg}</span>
-                <span style={{fontSize:13,fontWeight:600,color:"#1a1a1a"}}>{b.name||b.id}</span>
-                <span style={{fontSize:12,color:"var(--color-text-secondary)"}}>{fmtDate(isArr?b.checkIn:b.checkOut,locale)} · {b.nights}n{b.guests?` · 👥 ${b.guests}`:""}</span>
-                <span style={{marginLeft:"auto",fontSize:12,color:col,fontWeight:500}}>{b.platform}</span>
+              <div key={b.id+b.type} className="kb-alert" style={{"--c":col,"--bg":bg}}>
+                <span aria-hidden="true">{icon}</span>
+                <span className="kb-alert-msg">{msg}</span>
+                <span className="kb-alert-who">{b.name||b.id}</span>
+                <span className="kb-alert-meta">{fmtDate(isArr?b.checkIn:b.checkOut,locale)} · {b.nights} n{b.guests?` · 👥 ${b.guests}`:""}</span>
+                <span className="kb-alert-pf">{b.platform}</span>
               </div>
             );
           })}
-        </div>
+        </section>
       )}
 
-      {/* ── KPIs accueil — 4 cartes ──────────────────────────────────────── */}
-      <div style={{display:"flex",gap:12,flexWrap:"wrap",marginBottom:"1.5rem"}}>
-        {/* Occupation */}
-        <div style={{...mc,flex:"1 1 160px",borderLeft:"3px solid var(--color-text-info)"}}>
-          <p style={{margin:0,fontSize:11,color:"var(--color-text-secondary)",textTransform:"uppercase",letterSpacing:"0.05em"}}>{t("occupation")}</p>
-          <p style={{margin:"6px 0 2px",fontSize:18,fontWeight:500,color:"var(--color-text-info)"}}>{occupancy}%</p>
-          <p style={{margin:0,fontSize:11,color:"var(--color-text-tertiary)"}}>{totalNights} {t("payingNights")} + {persoNights} {t("persoNights")}</p>
-          {(() => {
-            const curMonth = new Date().getMonth();
-            return (
-              <div style={{marginTop:8,display:"flex",flexDirection:"column",gap:4}}>
-                {[0,1,2,3].map(offset => {
-                  const mi          = (curMonth + offset) % 12;
-                  const daysInMonth = new Date(year, mi+1, 0).getDate();
-                  const n           = payingBookings.reduce((s,b)=>s+nightsInMonth(b,mi),0);
-                  const p           = persoBookings.reduce((s,b)=>s+nightsInMonth(b,mi),0);
-                  const rate2       = Math.round(((n+p)/daysInMonth)*100);
-                  const col         = rate2>=70?"#2e7d32":rate2>=40?"#856404":"#c0392b";
-                  return (
-                    <div key={mi}>
-                      <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"var(--color-text-tertiary)",marginBottom:2}}>
-                        <span>{months[mi]}</span>
-                        <span style={{color:col,fontWeight:500}}>{rate2}%</span>
-                      </div>
-                      <div style={{background:"var(--color-border-tertiary)",borderRadius:99,height:4,overflow:"hidden",display:"flex"}}>
-                        <div style={{width:`${Math.round((n/daysInMonth)*100)}%`,height:"100%",background:C_RESERVED,borderRadius:99}} />
-                        <div style={{width:`${Math.round((p/daysInMonth)*100)}%`,height:"100%",background:C_BLOCKED,borderRadius:99,marginLeft:1}} />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            );
-          })()}
-        </div>
-        {/* Moy/nuit */}
-        <div style={{...mc,flex:"1 1 160px",borderLeft:"3px solid var(--color-text-secondary)"}}>
-          <p style={{margin:0,fontSize:11,color:"var(--color-text-secondary)",textTransform:"uppercase",letterSpacing:"0.05em"}}>{t("avgNight")}</p>
-          <p style={{margin:"6px 0 2px",fontSize:18,fontWeight:500,color:"var(--color-text-secondary)"}}>{avgNight ? fmtMAD(avgNight) : "—"}</p>
-          {avgNight > 0 && <p style={{margin:0,fontSize:12,color:"var(--color-text-tertiary)"}}>{fmtEUR(avgNight/rate)}</p>}
-          <p style={{margin:"4px 0 0",fontSize:11,color:"var(--color-text-tertiary)"}}>{t("onAmounts")}</p>
-        </div>
-        {/* Dépenses à date */}
-        <div style={{...mc,flex:"1 1 160px",borderLeft:"3px solid var(--color-text-danger)"}}>
-          <p style={{margin:0,fontSize:11,color:"var(--color-text-secondary)",textTransform:"uppercase",letterSpacing:"0.05em"}}>{lang==="fr"?"Dépenses à date":"Expenses to date"}</p>
-          <p style={{margin:"6px 0 2px",fontSize:18,fontWeight:500,color:"var(--color-text-danger)"}}>{fmtMAD(pastExp)}</p>
-          <p style={{margin:0,fontSize:12,color:"var(--color-text-tertiary)"}}>{fmtEUR(pastExp/rate)}</p>
-          {futureExp>0 && <p style={{margin:"4px 0 0",fontSize:11,color:"var(--color-text-tertiary)"}}>+ {fmtMAD(futureExp)} {lang==="fr"?"à venir":"upcoming"}</p>}
-        </div>
-        {/* Bénéfice net à date */}
-        {(() => {
-          const netProfit = pastRevenue - pastExp;
-          const col = netProfit >= 0 ? "#BA7517" : "var(--color-text-danger)";
-          return (
-            <div style={{...mc,flex:"1 1 160px",borderLeft:`3px solid ${col}`}}>
-              <p style={{margin:0,fontSize:11,color:"var(--color-text-secondary)",textTransform:"uppercase",letterSpacing:"0.05em"}}>{lang==="fr"?"Bénéfice net à date":"Net profit to date"}</p>
-              <p style={{margin:"6px 0 2px",fontSize:18,fontWeight:500,color:col}}>{netProfit>=0?"+":""}{fmtMAD(netProfit)}</p>
-              <p style={{margin:0,fontSize:12,color:"var(--color-text-tertiary)"}}>{netProfit>=0?"+":""}{fmtEUR(netProfit/rate)}</p>
-              <p style={{margin:"4px 0 0",fontSize:11,color:"var(--color-text-tertiary)"}}>{lang==="fr"?"encaissé − dépenses réelles":"collected − actual expenses"}</p>
+      {/* ── Chiffres clés ────────────────────────────────────────────────── */}
+      {(() => {
+        const netProfit = pastRevenue - pastExp;
+        const num = (v) => new Intl.NumberFormat("fr-MA",{maximumFractionDigits:0}).format(Math.round(v));
+        return (
+          <section className="kb-figs">
+            <div className="kb-fig">
+              <p className="kb-fig-l">{t("occupation")} {year}</p>
+              <p className="kb-fig-v">{occupancy} %</p>
+              <p className="kb-fig-s">{totalNights} {t("payingNights")} + {persoNights} {t("persoNights")}</p>
             </div>
-          );
-        })()}
-      </div>
+            <div className="kb-fig">
+              <p className="kb-fig-l">{t("avgNight")}</p>
+              <p className="kb-fig-v">{avgNight ? <>{num(avgNight)}<small>MAD</small></> : "—"}</p>
+              <p className="kb-fig-s">{avgNight > 0 ? fmtEUR(avgNight/rate)+" · " : ""}{t("onAmounts")}</p>
+            </div>
+            <div className="kb-fig neg">
+              <p className="kb-fig-l">{lang==="fr"?"Dépenses à date":"Expenses to date"}</p>
+              <p className="kb-fig-v">{num(pastExp)}<small>MAD</small></p>
+              <p className="kb-fig-s">{fmtEUR(pastExp/rate)}{futureExp>0 ? ` · + ${fmtMAD(futureExp)} ${lang==="fr"?"à venir":"upcoming"}` : ""}</p>
+            </div>
+            <div className={"kb-fig "+(netProfit>=0?"pos":"neg")}>
+              <p className="kb-fig-l">{lang==="fr"?"Bénéfice net à date":"Net profit to date"}</p>
+              <p className="kb-fig-v">{netProfit>=0?"+":""}{num(netProfit)}<small>MAD</small></p>
+              <p className="kb-fig-s">{netProfit>=0?"+":""}{fmtEUR(netProfit/rate)} · {lang==="fr"?"encaissé moins dépenses":"collected minus expenses"}</p>
+            </div>
+          </section>
+        );
+      })()}
 
-      {/* ── Stats panels — Échues / À venir / CA total ───────────────────── */}
-      <div style={{display:"flex",gap:12,flexWrap:"wrap",marginBottom:"1.25rem"}}>
+      {/* ── Encarts cliquables : échues / à venir / CA total ─────────────── */}
+      <section className="kb-stats">
         {[
-          {key:"past",   label:t("pastBookings"),       value:fmtBoth(pastRevenue,rate),    sub:pastBookings_.length+" "+(pastBookings_.length>1?t("staysDonePlural"):t("staysDone")),     color:"#2e7d32"},
+          {key:"past",   label:t("pastBookings"),       value:fmtBoth(pastRevenue,rate),    sub:pastBookings_.length+" "+(pastBookings_.length>1?t("staysDonePlural"):t("staysDone")),     color:"var(--color-text-success)"},
           {key:"future", label:t("futureBookings"),      value:fmtBoth(futureRevenue,rate),  sub:futureBookings_.length+" "+(futureBookings_.length>1?t("staysAheadPlural"):t("staysAhead")), color:C_BLOCKED},
-          {key:"all",    label:`${t("caTotal")} ${year}`,value:fmtBoth(totalRevenue,rate),   sub:(Math.round((pastRevenue/totalRevenue)*100)||0)+"% "+t("encaisse")+" · "+(Math.round((futureRevenue/totalRevenue)*100)||0)+"% "+t("aVenir"), color:"#7F77DD"},
+          {key:"all",    label:`${t("caTotal")} ${year}`,value:fmtBoth(totalRevenue,rate),   sub:(Math.round((pastRevenue/totalRevenue)*100)||0)+"% "+t("encaisse")+" · "+(Math.round((futureRevenue/totalRevenue)*100)||0)+"% "+t("aVenir"), color:"var(--kb-ca)"},
         ].map(card => (
-          <div key={card.key}
+          <button key={card.key} type="button"
             onClick={()=>setStatsPanel(statsPanel===card.key?null:card.key)}
-            style={{...mc,borderLeft:`3px solid ${card.color}`,flex:"1 1 200px",cursor:"pointer",transition:"box-shadow 0.15s",boxShadow:statsPanel===card.key?"0 0 0 2px "+card.color+"44":"none"}}
+            className={"kb-stat"+(statsPanel===card.key?" on":"")}
+            aria-expanded={statsPanel===card.key}
+            style={{"--c":card.color}}
           >
-            <p style={{margin:0,fontSize:11,color:"var(--color-text-secondary)",textTransform:"uppercase",letterSpacing:"0.05em"}}>{card.label} {statsPanel===card.key?"▲":"▼"}</p>
-            <p style={{margin:"6px 0 2px",fontSize:18,fontWeight:500,color:card.color}}>{card.value}</p>
-            <p style={{margin:0,fontSize:12,color:"var(--color-text-tertiary)"}}>{card.sub}</p>
-          </div>
+            <span className="kb-stat-l">{card.label}<i>{statsPanel===card.key?"▲":"▼"}</i></span>
+            <span className="kb-stat-v" style={{display:"block"}}>{card.value}</span>
+            <span className="kb-stat-s">{card.sub}</span>
+          </button>
         ))}
-      </div>
-
+      </section>
       {/* ── Panel détail réservations (stats) ───────────────────────────── */}
       {statsPanel && (() => {
         const list  = statsPanel==="past" ? pastBookings_ : statsPanel==="future" ? futureBookings_ : payingBookings;
         const title = statsPanel==="past" ? t("pastBookings") : statsPanel==="future" ? t("futureBookings") : `${t("caTotal")} ${year}`;
-        const color = statsPanel==="past" ? C_RESERVED : statsPanel==="future" ? C_BLOCKED : "#BA7517";
+        const color = statsPanel==="past" ? "var(--color-text-success)" : statsPanel==="future" ? C_BLOCKED : "var(--kb-ca)";
         return (
           <div style={{...rc,marginBottom:"1.25rem",borderLeft:`3px solid ${color}`}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1rem"}}>
@@ -1549,7 +1512,7 @@ function RiadDashboard() {
               : (
                 <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
                   <thead>
-                    <tr style={{borderBottom:"0.5px solid var(--color-border-tertiary)"}}>
+                    <tr style={{borderBottom:"1px solid var(--color-border-tertiary)"}}>
                       {[t("hPayment"),t("hClient"),t("colArrival"),t("colDeparture"),t("colNights"),t("colGuests"),t("hPlatform"),t("hNetTotal")].map(h=>(
                         <th key={h} style={{padding:"6px 8px",textAlign:"left",color:"var(--color-text-secondary)",fontWeight:400,fontSize:12,whiteSpace:"nowrap"}}>{h}</th>
                       ))}
@@ -1557,7 +1520,7 @@ function RiadDashboard() {
                   </thead>
                   <tbody>
                     {[...list].sort((a,b)=>new Date(a.checkIn)-new Date(b.checkIn)).map(b=>(
-                      <tr key={b.id} style={{borderBottom:"0.5px solid var(--color-border-tertiary)"}}>
+                      <tr key={b.id} style={{borderBottom:"1px solid var(--color-border-tertiary)"}}>
                         <td style={{padding:"8px"}}><button onClick={()=>togglePaid(b.id)} title={b.paid?t("markUnpaid"):t("markPaid")} style={{border:"none",background:"none",cursor:"pointer",fontSize:14}}>{isEffectivelyPaid(b)?"✅":"⏳"}</button></td>
                         <td style={{padding:"8px",fontWeight:500}}>{b.name||<span style={{color:"var(--color-text-tertiary)"}}>—</span>}</td>
                         <td style={{padding:"8px",whiteSpace:"nowrap"}}>{fmtDate(b.checkIn,locale)}</td>
@@ -1565,7 +1528,7 @@ function RiadDashboard() {
                         <td style={{padding:"8px",color:"var(--color-text-secondary)"}}>{b.nights}n</td>
                         <td style={{padding:"8px",color:"var(--color-text-secondary)",textAlign:"center"}}>{b.guests?<span style={{fontWeight:500}}>👥 {b.guests}</span>:"—"}</td>
                         <td style={{padding:"8px"}}><span style={{fontSize:11,padding:"2px 6px",borderRadius:99,background:"var(--color-background-secondary)"}}>{b.platform}</span></td>
-                        <td style={{padding:"8px",fontWeight:500,color:isEffectivelyPaid(b)?"#2e7d32":"var(--color-text-warning)"}}>{b.amount>0?fmtBoth(netAmount(b),rate):<span style={{fontSize:12}}>{t("toEnter")}</span>}</td>
+                        <td style={{padding:"8px",fontWeight:500,color:isEffectivelyPaid(b)?"var(--color-text-success)":"var(--color-text-warning)"}}>{b.amount>0?fmtBoth(netAmount(b),rate):<span style={{fontSize:12}}>{t("toEnter")}</span>}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -1585,12 +1548,12 @@ function RiadDashboard() {
       })()}
 
       {/* ── Tabs ────────────────────────────────────────────────────────── */}
-      <div style={{borderBottom:"0.5px solid var(--color-border-tertiary)",marginBottom:"1.5rem",overflowX:"auto",WebkitOverflowScrolling:"touch",msOverflowStyle:"none",scrollbarWidth:"none"}}>
+      <nav className="kb-tabs" aria-label="Sections">
         {tabBtn("calendar", t("tabCalendar"))}
         {tabBtn("bookings", `${t("tabBookings")}${pendingCount>0?` (${pendingCount} ⚠)`:""}`)}
         {tabBtn("chart",    t("tabChart"))}
         {tabBtn("expenses", t("tabExpenses"))}
-      </div>
+      </nav>
 
       {/* ══════════════════════════════════════════════════════════════════ */}
       {/* TAB : CALENDRIER                                                   */}
@@ -1618,7 +1581,7 @@ function RiadDashboard() {
           {/* Grille calendrier */}
           <div style={{...rc,marginBottom:"1.25rem"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1.25rem",flexWrap:"wrap",gap:8}}>
-              <p style={{margin:0,fontSize:14,fontWeight:500}}>{t("calendarTitle")} {year}</p>
+              <p className="kb-h" style={{margin:0,fontSize:14,fontWeight:500}}>{t("calendarTitle")} {year}</p>
               <div style={{display:"flex",gap:4,background:"var(--color-background-secondary)",borderRadius:8,padding:3}}>
                 {[{key:"all",label:t("allMonths")},{key:"upcoming",label:t("upcoming")}].map(v=>(
                   <button key={v.key} onClick={()=>setCalView(v.key)} style={{border:"none",borderRadius:6,padding:"4px 12px",fontSize:12,fontWeight:calView===v.key?600:400,background:calView===v.key?"var(--color-background-primary)":"transparent",cursor:"pointer",color:calView===v.key?"var(--color-text-primary)":"var(--color-text-secondary)",boxShadow:calView===v.key?"0 1px 4px rgba(0,0,0,0.12)":"none",transition:"all .15s"}}>{v.label}</button>
@@ -1642,8 +1605,8 @@ function RiadDashboard() {
           {/* Périodes bloquées perso */}
           <div style={rc}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1rem",flexWrap:"wrap",gap:8}}>
-              <p style={{margin:0,fontSize:14,fontWeight:500}}>{t("personalPeriods")}</p>
-              <button onClick={()=>setShowAddBl(!showAddBl)}>{t("blockDates")}</button>
+              <p className="kb-h" style={{margin:0,fontSize:14,fontWeight:500}}>{t("personalPeriods")}</p>
+              <button className="kb-primary" onClick={()=>setShowAddBl(!showAddBl)}>{t("blockDates")}</button>
             </div>
             {showAddBl && (
               <div style={{background:"var(--color-background-secondary)",borderRadius:8,padding:"1rem",marginBottom:"1rem"}}>
@@ -1654,7 +1617,7 @@ function RiadDashboard() {
                   <div style={{gridColumn:"1 / -1"}}><label style={{fontSize:13,color:"var(--color-text-secondary)"}}>{t("frmReason")}</label><input type="text" placeholder={lang==="fr"?"Vacances perso":"Personal vacation"} style={inp} value={blForm.label} onChange={e=>setBlForm(f=>({...f,label:e.target.value}))} /></div>
                 </div>
                 <div style={{display:"flex",gap:8}}>
-                  <button onClick={addBlocked}>{t("save")}</button>
+                  <button className="kb-primary" onClick={addBlocked}>{t("save")}</button>
                   <button onClick={()=>setShowAddBl(false)} style={{color:"var(--color-text-secondary)"}}>{t("cancel")}</button>
                 </div>
               </div>
@@ -1672,7 +1635,7 @@ function RiadDashboard() {
                       showToast(t("toastConverted"));
                     };
                     return (
-                      <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 12px",background:"#2980b922",borderRadius:"var(--border-radius-md)",flexWrap:"wrap",gap:8}}>
+                      <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 12px",background:"var(--kb-perso-bg)",borderRadius:"var(--border-radius-md)",flexWrap:"wrap",gap:8}}>
                         <span style={{fontSize:13,color:C_BLOCKED,fontWeight:500}}>{b.label||(lang==="fr"?"Bloqué":"Blocked")}</span>
                         <span style={{fontSize:13,color:"var(--color-text-secondary)"}}>{fmtDate(b.start,locale)} → {fmtDate(b.end,locale)}</span>
                         <span style={{fontSize:12,color:"var(--color-text-tertiary)"}}>{n} {n>1?t("dayPlural"):t("daySingle")}</span>
@@ -1692,7 +1655,7 @@ function RiadDashboard() {
               });
               if (!airbnbBlocked.length) return null;
               return (
-                <div style={{marginTop:"1rem",paddingTop:"1rem",borderTop:"0.5px solid var(--color-border-tertiary)"}}>
+                <div style={{marginTop:"1rem",paddingTop:"1rem",borderTop:"1px solid var(--color-border-tertiary)"}}>
                   <p style={{margin:"0 0 8px",fontSize:12,color:"var(--color-text-tertiary)"}}>{t("airbnbUnavail")}</p>
                   <div style={{display:"flex",flexDirection:"column",gap:6}}>
                     {airbnbBlocked.map((b,i)=>{
@@ -1735,20 +1698,24 @@ function RiadDashboard() {
         <div>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"0.75rem",flexWrap:"wrap",gap:8}}>
             <p style={{margin:0,fontSize:14,color:"var(--color-text-secondary)"}}>
-              {yearBookings.length} {t("bookingsSummary")} · {fmtBoth(totalRevenue,rate)}
+              {listBookings.length} {upcomingAll?(lang==="fr"?"réservations à venir, toutes années":"upcoming bookings, all years"):t("bookingsSummary")} · {fmtBoth(listRevenue,rate)}
               {pendingCount>0 && <span style={{marginLeft:8,fontSize:12,color:"var(--color-text-warning)"}}>({pendingCount} {t("noAmountSet")})</span>}
             </p>
-            <button onClick={()=>setShowAddB(!showAddB)}>{t("addBooking")}</button>
+            <button className="kb-primary" onClick={()=>setShowAddB(!showAddB)}>{t("addBooking")}</button>
           </div>
           {/* Recherche + filtre */}
           <div style={{display:"flex",gap:8,marginBottom:"1rem",flexWrap:"wrap",alignItems:"center"}}>
             <input type="text" placeholder={lang==="fr"?"🔍 Rechercher (nom, code)...":"🔍 Search (name, code)..."} value={bookingSearch} onChange={e=>setBookingSearch(e.target.value)}
-              style={{flex:1,minWidth:180,padding:"6px 10px",fontSize:13,borderRadius:6,border:"0.5px solid var(--color-border-secondary)",background:"var(--color-background-secondary)"}} />
-            {(() => {
-              const monthsPresent = [...new Set(yearBookings.map(b=>new Date(b.checkIn).getMonth()))].sort((a,b)=>b-a);
+              style={{flex:1,minWidth:180,padding:"6px 10px",fontSize:13,borderRadius:6,border:"1px solid var(--color-border-secondary)",background:"var(--color-background-secondary)"}} />
+            <button type="button" onClick={()=>{setUpcomingAll(v=>!v);setMonthFilter("all");}} aria-pressed={upcomingAll}
+              style={{padding:"6px 12px",fontSize:13,borderRadius:99,whiteSpace:"nowrap",border:`1px solid ${upcomingAll?"var(--kb-teal)":"var(--color-border-secondary)"}`,background:upcomingAll?"var(--kb-teal)":"var(--color-background-primary)",color:upcomingAll?"#fff":"var(--color-text-secondary)"}}>
+              {upcomingAll?"✓ ":""}{lang==="fr"?"À venir, toutes années":"Upcoming, all years"}
+            </button>
+            {!upcomingAll && (() => {
+              const monthsPresent = [...Array(12).keys()].filter(mi=>listBookings.some(b=>overlapsMonth(b,year,mi))).sort((a,b)=>b-a);
               return (
                 <select value={monthFilter} onChange={e=>setMonthFilter(e.target.value)}
-                  style={{width:"auto",minWidth:130,padding:"6px 10px",fontSize:13,borderRadius:6,border:"0.5px solid var(--color-border-secondary)",background:"var(--color-background-secondary)"}}>
+                  style={{width:"auto",minWidth:130,padding:"6px 10px",fontSize:13,borderRadius:6,border:"1px solid var(--color-border-secondary)",background:"var(--color-background-secondary)"}}>
                   <option value="all">{lang==="fr"?"Tous les mois":"All months"}</option>
                   {monthsPresent.map(mi=>(
                     <option key={mi} value={mi}>{months[mi]} {year}</option>
@@ -1757,9 +1724,9 @@ function RiadDashboard() {
               );
             })()}
             <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
-              {["all",...new Set(yearBookings.map(b=>b.platform))].map(p=>(
+              {["all",...new Set(listBookings.map(b=>b.platform))].map(p=>(
                 <button key={p} onClick={()=>setPlatformFilter(p)}
-                  style={{padding:"4px 10px",fontSize:12,borderRadius:99,border:"0.5px solid var(--color-border-secondary)",background:platformFilter===p?"var(--color-text-primary)":"var(--color-background-secondary)",color:platformFilter===p?"var(--color-background-primary)":"var(--color-text-secondary)",cursor:"pointer",fontWeight:platformFilter===p?600:400}}>
+                  style={{padding:"4px 10px",fontSize:12,borderRadius:99,border:"1px solid var(--color-border-secondary)",background:platformFilter===p?"var(--color-text-primary)":"var(--color-background-secondary)",color:platformFilter===p?"var(--color-background-primary)":"var(--color-text-secondary)",cursor:"pointer",fontWeight:platformFilter===p?600:400}}>
                   {p==="all"?(lang==="fr"?"Tous":"All"):p}
                 </button>
               ))}
@@ -1768,7 +1735,7 @@ function RiadDashboard() {
           {/* Formulaire ajout */}
           {showAddB && (
             <div style={{...rc,marginBottom:"1.25rem",background:"var(--color-background-secondary)",border:"none"}}>
-              <p style={{margin:"0 0 12px",fontSize:14,fontWeight:500}}>{t("newDirectBooking")}</p>
+              <p className="kb-h" style={{margin:"0 0 12px",fontSize:14,fontWeight:500}}>{t("newDirectBooking")}</p>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0 16px"}}>
                 <div><label style={{fontSize:13,color:"var(--color-text-secondary)"}}>{t("colArrival")}</label><input type="date" style={inp} value={bForm.checkIn} onChange={e=>setBForm(f=>({...f,checkIn:e.target.value}))} /></div>
                 <div><label style={{fontSize:13,color:"var(--color-text-secondary)"}}>{t("colDeparture")}</label><input type="date" style={inp} value={bForm.checkOut} onChange={e=>setBForm(f=>({...f,checkOut:e.target.value}))} /></div>
@@ -1780,16 +1747,16 @@ function RiadDashboard() {
                 <div style={{gridColumn:"1 / -1"}}><label style={{fontSize:13,color:"var(--color-text-secondary)"}}>Notes</label><textarea placeholder={lang==="fr"?"Informations complémentaires...":"Additional info..."} style={{...inp,height:60,resize:"vertical",fontFamily:"inherit",fontSize:13,padding:"6px 8px"}} value={bForm.notes||""} onChange={e=>setBForm(f=>({...f,notes:e.target.value}))} /></div>
               </div>
               <div style={{display:"flex",gap:8}}>
-                <button onClick={addBooking}>{t("save")}</button>
+                <button className="kb-primary" onClick={addBooking}>{t("save")}</button>
                 <button onClick={()=>setShowAddB(false)} style={{color:"var(--color-text-secondary)"}}>{t("cancel")}</button>
               </div>
             </div>
           )}
           {/* Modal édition réservation */}
           {editBooking && (
-            <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.4)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:"1rem"}}>
-              <div style={{background:"var(--color-background-primary)",borderRadius:12,padding:"1.5rem",width:"100%",maxWidth:440,boxShadow:"0 8px 32px rgba(0,0,0,0.2)"}}>
-                <p style={{margin:"0 0 16px",fontSize:15,fontWeight:500}}>{t("editBookingModalTitle")}</p>
+            <div className="kb-overlay" style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.4)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:"1rem"}}>
+              <div className="kb-modal" style={{background:"var(--color-background-primary)",borderRadius:12,padding:"1.5rem",width:"100%",maxWidth:440,maxHeight:"calc(100vh - 2rem)",overflowY:"auto",boxShadow:"0 8px 32px rgba(0,0,0,0.2)"}}>
+                <p className="kb-h" style={{margin:"0 0 16px",fontSize:15,fontWeight:500}}>{t("editBookingModalTitle")}</p>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0 16px"}}>
                   <div><label style={{fontSize:12,color:"var(--color-text-secondary)"}}>{t("colArrival")}</label><input type="date" style={inp} value={editBooking.checkIn} onChange={e=>setEditBooking(b=>({...b,checkIn:e.target.value}))} /></div>
                   <div><label style={{fontSize:12,color:"var(--color-text-secondary)"}}>{t("colDeparture")}</label><input type="date" style={inp} value={editBooking.checkOut} onChange={e=>setEditBooking(b=>({...b,checkOut:e.target.value}))} /></div>
@@ -1800,7 +1767,7 @@ function RiadDashboard() {
                   <div style={{gridColumn:"1 / -1"}}><label style={{fontSize:12,color:"var(--color-text-secondary)"}}>Notes</label><textarea style={{...inp,height:60,resize:"vertical",fontFamily:"inherit",fontSize:13,padding:"6px 8px"}} value={editBooking.notes||""} onChange={e=>setEditBooking(b=>({...b,notes:e.target.value}))} /></div>
                 </div>
                 <div style={{display:"flex",gap:8,marginTop:4}}>
-                  <button onClick={saveEditBooking} style={{flex:1}}>{t("save")}</button>
+                  <button className="kb-primary" onClick={saveEditBooking} style={{flex:1}}>{t("save")}</button>
                   <button onClick={()=>setEditBooking(null)} style={{color:"var(--color-text-secondary)"}}>{t("cancel")}</button>
                 </div>
               </div>
@@ -1808,14 +1775,14 @@ function RiadDashboard() {
           )}
           {/* Table / cartes */}
           {(() => {
-            const filteredBookings = yearBookings.filter(b => {
+            const filteredBookings = listBookings.filter(b => {
               const matchSearch   = !bookingSearch || (b.name||"").toLowerCase().includes(bookingSearch.toLowerCase()) || (b.id||"").toLowerCase().includes(bookingSearch.toLowerCase());
               const matchPlatform = platformFilter==="all" || b.platform===platformFilter;
-              const matchMonth    = monthFilter==="all" || new Date(b.checkIn).getMonth()===+monthFilter;
+              const matchMonth    = upcomingAll || monthFilter==="all" || overlapsMonth(b,year,+monthFilter);
               return matchSearch && matchPlatform && matchMonth;
             });
             const groupByMonth = (list) => {
-              const sorted = [...list].sort((a,b)=>new Date(b.checkIn)-new Date(a.checkIn));
+              const sorted = [...list].sort((a,b)=>upcomingAll ? new Date(a.checkIn)-new Date(b.checkIn) : new Date(b.checkIn)-new Date(a.checkIn));
               const groups = [];
               let cur = null;
               sorted.forEach(b => {
@@ -1839,7 +1806,7 @@ function RiadDashboard() {
                       <div style={{display:"flex",flexDirection:"column",gap:10}}>
                         {groupByMonth(filteredBookings).map(g=>(
                           <div key={g.key} style={{display:"flex",flexDirection:"column",gap:10}}>
-                            <p style={{margin:"6px 0 0",fontSize:12,fontWeight:600,textTransform:"capitalize",color:"var(--color-text-tertiary)",borderBottom:"0.5px solid var(--color-border-tertiary)",paddingBottom:4}}>{g.label} · {g.items.length}</p>
+                            <p style={{margin:"6px 0 0",fontSize:12,fontWeight:600,textTransform:"capitalize",color:"var(--color-text-tertiary)",borderBottom:"1px solid var(--color-border-tertiary)",paddingBottom:4}}>{g.label} · {g.items.length}</p>
                             {g.items.map(b=>(
                           <div key={b.id} style={{background:"var(--color-background-secondary)",borderRadius:10,padding:"12px 14px",borderLeft:`3px solid ${C_RESERVED}`}}>
                             <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}}>
@@ -1847,7 +1814,7 @@ function RiadDashboard() {
                                 {b.name && <p style={{margin:"0 0 2px",fontSize:14,fontWeight:500}}>{b.name}</p>}
                                 <span style={{fontSize:10,fontFamily:"var(--font-mono)",color:"var(--color-text-info)",background:"var(--color-background-info)",padding:"2px 6px",borderRadius:4}}>{b.id}</span>
                                 <span style={{marginLeft:6,fontSize:11,color:"var(--color-text-tertiary)"}}>{b.platform}</span>
-                                <span style={{marginLeft:6,fontSize:11,fontWeight:600,color:b.paid?"#2e7d32":"#856404"}}>{b.paid?t("paidStatus"):t("unpaidStatus")}</span>
+                                <span style={{marginLeft:6,fontSize:11,fontWeight:600,color:b.paid?"var(--color-text-success)":"var(--color-text-warning)"}}>{b.paid?t("paidStatus"):t("unpaidStatus")}</span>
                               </div>
                               <div style={{display:"flex",gap:6,alignItems:"center"}}>
                                 <button onClick={()=>togglePaid(b.id)} style={{fontSize:13,border:"none",background:"none",cursor:"pointer",padding:"0 2px"}}>{isEffectivelyPaid(b)?"✅":"⏳"}</button>
@@ -1894,8 +1861,8 @@ function RiadDashboard() {
                             ))}
                           </div>
                         ))}
-                        <div style={{padding:"10px 0",fontWeight:500,fontSize:13,borderTop:"0.5px solid var(--color-border-tertiary)",color:"var(--color-text-success)"}}>
-                          {t("total")} : {fmtBoth(totalRevenue,rate)}
+                        <div style={{padding:"10px 0",fontWeight:500,fontSize:13,borderTop:"1px solid var(--color-border-tertiary)",color:"var(--color-text-success)"}}>
+                          {t("total")} : {fmtBoth(listRevenue,rate)}
                         </div>
                       </div>
                     )
@@ -1903,9 +1870,9 @@ function RiadDashboard() {
                     : (
                       <table style={{width:"100%",borderCollapse:"collapse",fontSize:13,tableLayout:"fixed"}}>
                         <thead>
-                          <tr style={{borderBottom:"0.5px solid var(--color-border-tertiary)"}}>
-                            {[t("colArrival"),t("colDeparture"),t("colCode"),t("colName"),t("colNights"),t("colGuests"),t("colRate"),t("colTotal"),""].map(h=>(
-                              <th key={h} style={{padding:"8px 6px",textAlign:"left",color:"var(--color-text-secondary)",fontWeight:400,fontSize:12,whiteSpace:"nowrap"}}>{h}</th>
+                          <tr style={{borderBottom:"1px solid var(--color-border-tertiary)"}}>
+                            {[t("colArrival"),t("colDeparture"),t("colCode"),t("colName"),t("colNights"),t("colGuests"),t("colRate"),t("colTotal"),""].map((h,hi)=>(
+                              <th key={h} style={{padding:"8px 6px",textAlign:"left",color:"var(--color-text-secondary)",fontWeight:400,fontSize:12,whiteSpace:"nowrap",width:["11%","11%","8%","auto","6%","8%","15%","15%","104px"][hi]}}>{h}</th>
                             ))}
                           </tr>
                         </thead>
@@ -1914,7 +1881,7 @@ function RiadDashboard() {
                             <Fragment key={g.key}>
                               <tr><td colSpan={9} style={{padding:"14px 6px 6px",fontSize:12,fontWeight:600,textTransform:"capitalize",color:"var(--color-text-tertiary)"}}>{g.label} · {g.items.length}</td></tr>
                               {g.items.map(b=>(
-                            <tr key={b.id} style={{borderBottom:"0.5px solid var(--color-border-tertiary)"}}>
+                            <tr key={b.id} style={{borderBottom:"1px solid var(--color-border-tertiary)"}}>
                               <td style={{padding:"10px 6px",whiteSpace:"nowrap"}}>{fmtDate(b.checkIn,locale)}</td>
                               <td style={{padding:"10px 6px",whiteSpace:"nowrap"}}>{fmtDate(b.checkOut,locale)}</td>
                               <td style={{padding:"6px"}}><span style={{fontSize:11,fontFamily:"var(--font-mono)",color:"var(--color-text-info)",background:"var(--color-background-info)",padding:"2px 6px",borderRadius:4}}>{b.id}</span></td>
@@ -1960,7 +1927,7 @@ function RiadDashboard() {
                         <tfoot>
                           <tr>
                             <td colSpan={7} style={{padding:"10px 6px",fontWeight:500}}>{t("totalStays")}</td>
-                            <td style={{padding:"10px 6px",fontWeight:500,color:"var(--color-text-success)"}}>{fmtBoth(totalRevenue,rate)}</td>
+                            <td style={{padding:"10px 6px",fontWeight:500,color:"var(--color-text-success)"}}>{fmtBoth(listRevenue,rate)}</td>
                             <td />
                           </tr>
                         </tfoot>
@@ -1980,11 +1947,11 @@ function RiadDashboard() {
         <div>
           {/* ── Tableau bilan mensuel ──────────────────────────────────── */}
           <div style={rc}>
-            <p style={{margin:"0 0 1rem",fontSize:14,fontWeight:500}}>{t("chartTitle")} — {year}</p>
+            <p className="kb-h" style={{margin:"0 0 1rem",fontSize:14,fontWeight:500}}>{t("chartTitle")} {year}</p>
 
             {/* En-tête desktop */}
             {!isMobile && (
-              <div style={{display:"grid",gridTemplateColumns:"38px 34px 38px 1fr 1fr 1fr 1fr 100px",gap:6,padding:"0 8px 8px",borderBottom:"0.5px solid var(--color-border-tertiary)",fontSize:11,color:"var(--color-text-tertiary)"}}>
+              <div style={{display:"grid",gridTemplateColumns:"38px 34px 38px 1fr 1fr 1fr 1fr 100px",gap:6,padding:"0 8px 8px",borderBottom:"1px solid var(--color-border-tertiary)",fontSize:11,color:"var(--color-text-tertiary)"}}>
                 <span></span>
                 <span style={{textAlign:"center"}}>{lang==="fr"?"Nuits":"Nights"}</span>
                 <span style={{textAlign:"center"}}>%</span>
@@ -2010,30 +1977,30 @@ function RiadDashboard() {
               const mProfit  = mNet - mExp;
               const fillPct  = Math.round((mNights/daysInMonth)*100);
               const isCurr   = mi===new Date().getMonth() && year===new Date().getFullYear();
-              const profitCol= mProfit>0?"#2e7d32":mProfit<0?"#c0392b":"var(--color-text-tertiary)";
+              const profitCol= mProfit>0?"var(--color-text-success)":mProfit<0?"var(--color-text-danger)":"var(--color-text-tertiary)";
               // Libellé occupation
               const occLabel = fillPct>=70?(lang==="fr"?"Excellent":"Excellent"):fillPct>=40?(lang==="fr"?"Bon":"Good"):fillPct>0?(lang==="fr"?"Faible":"Low"):(lang==="fr"?"Libre":"Free");
-              const occCol   = fillPct>=70?"#2e7d32":fillPct>=40?"#856404":fillPct>0?"#c0392b":"var(--color-text-tertiary)";
-              const occBg    = fillPct>=70?"#e8f5e9":fillPct>=40?"#fff3cd":fillPct>0?"#fdecea":"var(--color-background-secondary)";
+              const occCol   = fillPct>=70?"var(--color-text-success)":fillPct>=40?"var(--color-text-warning)":fillPct>0?"var(--color-text-danger)":"var(--color-text-tertiary)";
+              const occBg    = fillPct>=70?"var(--color-background-success)":fillPct>=40?"var(--color-background-warning)":fillPct>0?"var(--kb-danger-bg)":"var(--color-background-secondary)";
               // Libellé bénéfice
               const profLabel= mProfit>0?(lang==="fr"?"Bén.":"Profit"):mProfit<0?(lang==="fr"?"Déf.":"Loss"):"—";
-              const profBg   = mProfit>0?"#e8f5e9":mProfit<0?"#fdecea":"var(--color-background-secondary)";
-              const profLbl  = mProfit>0?"#1b5e20":mProfit<0?"#c0392b":"var(--color-text-tertiary)";
+              const profBg   = mProfit>0?"var(--color-background-success)":mProfit<0?"var(--kb-danger-bg)":"var(--color-background-secondary)";
+              const profLbl  = mProfit>0?"var(--color-text-success)":mProfit<0?"var(--color-text-danger)":"var(--color-text-tertiary)";
 
               return isMobile ? (
                 /* ── MOBILE : carte compacte ── */
-                <div key={m} style={{padding:"10px 8px",borderBottom:"0.5px solid var(--color-border-tertiary)",background:isCurr?"var(--color-background-secondary)":"transparent",borderLeft:isCurr?"3px solid #378ADD":"3px solid transparent"}}>
+                <div key={m} style={{padding:"10px 8px",borderBottom:"1px solid var(--color-border-tertiary)",background:isCurr?"var(--color-background-secondary)":"transparent",borderLeft:isCurr?"3px solid var(--kb-accent)":"3px solid transparent"}}>
                   {/* Ligne unique : mois | badge | nuits | net | dép | bénéfice */}
                   <div style={{display:"grid",gridTemplateColumns:"32px 90px 30px 1fr 1fr 1fr",alignItems:"center",gap:6}}>
                     <span style={{fontSize:13,fontWeight:isCurr?500:400}}>{m}</span>
                     <span style={{fontSize:10,padding:"2px 6px",borderRadius:99,background:occBg,color:occCol,fontWeight:500,textAlign:"center",whiteSpace:"nowrap"}}>{fillPct}% · {occLabel}</span>
                     <span style={{fontSize:12,color:"var(--color-text-secondary)",textAlign:"center"}}>{mNights>0?`${mNights}n`:"—"}</span>
                     <div style={{textAlign:"right"}}>
-                      {mNights>0 && <><div style={{fontSize:9,color:"var(--color-text-tertiary)"}}>Net</div><div style={{fontSize:11,fontWeight:500,color:"#2e7d32"}}>{fmtMAD(mNet)}</div></>}
+                      {mNights>0 && <><div style={{fontSize:9,color:"var(--color-text-tertiary)"}}>Net</div><div style={{fontSize:11,fontWeight:500,color:"var(--color-text-success)"}}>{fmtMAD(mNet)}</div></>}
                     </div>
                     <div style={{textAlign:"right"}}>
                       <div style={{fontSize:9,color:"var(--color-text-tertiary)"}}>{lang==="fr"?"Dép.":"Exp."}</div>
-                      <div style={{fontSize:11,fontWeight:500,color:"#c0392b"}}>{fmtMAD(mExp)}</div>
+                      <div style={{fontSize:11,fontWeight:500,color:"var(--color-text-danger)"}}>{fmtMAD(mExp)}</div>
                     </div>
                     <div style={{textAlign:"right"}}>
                       <div style={{fontSize:9,color:"var(--color-text-tertiary)"}}>{lang==="fr"?"Bén.":"Profit"}</div>
@@ -2043,13 +2010,13 @@ function RiadDashboard() {
                 </div>
               ) : (
                 /* ── DESKTOP : ligne tableau ── */
-                <div key={m} style={{display:"grid",gridTemplateColumns:"38px 34px 38px 1fr 1fr 1fr 1fr 100px",gap:6,padding:"9px 8px",borderBottom:"0.5px solid var(--color-border-tertiary)",alignItems:"center",background:isCurr?"var(--color-background-secondary)":"transparent",borderLeft:isCurr?"3px solid #378ADD":"3px solid transparent"}}>
+                <div key={m} style={{display:"grid",gridTemplateColumns:"38px 34px 38px 1fr 1fr 1fr 1fr 100px",gap:6,padding:"9px 8px",borderBottom:"1px solid var(--color-border-tertiary)",alignItems:"center",background:isCurr?"var(--color-background-secondary)":"transparent",borderLeft:isCurr?"3px solid var(--kb-accent)":"3px solid transparent"}}>
                   <span style={{fontSize:13,fontWeight:isCurr?500:400,color:isCurr?"var(--color-text-primary)":"var(--color-text-secondary)"}}>{m}</span>
                   <span style={{fontSize:12,textAlign:"center",color:"var(--color-text-secondary)",fontWeight:mNights>0?500:400}}>{mNights>0?`${mNights}n`:"—"}</span>
                   <span style={{fontSize:11,textAlign:"center",fontWeight:500,color:occCol}}>{fillPct>0?`${fillPct}%`:"—"}</span>
                   <span style={{fontSize:12,textAlign:"right",color:"var(--color-text-secondary)"}}>{mGross>0?fmtMAD(mGross):"—"}</span>
-                  <span style={{fontSize:12,textAlign:"right",color:mNet>0?"#2e7d32":"var(--color-text-tertiary)",fontWeight:mNet>0?500:400}}>{mNet>0?fmtMAD(mNet):"—"}</span>
-                  <span style={{fontSize:12,textAlign:"right",color:"#c0392b"}}>{fmtMAD(mExp)}</span>
+                  <span style={{fontSize:12,textAlign:"right",color:mNet>0?"var(--color-text-success)":"var(--color-text-tertiary)",fontWeight:mNet>0?500:400}}>{mNet>0?fmtMAD(mNet):"—"}</span>
+                  <span style={{fontSize:12,textAlign:"right",color:"var(--color-text-danger)"}}>{fmtMAD(mExp)}</span>
                   <span style={{fontSize:12,textAlign:"right",fontWeight:500,color:profitCol}}>{mProfit>0?"+":""}{fmtMAD(mProfit)}</span>
                   <span style={{textAlign:"right"}}>
                     <span style={{fontSize:11,padding:"2px 7px",borderRadius:99,fontWeight:500,background:occBg,color:occCol,whiteSpace:"nowrap"}}>
@@ -2068,8 +2035,8 @@ function RiadDashboard() {
                 <div style={{padding:"12px 8px",display:"flex",justifyContent:"space-between",alignItems:"center",borderTop:"1px solid var(--color-border-secondary)"}}>
                   <span style={{fontSize:13,fontWeight:500}}>{lang==="fr"?"Total":"Total"} · {totalNights}n</span>
                   <div style={{textAlign:"right"}}>
-                    <div style={{fontSize:13,fontWeight:500,color:"#2e7d32"}}>{fmtMAD(totalRevenue)}</div>
-                    <div style={{fontSize:11,color:netProfit>=0?"#BA7517":"#c0392b"}}>
+                    <div style={{fontSize:13,fontWeight:500,color:"var(--color-text-success)"}}>{fmtMAD(totalRevenue)}</div>
+                    <div style={{fontSize:11,color:netProfit>=0?"var(--kb-profit)":"var(--color-text-danger)"}}>
                       {netProfit>=0?"+":""}{fmtMAD(netProfit)} {lang==="fr"?"bénéfice":"profit"}
                     </div>
                   </div>
@@ -2080,9 +2047,9 @@ function RiadDashboard() {
                   <span style={{fontSize:12,textAlign:"center",fontWeight:500,color:"var(--color-text-secondary)"}}>{totalNights}n</span>
                   <span style={{fontSize:11,textAlign:"center",fontWeight:500,color:"var(--color-text-secondary)"}}>{Math.round((totalNights/365)*100)}%</span>
                   <span style={{fontSize:12,textAlign:"right",fontWeight:500}}>{fmtMAD(totalGrossYear)}</span>
-                  <span style={{fontSize:12,textAlign:"right",fontWeight:500,color:"#2e7d32"}}>{fmtMAD(totalRevenue)}</span>
-                  <span style={{fontSize:12,textAlign:"right",fontWeight:500,color:"#c0392b"}}>{fmtMAD(totalExp)}</span>
-                  <span style={{fontSize:13,textAlign:"right",fontWeight:500,color:netProfit>=0?"#BA7517":"#c0392b"}}>{netProfit>=0?"+":""}{fmtMAD(netProfit)}</span>
+                  <span style={{fontSize:12,textAlign:"right",fontWeight:500,color:"var(--color-text-success)"}}>{fmtMAD(totalRevenue)}</span>
+                  <span style={{fontSize:12,textAlign:"right",fontWeight:500,color:"var(--color-text-danger)"}}>{fmtMAD(totalExp)}</span>
+                  <span style={{fontSize:13,textAlign:"right",fontWeight:500,color:netProfit>=0?"var(--kb-profit)":"var(--color-text-danger)"}}>{netProfit>=0?"+":""}{fmtMAD(netProfit)}</span>
                   <span></span>
                 </div>
               );
@@ -2091,7 +2058,7 @@ function RiadDashboard() {
 
           {/* Nuits réservées par mois */}
           <div style={rc}>
-            <p style={{margin:"0 0 1rem",fontSize:14,fontWeight:500}}>{t("nightsTitle")}</p>
+            <p className="kb-h" style={{margin:"0 0 1rem",fontSize:14,fontWeight:500}}>{t("nightsTitle")}</p>
             <div style={{display:"flex",gap:12,marginBottom:"1rem",fontSize:12}}>
               <span style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:12,height:12,borderRadius:2,background:C_RESERVED}}/> {t("paying")}</span>
               <span style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:12,height:12,borderRadius:2,background:C_BLOCKED}}/> {t("perso")}</span>
@@ -2119,34 +2086,34 @@ function RiadDashboard() {
                 );
               })}
             </div>
-            <div style={{marginTop:"1rem",paddingTop:"1rem",borderTop:"0.5px solid var(--color-border-tertiary)",display:"flex",gap:24,fontSize:13}}>
+            <div style={{marginTop:"1rem",paddingTop:"1rem",borderTop:"1px solid var(--color-border-tertiary)",display:"flex",gap:24,fontSize:13}}>
               <span>{t("totalPayingLabel")} : <strong style={{color:C_RESERVED}}>{totalNights} {t("nightPlural")}</strong></span>
               {persoNights>0 && <span>{t("totalPersoLabel")} : <strong style={{color:C_BLOCKED}}>{persoNights} {t("nightPlural")}</strong></span>}
             </div>
           </div>
 
           {/* Prévisionnel */}
-          <div style={{...rc,marginTop:"1.25rem",borderLeft:"3px solid #BA7517"}}>
-            <p style={{margin:"0 0 1rem",fontSize:14,fontWeight:500}}>{t("forecastTitle")} {year}</p>
+          <div style={{...rc,borderLeft:"3px solid var(--kb-profit)"}}>
+            <p className="kb-h" style={{margin:"0 0 1rem",fontSize:14,fontWeight:500}}>{t("forecastTitle")} {year}</p>
             <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
               <div style={{...mc,flex:"1 1 160px"}}>
-                <p style={{margin:0,fontSize:11,color:"var(--color-text-secondary)",textTransform:"uppercase",letterSpacing:"0.05em"}}>{t("collected")}</p>
-                <p style={{margin:"6px 0 2px",fontSize:18,fontWeight:500,color:C_RESERVED}}>{fmtBoth(pastRevenue,rate)}</p>
+                <p style={{margin:0,fontSize:11,color:"var(--color-text-secondary)"}}>{t("collected")}</p>
+                <p style={{margin:"6px 0 2px",fontSize:20,fontWeight:600,letterSpacing:"-0.3px",fontVariantNumeric:"tabular-nums",color:C_RESERVED}}>{fmtBoth(pastRevenue,rate)}</p>
                 <p style={{margin:0,fontSize:12,color:"var(--color-text-tertiary)"}}>{pastBookings_.length} {pastBookings_.length>1?t("staysDonePlural"):t("staysDone")}</p>
               </div>
               <div style={{...mc,flex:"1 1 160px"}}>
-                <p style={{margin:0,fontSize:11,color:"var(--color-text-secondary)",textTransform:"uppercase",letterSpacing:"0.05em"}}>{t("confirmed")}</p>
-                <p style={{margin:"6px 0 2px",fontSize:18,fontWeight:500,color:C_BLOCKED}}>{fmtBoth(futureRevenue,rate)}</p>
+                <p style={{margin:0,fontSize:11,color:"var(--color-text-secondary)"}}>{t("confirmed")}</p>
+                <p style={{margin:"6px 0 2px",fontSize:20,fontWeight:600,letterSpacing:"-0.3px",fontVariantNumeric:"tabular-nums",color:C_BLOCKED}}>{fmtBoth(futureRevenue,rate)}</p>
                 <p style={{margin:0,fontSize:12,color:"var(--color-text-tertiary)"}}>{futureBookings_.length} {futureBookings_.length>1?t("staysAheadPlural"):t("staysAhead")}</p>
               </div>
               <div style={{...mc,flex:"1 1 160px"}}>
-                <p style={{margin:0,fontSize:11,color:"var(--color-text-secondary)",textTransform:"uppercase",letterSpacing:"0.05em"}}>{t("projected")}</p>
-                <p style={{margin:"6px 0 2px",fontSize:18,fontWeight:500,color:"#BA7517"}}>{fmtBoth(forecast.projectedTotal,rate)}</p>
+                <p style={{margin:0,fontSize:11,color:"var(--color-text-secondary)"}}>{t("projected")}</p>
+                <p style={{margin:"6px 0 2px",fontSize:20,fontWeight:600,letterSpacing:"-0.3px",fontVariantNumeric:"tabular-nums",color:"var(--kb-profit)"}}>{fmtBoth(forecast.projectedTotal,rate)}</p>
                 <p style={{margin:0,fontSize:12,color:"var(--color-text-tertiary)"}}>{t("basedOn")} {fmtMAD(Math.round(forecast.avgMonthly))}{t("perMonth")}</p>
               </div>
               <div style={{...mc,flex:"1 1 160px"}}>
-                <p style={{margin:0,fontSize:11,color:"var(--color-text-secondary)",textTransform:"uppercase",letterSpacing:"0.05em"}}>{t("fillRate")}</p>
-                <p style={{margin:"6px 0 2px",fontSize:18,fontWeight:500,color:"var(--color-text-info)"}}>{occupancy}%</p>
+                <p style={{margin:0,fontSize:11,color:"var(--color-text-secondary)"}}>{t("fillRate")}</p>
+                <p style={{margin:"6px 0 2px",fontSize:20,fontWeight:600,letterSpacing:"-0.3px",fontVariantNumeric:"tabular-nums",color:"var(--color-text-info)"}}>{occupancy}%</p>
                 <p style={{margin:0,fontSize:12,color:"var(--color-text-tertiary)"}}>{totalNights} {t("nightPlural")} · {lang==="fr"?"objectif 70% =":"target 70% ="} {Math.round(365*0.7)} {t("nightPlural")}</p>
               </div>
             </div>
@@ -2178,10 +2145,10 @@ function RiadDashboard() {
         <div>
           <div style={rc}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1.5rem",flexWrap:"wrap",gap:8}}>
-              <p style={{margin:0,fontSize:14,fontWeight:500}}>{lang==="fr"?"Taux de remplissage":"Fill rate"} — {year}</p>
+              <p className="kb-h" style={{margin:0,fontSize:14,fontWeight:500}}>{lang==="fr"?"Taux de remplissage":"Fill rate"} {year}</p>
               <div style={{display:"flex",gap:16,fontSize:12}}>
-                <span style={{display:"flex",alignItems:"center",gap:5}}><div style={{width:10,height:10,borderRadius:2,background:"#2e7d32",flexShrink:0}}/>{lang==="fr"?"≥70% Excellent":"≥70% Excellent"}</span>
-                <span style={{display:"flex",alignItems:"center",gap:5}}><div style={{width:10,height:10,borderRadius:2,background:"#856404",flexShrink:0}}/>{lang==="fr"?"40–70% Bon":"40–70% Good"}</span>
+                <span style={{display:"flex",alignItems:"center",gap:5}}><div style={{width:10,height:10,borderRadius:2,background:"var(--color-text-success)",flexShrink:0}}/>{lang==="fr"?"≥70% Excellent":"≥70% Excellent"}</span>
+                <span style={{display:"flex",alignItems:"center",gap:5}}><div style={{width:10,height:10,borderRadius:2,background:"var(--color-text-warning)",flexShrink:0}}/>{lang==="fr"?"40–70% Bon":"40–70% Good"}</span>
                 <span style={{display:"flex",alignItems:"center",gap:5}}><div style={{width:10,height:10,borderRadius:2,background:C_RESERVED,flexShrink:0}}/>{lang==="fr"?"<40% Faible":"<40% Low"}</span>
               </div>
             </div>
@@ -2195,17 +2162,17 @@ function RiadDashboard() {
                   const mStart=new Date(year,mi,1); const mEnd=new Date(year,mi+1,1);
                   return new Date(b.checkIn)<mEnd && new Date(b.checkOut)>mStart;
                 }).reduce((s,b)=>s+netAmount(b),0);
-                const col   = pct>=70?"#2e7d32":pct>=40?"#856404":pct===0?"var(--color-text-tertiary)":C_RESERVED;
+                const col   = pct>=70?"var(--color-text-success)":pct>=40?"var(--color-text-warning)":pct===0?"var(--color-text-tertiary)":C_RESERVED;
                 const isCurr= mi===new Date().getMonth() && year===new Date().getFullYear();
                 const badge = pct>=70
-                  ? {bg:"#e8f5e9",color:"#2e7d32",label:lang==="fr"?"Excellent":"Excellent",dot:"●"}
+                  ? {bg:"var(--color-background-success)",color:"var(--color-text-success)",label:lang==="fr"?"Excellent":"Excellent",dot:"●"}
                   : pct>=40
-                    ? {bg:"#fff3cd",color:"#856404",label:lang==="fr"?"Bon":"Good",dot:"●"}
+                    ? {bg:"var(--color-background-warning)",color:"var(--color-text-warning)",label:lang==="fr"?"Bon":"Good",dot:"●"}
                     : pct===0
                       ? {bg:"var(--color-background-secondary)",color:"var(--color-text-tertiary)",label:lang==="fr"?"Libre":"Free",dot:"—"}
-                      : {bg:"#fdecea",color:C_RESERVED,label:lang==="fr"?"Faible":"Low",dot:"●"};
+                      : {bg:"var(--kb-danger-bg)",color:C_RESERVED,label:lang==="fr"?"Faible":"Low",dot:"●"};
                 return (
-                  <div key={m} style={{display:"grid",gridTemplateColumns:"48px 1fr 52px 120px 140px 90px",alignItems:"center",gap:16,padding:"14px 16px",borderBottom:"0.5px solid var(--color-border-tertiary)",background:isCurr?"var(--color-background-secondary)":"transparent",borderRadius:isCurr?8:0,borderLeft:isCurr?`3px solid ${col}`:"3px solid transparent"}}>
+                  <div key={m} style={{display:"grid",gridTemplateColumns:"48px 1fr 52px 120px 140px 90px",alignItems:"center",gap:16,padding:"14px 16px",borderBottom:"1px solid var(--color-border-tertiary)",background:isCurr?"var(--color-background-secondary)":"transparent",borderRadius:isCurr?8:0,borderLeft:isCurr?`3px solid ${col}`:"3px solid transparent"}}>
                     <span style={{fontSize:14,fontWeight:isCurr?700:400,color:isCurr?"var(--color-text-primary)":"var(--color-text-secondary)"}}>{m}</span>
                     <div style={{background:"var(--color-border-tertiary)",borderRadius:99,height:10,overflow:"hidden",display:"flex"}}>
                       <div style={{width:`${Math.round((n/daysInMonth)*100)}%`,height:"100%",background:C_RESERVED,transition:"width 0.4s"}} />
@@ -2230,12 +2197,12 @@ function RiadDashboard() {
               const totalGuests = payingBookings.reduce((s,b)=>s+(parseInt(b.guests)||0),0);
               const pastGuests  = payingBookings.filter(b=>b.checkOut<=todayStr).reduce((s,b)=>s+(parseInt(b.guests)||0),0);
               return (
-                <div style={{display:"flex",gap:24,fontSize:13,flexWrap:"wrap",padding:"16px 16px 4px",borderTop:"0.5px solid var(--color-border-tertiary)",marginTop:4}}>
-                  <span>{lang==="fr"?"Taux annuel":"Annual rate"} : <strong style={{color:occupancy>=70?"#2e7d32":occupancy>=40?"#856404":C_RESERVED}}>{occupancy}%</strong></span>
+                <div style={{display:"flex",gap:24,fontSize:13,flexWrap:"wrap",padding:"16px 16px 4px",borderTop:"1px solid var(--color-border-tertiary)",marginTop:4}}>
+                  <span>{lang==="fr"?"Taux annuel":"Annual rate"} : <strong style={{color:occupancy>=70?"var(--color-text-success)":occupancy>=40?"var(--color-text-warning)":C_RESERVED}}>{occupancy}%</strong></span>
                   <span>{lang==="fr"?"Total payantes":"Total paying"} : <strong style={{color:C_RESERVED}}>{totalNights}n</strong></span>
                   {persoNights>0 && <span>{lang==="fr"?"Total perso":"Personal"} : <strong style={{color:C_BLOCKED}}>{persoNights}n</strong></span>}
                   <span>{lang==="fr"?"Objectif 70%":"Target 70%"} : <strong>{Math.round(365*0.7)}n</strong></span>
-                  <span style={{borderLeft:"0.5px solid var(--color-border-secondary)",paddingLeft:24}}>
+                  <span style={{borderLeft:"1px solid var(--color-border-secondary)",paddingLeft:24}}>
                     👥 {lang==="fr"?"Voyageurs accueillis":"Guests welcomed"} : <strong style={{color:"var(--color-text-info)"}}>{pastGuests}</strong>
                     {totalGuests>pastGuests && <span style={{color:"var(--color-text-tertiary)",fontSize:12}}> · + {totalGuests-pastGuests} {lang==="fr"?"à venir":"upcoming"}</span>}
                   </span>
@@ -2252,10 +2219,10 @@ function RiadDashboard() {
       {tab==="expenses" && (
         <div>
           {/* Récurrentes */}
-          <div style={{...rc,marginBottom:"1.25rem",borderLeft:"3px solid #378ADD"}}>
+          <div style={{...rc,marginBottom:"1.25rem",borderLeft:"3px solid var(--kb-accent)"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:recurring.length>0?"1rem":0,flexWrap:"wrap",gap:8}}>
-              <p style={{margin:0,fontSize:14,fontWeight:500}}>{t("expenseTitle")}</p>
-              <button onClick={()=>setShowAddR(!showAddR)}>{t("addExpense")}</button>
+              <p className="kb-h" style={{margin:0,fontSize:14,fontWeight:500}}>{t("expenseTitle")}</p>
+              <button className="kb-primary" onClick={()=>setShowAddR(!showAddR)}>{t("addExpense")}</button>
             </div>
             {showAddR && (
               <div style={{background:"var(--color-background-secondary)",borderRadius:8,padding:"1rem",marginBottom:"1rem"}}>
@@ -2267,11 +2234,11 @@ function RiadDashboard() {
                 </div>
                 <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:12}}>
                   {months.map((m,i)=>(
-                    <button key={m} onClick={()=>toggleMonth(i)} style={{padding:"4px 10px",fontSize:12,borderRadius:99,border:"0.5px solid var(--color-border-secondary)",background:rForm.months.includes(i)?"#378ADD":"var(--color-background-secondary)",color:rForm.months.includes(i)?"#fff":"var(--color-text-secondary)",cursor:"pointer"}}>{m}</button>
+                    <button key={m} onClick={()=>toggleMonth(i)} style={{padding:"4px 10px",fontSize:12,borderRadius:99,border:"1px solid var(--color-border-secondary)",background:rForm.months.includes(i)?"var(--kb-accent)":"var(--color-background-secondary)",color:rForm.months.includes(i)?"var(--color-background-primary)":"var(--color-text-secondary)",cursor:"pointer"}}>{m}</button>
                   ))}
                 </div>
                 <div style={{display:"flex",gap:8}}>
-                  <button onClick={addRecurring}>{t("save")}</button>
+                  <button className="kb-primary" onClick={addRecurring}>{t("save")}</button>
                   <button onClick={()=>setShowAddR(false)} style={{color:"var(--color-text-secondary)"}}>{t("cancel")}</button>
                 </div>
               </div>
@@ -2285,10 +2252,10 @@ function RiadDashboard() {
                     <span style={{fontSize:13,fontWeight:500,color:"var(--color-text-danger)",flexShrink:0}}>{fmtBoth(rec.amount,rate)}</span>
                     <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
                       {months.map((m,i)=>(
-                        <span key={m} style={{fontSize:11,padding:"2px 6px",borderRadius:99,background:rec.months.includes(i)?"#378ADD22":"transparent",color:rec.months.includes(i)?"#378ADD":"var(--color-text-tertiary)",fontWeight:rec.months.includes(i)?600:400}}>{m}</span>
+                        <span key={m} style={{fontSize:11,padding:"2px 6px",borderRadius:99,background:rec.months.includes(i)?"var(--kb-accent-bg)":"transparent",color:rec.months.includes(i)?"var(--kb-accent)":"var(--color-text-tertiary)",fontWeight:rec.months.includes(i)?600:400}}>{m}</span>
                       ))}
                     </div>
-                    <button onClick={()=>generateRecurring(rec)} style={{fontSize:12,padding:"4px 12px",background:"#378ADD",color:"#fff",border:"none",borderRadius:6,cursor:"pointer",flexShrink:0}}>{t("generateYear")} {year} ↗</button>
+                    <button onClick={()=>generateRecurring(rec)} style={{fontSize:12,padding:"4px 12px",background:"var(--kb-accent)",color:"var(--color-background-primary)",border:"none",borderRadius:6,cursor:"pointer",flexShrink:0}}>{t("generateYear")} {year} ↗</button>
                     <button onClick={()=>{setRecurring(prev=>prev.filter(r=>r.id!==rec.id));showToast(t("toastRecurringDel"));}} style={{fontSize:11,color:"var(--color-text-danger)",border:"none",background:"none",cursor:"pointer",padding:"2px 4px"}}>✕</button>
                   </div>
                 ))}
@@ -2298,11 +2265,11 @@ function RiadDashboard() {
           {/* Dépenses ponctuelles */}
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1rem",flexWrap:"wrap",gap:8}}>
             <p style={{margin:0,fontSize:14,color:"var(--color-text-secondary)"}}>{yearExpenses.length} {t("expensesCount")} · {fmtBoth(totalExp,rate)}</p>
-            <button onClick={()=>setShowAddE(!showAddE)}>{t("addExpense")}</button>
+            <button className="kb-primary" onClick={()=>setShowAddE(!showAddE)}>{t("addExpense")}</button>
           </div>
           {showAddE && (
             <div style={{...rc,marginBottom:"1.25rem",background:"var(--color-background-secondary)",border:"none"}}>
-              <p style={{margin:"0 0 12px",fontSize:14,fontWeight:500}}>{t("newExpenseTitle")}</p>
+              <p className="kb-h" style={{margin:"0 0 12px",fontSize:14,fontWeight:500}}>{t("newExpenseTitle")}</p>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0 16px"}}>
                 <div><label style={{fontSize:13,color:"var(--color-text-secondary)"}}>{t("frmDate")}</label><input type="date" style={inp} value={eForm.date} onChange={e=>setEForm(f=>({...f,date:e.target.value}))} /></div>
                 <div><label style={{fontSize:13,color:"var(--color-text-secondary)"}}>{t("frmCategory")}</label><select style={inp} value={eForm.category} onChange={e=>setEForm(f=>({...f,category:e.target.value}))}>{EXPENSE_CATS.map(c=><option key={c} value={c}>{tCat(c)}</option>)}</select></div>
@@ -2310,7 +2277,7 @@ function RiadDashboard() {
                 <div style={{gridColumn:"1 / -1"}}><label style={{fontSize:13,color:"var(--color-text-secondary)"}}>{t("frmAmount")}</label><input type="number" placeholder={t("frmPlaceholderAmountExp")} style={inp} value={eForm.amount} onChange={e=>setEForm(f=>({...f,amount:e.target.value}))} /></div>
               </div>
               <div style={{display:"flex",gap:8}}>
-                <button onClick={addExpense}>{t("save")}</button>
+                <button className="kb-primary" onClick={addExpense}>{t("save")}</button>
                 <button onClick={()=>setShowAddE(false)} style={{color:"var(--color-text-secondary)"}}>{t("cancel")}</button>
               </div>
             </div>
@@ -2321,9 +2288,9 @@ function RiadDashboard() {
               <div style={rc}>
                 {/* Modal édition dépense */}
                 {editExpense && (
-                  <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.4)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:"1rem"}}>
-                    <div style={{background:"var(--color-background-primary)",borderRadius:12,padding:"1.5rem",width:"100%",maxWidth:440,boxShadow:"0 8px 32px rgba(0,0,0,0.2)"}}>
-                      <p style={{margin:"0 0 16px",fontSize:15,fontWeight:500}}>{t("editExpenseModalTitle")}</p>
+                  <div className="kb-overlay" style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.4)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:"1rem"}}>
+                    <div className="kb-modal" style={{background:"var(--color-background-primary)",borderRadius:12,padding:"1.5rem",width:"100%",maxWidth:440,maxHeight:"calc(100vh - 2rem)",overflowY:"auto",boxShadow:"0 8px 32px rgba(0,0,0,0.2)"}}>
+                      <p className="kb-h" style={{margin:"0 0 16px",fontSize:15,fontWeight:500}}>{t("editExpenseModalTitle")}</p>
                       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0 16px"}}>
                         <div><label style={{fontSize:12,color:"var(--color-text-secondary)"}}>{t("frmDate")}</label><input type="date" style={inp} value={editExpense.date} onChange={e=>setEditExpense(x=>({...x,date:e.target.value}))} /></div>
                         <div><label style={{fontSize:12,color:"var(--color-text-secondary)"}}>{t("frmCategory")}</label><select style={inp} value={editExpense.category} onChange={e=>setEditExpense(x=>({...x,category:e.target.value}))}>{EXPENSE_CATS.map(c=><option key={c} value={c}>{tCat(c)}</option>)}</select></div>
@@ -2331,7 +2298,7 @@ function RiadDashboard() {
                         <div style={{gridColumn:"1 / -1"}}><label style={{fontSize:12,color:"var(--color-text-secondary)"}}>{t("frmAmount")}</label><input type="number" style={inp} value={editExpense.amount} onChange={e=>setEditExpense(x=>({...x,amount:e.target.value}))} /></div>
                       </div>
                       <div style={{display:"flex",gap:8,marginTop:4}}>
-                        <button onClick={saveEditExpense} style={{flex:1}}>{t("save")}</button>
+                        <button className="kb-primary" onClick={saveEditExpense} style={{flex:1}}>{t("save")}</button>
                         <button onClick={()=>setEditExpense(null)} style={{color:"var(--color-text-secondary)"}}>{t("cancel")}</button>
                       </div>
                     </div>
@@ -2339,7 +2306,7 @@ function RiadDashboard() {
                 )}
                 <table style={{width:"100%",borderCollapse:"collapse",fontSize:13,tableLayout:"fixed"}}>
                   <thead>
-                    <tr style={{borderBottom:"0.5px solid var(--color-border-tertiary)"}}>
+                    <tr style={{borderBottom:"1px solid var(--color-border-tertiary)"}}>
                       {[t("colDate"),t("colCategory"),t("colDesc"),t("colAmount"),""].map(h=>(
                         <th key={h} style={{padding:"8px 6px",textAlign:"left",color:"var(--color-text-secondary)",fontWeight:400,fontSize:12}}>{h}</th>
                       ))}
@@ -2347,7 +2314,7 @@ function RiadDashboard() {
                   </thead>
                   <tbody>
                     {[...yearExpenses].sort((a,b)=>new Date(a.date)-new Date(b.date)).map(e=>(
-                      <tr key={e.id} style={{borderBottom:"0.5px solid var(--color-border-tertiary)"}}>
+                      <tr key={e.id} style={{borderBottom:"1px solid var(--color-border-tertiary)"}}>
                         <td style={{padding:"10px 6px",whiteSpace:"nowrap"}}>{fmtDate(e.date,locale)}</td>
                         <td style={{padding:"10px 6px"}}><span style={{fontSize:11,padding:"2px 8px",borderRadius:99,background:"var(--color-background-warning)",color:"var(--color-text-warning)",fontWeight:500}}>{tCat(e.category)}</span></td>
                         <td style={{padding:"10px 6px",overflow:"hidden",textOverflow:"ellipsis",color:"var(--color-text-secondary)"}}>{e.description}</td>
@@ -2368,7 +2335,7 @@ function RiadDashboard() {
                   </tfoot>
                 </table>
                 {expByCat.length>0 && (
-                  <div style={{marginTop:"1.25rem",paddingTop:"1.25rem",borderTop:"0.5px solid var(--color-border-tertiary)"}}>
+                  <div style={{marginTop:"1.25rem",paddingTop:"1.25rem",borderTop:"1px solid var(--color-border-tertiary)"}}>
                     <p style={{margin:"0 0 12px",fontSize:13,fontWeight:500,color:"var(--color-text-secondary)"}}>{t("byCategory")}</p>
                     <div style={{display:"flex",flexDirection:"column",gap:8}}>
                       {expByCat.map(([cat,amt])=>{
@@ -2380,7 +2347,7 @@ function RiadDashboard() {
                               <span style={{color:"var(--color-text-secondary)"}}>{fmtBoth(amt,rate)} · {pct}%</span>
                             </div>
                             <div style={{background:"var(--color-background-secondary)",borderRadius:99,height:6,overflow:"hidden"}}>
-                              <div style={{width:`${pct}%`,height:"100%",background:"#BA7517",borderRadius:99}} />
+                              <div style={{width:`${pct}%`,height:"100%",background:"var(--kb-profit)",borderRadius:99}} />
                             </div>
                           </div>
                         );
@@ -2394,30 +2361,31 @@ function RiadDashboard() {
         </div>
       )}
 
+      </main>
     </div>
 
     {/* ── Toast — hors container pour position:fixed fiable sur iOS PWA ── */}
     {rescue && (
-      <div onClick={()=>setRescue(null)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.35)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
-        <div onClick={e=>e.stopPropagation()} role="dialog" aria-label="Sauvegardes de secours" style={{background:"var(--color-background-primary, #fff)",borderRadius:12,padding:"20px 20px 16px",width:"100%",maxWidth:520,maxHeight:"80vh",display:"flex",flexDirection:"column"}}>
+      <div onClick={()=>setRescue(null)} className="kb-overlay" style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.35)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+        <div onClick={e=>e.stopPropagation()} role="dialog" aria-label="Sauvegardes de secours" className="kb-modal" style={{background:"var(--color-background-primary)",borderRadius:12,padding:"20px 20px 16px",width:"100%",maxWidth:520,maxHeight:"80vh",display:"flex",flexDirection:"column"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
-            <p style={{margin:0,fontSize:16}}>🛟 Sauvegardes de secours</p>
+            <p className="kb-h" style={{margin:0,fontSize:16}}>🛟 Sauvegardes de secours</p>
             <button onClick={()=>setRescue(null)} aria-label="Fermer" style={{background:"none",border:"none",fontSize:18,cursor:"pointer"}}>✕</button>
           </div>
           <p style={{margin:"0 0 12px",fontSize:12,color:"var(--color-text-tertiary)"}}>Copie complète de la base toutes les 6 h, conservée 14 jours.</p>
-          <button onClick={backupNow} disabled={rescue.busy} style={{alignSelf:"flex-start",padding:"6px 12px",fontSize:13,borderRadius:6,border:"0.5px solid #856404",background:"#fff3cd",color:"#856404",cursor:"pointer",marginBottom:12}}>{rescue.busy?"⏳ Sauvegarde…":"+ Sauvegarder maintenant"}</button>
+          <button onClick={backupNow} disabled={rescue.busy} style={{alignSelf:"flex-start",padding:"6px 12px",fontSize:13,borderRadius:6,border:"1px solid var(--color-text-warning)",background:"var(--color-background-warning)",color:"var(--color-text-warning)",cursor:"pointer",marginBottom:12}}>{rescue.busy?"⏳ Sauvegarde…":"+ Sauvegarder maintenant"}</button>
           <div style={{overflowY:"auto",flex:1}}>
             {rescue.loading && <p style={{fontSize:13,color:"var(--color-text-tertiary)"}}>Chargement…</p>}
             {rescue.error && <p style={{fontSize:13,color:"var(--color-text-danger)"}}>Impossible de lire les sauvegardes ({rescue.error})</p>}
             {!rescue.loading && !rescue.error && rescue.list.length===0 && <p style={{fontSize:13,color:"var(--color-text-tertiary)"}}>Aucune sauvegarde pour l'instant. La première sera créée au prochain passage automatique, ou tout de suite avec le bouton ci-dessus.</p>}
             {rescue.list.map(b => (
-              <div key={b.id} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 0",borderTop:"0.5px solid var(--color-border-tertiary, #eee)",flexWrap:"wrap"}}>
+              <div key={b.id} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 0",borderTop:"1px solid var(--color-border-tertiary)",flexWrap:"wrap"}}>
                 <div style={{flex:1,minWidth:180}}>
                   <p style={{margin:0,fontSize:13}}>{new Date(b.createdAt).toLocaleString(locale,{weekday:"short",day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"})}</p>
                   <p style={{margin:0,fontSize:11,color:"var(--color-text-tertiary)"}}>{b.counts?.bookings ?? "?"} réas · {b.counts?.expenses ?? "?"} dépenses{b.reason && b.reason!=="cron" ? ` · ${b.reason.startsWith("manuel")?"manuelle":b.reason}` : ""}</p>
                 </div>
-                <button onClick={()=>downloadBackup(b)} style={{padding:"4px 10px",fontSize:12,borderRadius:6,border:"0.5px solid var(--color-border-secondary)",background:"none",cursor:"pointer"}}>Télécharger</button>
-                <button onClick={()=>restoreBackup(b)} style={{padding:"4px 10px",fontSize:12,borderRadius:6,border:"none",background:"#856404",color:"#fff",cursor:"pointer"}}>Restaurer</button>
+                <button onClick={()=>downloadBackup(b)} style={{padding:"4px 10px",fontSize:12,borderRadius:6,border:"1px solid var(--color-border-secondary)",background:"none",cursor:"pointer"}}>Télécharger</button>
+                <button onClick={()=>restoreBackup(b)} style={{padding:"4px 10px",fontSize:12,borderRadius:6,border:"none",background:"var(--color-text-warning)",color:"var(--color-background-primary)",cursor:"pointer"}}>Restaurer</button>
               </div>
             ))}
           </div>
@@ -2425,21 +2393,21 @@ function RiadDashboard() {
       </div>
     )}
     {toast && (
-      <div className="safe-bottom" style={{position:"fixed",bottom:24,left:"50%",transform:"translateX(-50%)",background:"var(--color-background-primary)",border:"0.5px solid var(--color-border-secondary)",borderRadius:"var(--border-radius-lg)",padding:"10px 20px",fontSize:13,fontWeight:500,boxShadow:"0 4px 16px rgba(0,0,0,0.12)",zIndex:9999,whiteSpace:"nowrap"}}>
+      <div className="safe-bottom kb-toast" role="status" style={{position:"fixed",bottom:24,left:"50%",transform:"translateX(-50%)",background:"var(--color-background-primary)",border:"1px solid var(--color-border-secondary)",borderRadius:"var(--border-radius-lg)",padding:"10px 20px",fontSize:13,fontWeight:500,boxShadow:"0 4px 16px rgba(0,0,0,0.12)",zIndex:9999,whiteSpace:"nowrap"}}>
         {toast}
       </div>
     )}
 
     {/* ── Modal confirmation suppression ── */}
     {confirmDelete && (
-      <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.55)",zIndex:10000,display:"flex",alignItems:"center",justifyContent:"center",padding:"1.5rem",boxSizing:"border-box"}}>
-        <div className="modal-card" style={{background:"var(--color-background-primary)",borderRadius:16,padding:"1.5rem",paddingBottom:"max(1.5rem, calc(env(safe-area-inset-bottom, 0px) + 1rem))",width:"100%",maxWidth:320,boxShadow:"0 12px 40px rgba(0,0,0,0.3)",boxSizing:"border-box"}}>
+      <div className="kb-overlay" style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.55)",zIndex:10000,display:"flex",alignItems:"center",justifyContent:"center",padding:"1.5rem",boxSizing:"border-box"}}>
+        <div className="modal-card kb-modal" style={{background:"var(--color-background-primary)",borderRadius:16,padding:"1.5rem",paddingBottom:"max(1.5rem, calc(env(safe-area-inset-bottom, 0px) + 1rem))",width:"100%",maxWidth:320,boxShadow:"0 12px 40px rgba(0,0,0,0.3)",boxSizing:"border-box"}}>
           <p style={{margin:"0 0 6px",fontSize:17,fontWeight:600}}>🗑️ {lang==="fr"?"Supprimer ?":"Delete?"}</p>
           <p style={{margin:"0 0 20px",fontSize:14,color:"var(--color-text-secondary)",lineHeight:1.4}}>{confirmDelete.label}</p>
           <div style={{display:"flex",gap:12}}>
             <button
               onClick={()=>{confirmDelete.onConfirm();setConfirmDelete(null);}}
-              style={{flex:1,padding:"14px",background:C_RESERVED,color:"#fff",border:"none",borderRadius:10,fontSize:16,fontWeight:700,cursor:"pointer",WebkitAppearance:"none",minHeight:48}}>
+              style={{flex:1,padding:"14px",background:"var(--color-text-danger)",color:"#fff",border:"none",borderRadius:10,fontSize:16,fontWeight:700,cursor:"pointer",WebkitAppearance:"none",minHeight:48}}>
               {lang==="fr"?"Supprimer":"Delete"}
             </button>
             <button
@@ -2458,9 +2426,7 @@ function RiadDashboard() {
 // ── Connexion (Google) ────────────────────────────────────────────────────────
 // Le tableau de bord n'est monté qu'une fois l'utilisateur connecté ET autorisé
 // (liste d'e-mails dans Firestore config/access, appliquée par les règles).
-const gateBox  = { minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center", padding:24, fontFamily:"Georgia, serif", background:"var(--color-background-primary, #fff)" };
-const gateCard = { maxWidth:360, width:"100%", textAlign:"center", border:"0.5px solid #ddd", borderRadius:12, padding:"32px 24px" };
-const gateBtn  = { padding:"10px 18px", fontSize:15, borderRadius:8, border:"0.5px solid #999", background:"#fff", cursor:"pointer" };
+// Styles : classes kb-gate / kb-gate-card dans src/theme.css
 
 export default function App() {
   const [user, setUser]     = useState(undefined); // undefined = en cours, null = déconnecté
@@ -2496,30 +2462,31 @@ export default function App() {
   };
 
   if (user === undefined || (user && access === "pending"))
-    return <div style={gateBox}><p style={{color:"#888"}}>Chargement…</p></div>;
+    return <div className="kb-gate"><p className="kb-gate-loading">Chargement…</p></div>;
 
   if (!user) return (
-    <div style={gateBox}><div style={gateCard}>
-      <h1 style={{fontSize:22,fontWeight:400,margin:"0 0 6px"}}>Kasbah Blanca Marrakech</h1>
-      <p style={{fontSize:13,color:"#888",margin:"0 0 24px"}}>Tableau de bord locatif</p>
-      <button onClick={login} style={gateBtn}>Se connecter avec Google</button>
-      {err && <p style={{fontSize:12,color:"#c0392b",marginTop:16}}>Connexion impossible ({err})</p>}
+    <div className="kb-gate"><div className="kb-gate-card">
+      <img src="/apple-touch-icon.png" alt="" />
+      <h1>Kasbah Blanca Marrakech</h1>
+      <p>Tableau de bord locatif</p>
+      <button className="kb-primary" onClick={login} style={{padding:"12px 20px",fontSize:15}}>Se connecter avec Google</button>
+      {err && <p style={{fontSize:12,color:"var(--color-text-danger)",margin:"16px 0 0"}}>Connexion impossible ({err})</p>}
     </div></div>
   );
 
   if (access !== "ok") return (
-    <div style={gateBox}><div style={gateCard}>
-      <p style={{fontSize:15,margin:"0 0 8px"}}>{access === "denied" ? "Accès non autorisé" : "Base injoignable"}</p>
-      <p style={{fontSize:13,color:"#888",margin:"0 0 20px"}}>{access === "denied" ? `Le compte ${user.email} n'a pas accès à ce tableau de bord.` : "Vérifiez votre connexion puis réessayez."}</p>
-      <button onClick={logout} style={gateBtn}>Changer de compte</button>
+    <div className="kb-gate"><div className="kb-gate-card">
+      <p style={{fontSize:17,margin:"0 0 8px",color:"var(--color-text-primary)",fontFamily:"var(--font-serif)"}}>{access === "denied" ? "Accès non autorisé" : "Base injoignable"}</p>
+      <p style={{fontSize:13,margin:"0 0 20px"}}>{access === "denied" ? `Le compte ${user.email} n'a pas accès à ce tableau de bord.` : "Vérifiez votre connexion puis réessayez."}</p>
+      <button className="kb-primary" onClick={logout}>Changer de compte</button>
     </div></div>
   );
 
   return (
     <>
       <RiadDashboard />
-      <div style={{textAlign:"center",fontSize:11,color:"#999",padding:"24px 0 40px"}}>
-        {user.email} · <button onClick={logout} style={{background:"none",border:"none",color:"#999",textDecoration:"underline",cursor:"pointer",fontSize:11}}>Se déconnecter</button>
+      <div className="kb-foot">
+        {user.email} · <button onClick={logout}>Se déconnecter</button>
       </div>
     </>
   );
