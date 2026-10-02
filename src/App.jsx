@@ -1441,7 +1441,12 @@ function RiadDashboard() {
                 <span aria-hidden="true">{icon}</span>
                 <span className="kb-alert-msg">{msg}</span>
                 <span className="kb-alert-who">{b.name||b.id}</span>
-                <span className="kb-alert-meta">{fmtDate(isArr?b.checkIn:b.checkOut,locale)} · {b.nights} n{b.guests?` · 👥 ${b.guests}`:""}</span>
+                <span className="kb-alert-meta">
+                  {fmtDate(isArr?b.checkIn:b.checkOut,locale)} · {b.nights} n · <span title={b.guests?"":(lang==="fr"?"Nombre de voyageurs non renseigné":"Guests not set")}>👥 {b.guests||"?"}</span>
+                  {" · "}{b.amount>0
+                    ? <>{fmtEUR((hasComm(b)?b.amount*(1-commission):b.amount)/rate)} {lang==="fr"?"net/nuit":"net/night"}</>
+                    : <span style={{color:"var(--color-text-warning)"}}>{lang==="fr"?"tarif à saisir":"rate to enter"}</span>}
+                </span>
                 <span className="kb-alert-pf">{b.platform}</span>
               </div>
             );
