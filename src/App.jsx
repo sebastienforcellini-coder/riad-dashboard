@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef, useEffect, Fragment } from "react";
 import * as XLSX from "xlsx";
+import { PROPERTIES, DEFAULT_PROPERTY, findProperty } from "./properties.js";
 import { initializeApp } from "firebase/app";
 import { getFirestore, doc, setDoc, getDoc, onSnapshot, collection, getDocs, query, orderBy, limit } from "firebase/firestore";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut } from "firebase/auth";
@@ -210,7 +211,9 @@ const firebaseConfig = {
 };
 const app    = initializeApp(firebaseConfig);
 const db     = getFirestore(app);
-const DOC_REF = doc(db, "riad", "data");
+// Document de référence pour vérifier l'accès à la connexion (Kasbah Blanca)
+const ACCESS_REF = doc(db, "riad", "data");
+const docRefOf = (property) => doc(db, "riad", property.docId);
 const authApi = getAuth(app);
 
 // ── Parsers ───────────────────────────────────────────────────────────────────
@@ -270,6 +273,12 @@ const hasComm = (b) => COMM_PLATFORMS.includes(b?.platform);
 const MONTHS_FR    = ["Jan","Fév","Mar","Avr","Mai","Jun","Jul","Aoû","Sep","Oct","Nov","Déc"];
 const MONTHS_EN    = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const STORAGE_KEY  = "riad_dashboard_v1";
+const PROPERTY_KEY = "riad_current_property";
+// Clés de stockage local d'un riad. Kasbah Blanca garde les clés historiques.
+const storageKeys = (property) => {
+  const sfx = property.key === DEFAULT_PROPERTY.key ? "" : `:${property.key}`;
+  return { data: STORAGE_KEY + sfx, lm: "riad_last_modified" + sfx, ign: "riad_ignored_blocks" + sfx };
+};
 const DEFAULT_RATE = 10.83;
 // Couleurs : définies dans src/theme.css (clair + sombre)
 const C_RESERVED   = "var(--kb-booked)";
@@ -289,28 +298,29 @@ const fmtBoth = (n, rate)      => fmtMAD(n) + "  ·  " + fmtEUR(n / rate);
 const fmtDate = (d, locale)    => new Date(d).toLocaleDateString(locale,{day:"2-digit",month:"short",year:"numeric"});
 const today   = ()             => new Date().toISOString().slice(0,10);
 
-function loadStorage() {
-  try { const s = localStorage.getItem(STORAGE_KEY); return s ? JSON.parse(s) : null; } catch { return null; }
+function loadStorage(key) {
+  try { const s = localStorage.getItem(key); return s ? JSON.parse(s) : null; } catch { return null; }
 }
-function saveStorage(data) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch {}
+function saveStorage(key, data) {
+  try { localStorage.setItem(key, JSON.stringify(data)); } catch {}
 }
 // ── Garde-fou anti-écrasement ───────────────────────────────────────────────
 // Nombre de réservations connu dans Firestore (mis à jour à chaque lecture).
 // Toute écriture qui en ferait disparaître plus de GUARD_MAX_DROP est bloquée,
 // sauf force explicite (Restore confirmé par l'utilisateur).
-let remoteBookingCount = null;
+const remoteBookingCount = {}; // par docId
 const GUARD_MAX_DROP = 3;
-const noteRemote = (data) => { if (data && Array.isArray(data.bookings)) remoteBookingCount = data.bookings.length; };
+const noteRemote = (docId, data) => { if (data && Array.isArray(data.bookings)) remoteBookingCount[docId] = data.bookings.length; };
 
-async function saveCloud(data, { force = false } = {}) {
+async function saveCloud(ref, data, { force = false } = {}) {
+  const remote = remoteBookingCount[ref.id] ?? null;
   const n = Array.isArray(data.bookings) ? data.bookings.length : null;
-  if (!force && n !== null && remoteBookingCount !== null && n < remoteBookingCount - GUARD_MAX_DROP) {
-    console.warn(`Garde-fou : écriture bloquée (${n} réservations locales, ${remoteBookingCount} dans la base)`);
-    window.dispatchEvent(new CustomEvent("riad-guard", { detail: { local: n, remote: remoteBookingCount } }));
+  if (!force && n !== null && remote !== null && n < remote - GUARD_MAX_DROP) {
+    console.warn(`Garde-fou : écriture bloquée (${n} réservations locales, ${remote} dans la base)`);
+    window.dispatchEvent(new CustomEvent("riad-guard", { detail: { local: n, remote } }));
     return false;
   }
-  try { await setDoc(DOC_REF, data); if (n !== null) remoteBookingCount = n; return true; }
+  try { await setDoc(ref, data); if (n !== null) remoteBookingCount[ref.id] = n; return true; }
   catch(e) { console.warn("Cloud save failed", e); return false; }
 }
 
@@ -421,7 +431,11 @@ function DropZone({ label, sub, accept, onFile, color }) {
 // ═════════════════════════════════════════════════════════════════════════════
 // MAIN APP
 // ═════════════════════════════════════════════════════════════════════════════
-function RiadDashboard() {
+function RiadDashboard({ property, onSwitchProperty }) {
+  // Tout ce composant travaille sur UN riad. Il est remonté (key) à chaque changement :
+  // aucun état, minuteur ou écoute Firestore ne passe d'un riad à l'autre.
+  const DOC_REF = useMemo(() => docRefOf(property), [property]);
+  const SK      = useMemo(() => storageKeys(property), [property]);
   const [bookings,     setBookings]     = useState([]);
   const [blocked,      setBlocked]      = useState([]);
   const [expenses,     setExpenses]     = useState([]);
@@ -437,7 +451,7 @@ function RiadDashboard() {
   const [calView,      setCalView]      = useState("upcoming");
   const [selectedMonth,setSelectedMonth]= useState(null);
   const [ignoredBlocks,setIgnoredBlocks]= useState(() => {
-    try { const s = localStorage.getItem("riad_ignored_blocks"); return s ? JSON.parse(s) : []; } catch { return []; }
+    try { const s = localStorage.getItem(storageKeys(property).ign); return s ? JSON.parse(s) : []; } catch { return []; }
   });
   const [lang,         setLang]         = useState("fr");
   const [darkMode,     setDarkMode]     = useState(() => {
@@ -505,7 +519,7 @@ function RiadDashboard() {
 
   // ── localStorage ─────────────────────────────────────────────────────────
   useEffect(() => {
-    const saved = loadStorage();
+    const saved = loadStorage(SK.data);
     if (saved) {
       if (saved.bookings)                setBookings(saved.bookings);
       if (saved.blocked)                 setBlocked(saved.blocked);
@@ -523,11 +537,11 @@ function RiadDashboard() {
   }, []);
 
   useEffect(() => {
-    try { localStorage.setItem("riad_ignored_blocks", JSON.stringify(ignoredBlocks)); } catch {}
+    try { localStorage.setItem(SK.ign, JSON.stringify(ignoredBlocks)); } catch {}
   }, [ignoredBlocks]);
 
   useEffect(() => {
-    saveStorage({ bookings, blocked, expenses, year, nextId, currency, rate, commission, recurring, icsUrl, icsUrlBooking, lastSync, ignoredBlocks });
+    saveStorage(SK.data, { bookings, blocked, expenses, year, nextId, currency, rate, commission, recurring, icsUrl, icsUrlBooking, lastSync, ignoredBlocks });
   }, [bookings, blocked, expenses, year, nextId, currency, rate, commission, recurring, icsUrl, icsUrlBooking, lastSync, ignoredBlocks]);
 
   // ── Firestore — onSnapshot temps réel ────────────────────────────────────
@@ -553,7 +567,7 @@ function RiadDashboard() {
         return;
       }
       const data = snap.data();
-      noteRemote(data);
+      noteRemote(property.docId, data);
 
       // Notre propre write qui revient → juste confirmer, ne rien appliquer
       if (data.lastModified && data.lastModified === lastSavedModified.current) {
@@ -563,7 +577,7 @@ function RiadDashboard() {
       }
 
       // Comparer timestamps : qui a les données les plus récentes ?
-      const localModified  = localStorage.getItem("riad_last_modified") || "";
+      const localModified  = localStorage.getItem(SK.lm) || "";
       const remoteModified = data.lastModified || "";
 
       if (localModified && remoteModified && localModified > remoteModified) {
@@ -586,7 +600,7 @@ function RiadDashboard() {
       if (data.icsUrlBooking !== undefined) setIcsUrlBooking(data.icsUrlBooking);
       if (data.lastSync)               setLastSync(data.lastSync);
       if (data.ignoredBlocks)          setIgnoredBlocks(data.ignoredBlocks);
-      saveStorage(data);
+      saveStorage(SK.data, data);
       setCloudStatus("saved");
       hasHydrated.current = true;
     }, () => { hasHydrated.current = true; setCloudStatus("error"); });
@@ -621,8 +635,8 @@ function RiadDashboard() {
     saveTimer.current = setTimeout(() => {
       const now = new Date().toISOString();
       lastSavedModified.current = now;
-      localStorage.setItem("riad_last_modified", now);
-      saveCloud({ bookings, blocked, expenses, year, nextId, currency, rate, commission, recurring, icsUrl, icsUrlBooking, lastSync, ignoredBlocks, lastModified: now })
+      localStorage.setItem(SK.lm, now);
+      saveCloud(DOC_REF, { bookings, blocked, expenses, year, nextId, currency, rate, commission, recurring, icsUrl, icsUrlBooking, lastSync, ignoredBlocks, lastModified: now })
         .then((ok) => setCloudStatus(ok ? "saved" : "error"))
         .catch(() => {
           setCloudStatus("error");
@@ -636,9 +650,9 @@ function RiadDashboard() {
   const applyIfNewer = useRef(null);
   applyIfNewer.current = (data) => {
     if (!data) return;
-    noteRemote(data);
+    noteRemote(property.docId, data);
     if (data.lastModified && data.lastModified === lastSavedModified.current) return;
-    const localModified  = localStorage.getItem("riad_last_modified") || "";
+    const localModified  = localStorage.getItem(SK.lm) || "";
     const remoteModified = data.lastModified || "";
     if (localModified && remoteModified && localModified >= remoteModified) return;
     isFromFirebase.current = true;
@@ -653,7 +667,7 @@ function RiadDashboard() {
     if (data.icsUrlBooking !== undefined) setIcsUrlBooking(data.icsUrlBooking);
     if (data.lastSync)               setLastSync(data.lastSync);
     if (data.ignoredBlocks)          setIgnoredBlocks(data.ignoredBlocks);
-    saveStorage(data);
+    saveStorage(SK.data, data);
     setCloudStatus("saved");
   };
 
@@ -722,7 +736,7 @@ function RiadDashboard() {
     setSyncStatus("syncing");
     try {
       const token = await authApi.currentUser?.getIdToken();
-      const res = await fetch("/api/sync", { method: "POST", headers: token ? { Authorization: `Bearer ${token}` } : {} });
+      const res = await fetch(`/api/sync?property=${property.key}`, { method: "POST", headers: token ? { Authorization: `Bearer ${token}` } : {} });
       const j = await res.json().catch(() => ({}));
       if (!res.ok || !j.success) throw new Error(j.error || j.message || `HTTP ${res.status}`);
       setSyncStatus("ok");
@@ -747,14 +761,16 @@ function RiadDashboard() {
   const openRescue = async () => {
     setRescue({ loading: true, list: [] });
     try {
-      const snap = await getDocs(query(collection(db, "backups"), orderBy("createdAt", "desc"), limit(60)));
-      setRescue({ loading: false, list: snap.docs.map(d => ({ id: d.id, ...d.data() })) });
+      const snap = await getDocs(query(collection(db, "backups"), orderBy("createdAt", "desc"), limit(150)));
+      // Uniquement les sauvegardes de ce riad (anciennes sans propertyId = Kasbah Blanca)
+      const mine = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(b => (b.propertyId || DEFAULT_PROPERTY.key) === property.key);
+      setRescue({ loading: false, list: mine.slice(0, 60) });
     } catch (e) { setRescue({ loading: false, list: [], error: e.message }); }
   };
   const backupNow = async () => {
     setRescue(r => ({ ...r, busy: true }));
     try {
-      const res = await fetch("/api/backup", { method: "POST", headers: await authHeaders() });
+      const res = await fetch(`/api/backup?property=${property.key}`, { method: "POST", headers: await authHeaders() });
       const j = await res.json().catch(() => ({}));
       if (!res.ok || !j.success) throw new Error(j.error || `HTTP ${res.status}`);
       showToast("🛟 Sauvegarde créée");
@@ -772,7 +788,7 @@ function RiadDashboard() {
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
       const href = URL.createObjectURL(blob);
       const a = document.createElement("a");
-      a.href = href; a.download = `riad_secours_${b.createdAt.slice(0,16).replace(/[:T]/g,"-")}.json`;
+      a.href = href; a.download = `${property.key}_secours_${b.createdAt.slice(0,16).replace(/[:T]/g,"-")}.json`;
       a.click(); URL.revokeObjectURL(href);
     } catch (e) { showToast(`❌ Téléchargement impossible (${e.message})`); }
   };
@@ -842,7 +858,7 @@ function RiadDashboard() {
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement("a");
-    a.href = url; a.download = `riad_backup_${new Date().toISOString().slice(0,10)}.json`;
+    a.href = url; a.download = `${property.key}_backup_${new Date().toISOString().slice(0,10)}.json`;
     a.click(); URL.revokeObjectURL(url);
     showToast(t("toastJsonDL"));
   };
@@ -851,8 +867,9 @@ function RiadDashboard() {
   const applyBackup = (data, { confirmed = false } = {}) => {
         if (!data || !data.version) throw new Error("Invalid format");
         const incoming = (data.bookings || []).length;
-        const shrinks = remoteBookingCount !== null && incoming < remoteBookingCount - GUARD_MAX_DROP;
-        if (shrinks && !confirmed && !window.confirm(`Ce fichier contient ${incoming} réservations, la base en contient ${remoteBookingCount}. Restaurer quand même ?`)) return false;
+        const remote  = remoteBookingCount[property.docId] ?? null;
+        const shrinks = remote !== null && incoming < remote - GUARD_MAX_DROP;
+        if (shrinks && !confirmed && !window.confirm(`Ce fichier contient ${incoming} réservations, la base en contient ${remote}. Restaurer quand même ?`)) return false;
         const manuals = (data.bookings||[]).filter(b => b.id.startsWith("MAN-"));
         const filteredBlocked = (data.blocked||[]).filter(bl =>
           bl.type === "personal" ||
@@ -860,7 +877,7 @@ function RiadDashboard() {
         );
         const now = new Date().toISOString();
         lastSavedModified.current = now;
-        localStorage.setItem("riad_last_modified", now);
+        localStorage.setItem(SK.lm, now);
         const cloudData = {
           bookings:      data.bookings     || [],
           blocked:       filteredBlocked,
@@ -876,7 +893,7 @@ function RiadDashboard() {
           version:       1,
           lastModified:  now,
         };
-        saveStorage(cloudData);
+        saveStorage(SK.data, cloudData);
         if (data.bookings)      setBookings(data.bookings);
         if (filteredBlocked)    setBlocked(filteredBlocked);
         if (data.expenses)      setExpenses(data.expenses);
@@ -885,7 +902,7 @@ function RiadDashboard() {
         if (data.currency)      setCurrency(data.currency);
         if (data.ignoredBlocks) setIgnoredBlocks(data.ignoredBlocks);
         if (data.nextId)        setNextId(data.nextId);
-        saveCloud(cloudData, { force: shrinks });
+        saveCloud(DOC_REF, cloudData, { force: shrinks });
         showToast(`✅ ${lang==="fr"?"Sauvegarde restaurée":"Backup restored"} · ${data.bookings?.length||0} ${lang==="fr"?"réservations":"bookings"} · ${data.expenses?.length||0} ${lang==="fr"?"dépenses":"expenses"}`);
         return true;
   };
@@ -1077,7 +1094,7 @@ function RiadDashboard() {
   useEffect(() => {
     if (!("Notification" in window) || Notification.permission !== "granted") return;
     setNotifEnabled(true);
-    const lastNotifDate = localStorage.getItem("lastNotifDate");
+    const lastNotifDate = localStorage.getItem("lastNotifDate" + (property.key === DEFAULT_PROPERTY.key ? "" : ":" + property.key));
     const todayKey = new Date().toISOString().slice(0,10);
     if (lastNotifDate === todayKey) return;
     const now = new Date(); now.setHours(0,0,0,0);
@@ -1092,7 +1109,7 @@ function RiadDashboard() {
       if (daysOut === 0) new Notification("🔴 "+t("departureToday"),  {body: name+" · "+b.platform});
       if (daysOut === 1) new Notification("🟠 "+t("departureTomorrow"),{body: name+" · "+b.platform});
     });
-    localStorage.setItem("lastNotifDate", todayKey);
+    localStorage.setItem("lastNotifDate" + (property.key === DEFAULT_PROPERTY.key ? "" : ":" + property.key), todayKey);
   }, [bookings.length]);
 
   // ── Export Excel ──────────────────────────────────────────────────────────
@@ -1150,7 +1167,7 @@ function RiadDashboard() {
     mRows.push([]); mRows.push(["TOTAL",+totalGross.toFixed(2),+(totalGross-totalRevenue).toFixed(2),+totalRevenue.toFixed(2),+(totalRevenue/rate).toFixed(2),+totalExp.toFixed(2),+(totalExp/rate).toFixed(2),+(totalRevenue-totalExp).toFixed(2),+((totalRevenue-totalExp)/rate).toFixed(2)]);
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(mRows), t("xlsMonthly"));
 
-    XLSX.writeFile(wb, `Riad_${year}.xlsx`);
+    XLSX.writeFile(wb, `${property.name.replace(/\s+/g,"_")}_${year}.xlsx`);
     showToast(t("toastExcelDL"));
   };
 
@@ -1183,7 +1200,7 @@ function RiadDashboard() {
           <td>${e.date}</td><td>${e.category} — ${e.description}</td>
           <td style="text-align:right;color:#c0392b;font-weight:500">${fmtBoth(e.amount,rate)}</td>
         </tr>`).join("");
-    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Kasbah Blanca — ${mName} ${year}</title>
+    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${property.name} · ${mName} ${year}</title>
     <style>body{font-family:Georgia,serif;max-width:700px;margin:40px auto;padding:0 20px;color:#1a1a1a}
     h1{font-size:22px;margin:0 0 4px}.sub{color:#888;font-size:13px;margin:0 0 24px}
     h2{font-size:15px;margin:20px 0 10px;padding-bottom:6px;border-bottom:1px solid #eee}
@@ -1198,7 +1215,7 @@ function RiadDashboard() {
     .footer{margin-top:40px;font-size:11px;color:#aaa;text-align:center;border-top:1px solid #eee;padding-top:16px}
     @media print{body{margin:20px}}</style></head><body>
     <div style="font-size:28px">🏡</div>
-    <h1>Kasbah Blanca Marrakech</h1>
+    <h1>${property.name} Marrakech</h1>
     <p class="sub">${lang==="fr"?"Récapitulatif mensuel":"Monthly summary"} — ${mName} ${year}</p>
     <div class="kpis">
       <div class="kpi"><p class="kpi-label">${lang==="fr"?"Revenus nets":"Net revenue"}</p><p class="kpi-value" style="color:#2e7d32">${fmtMAD(mRevenue)}</p><p class="kpi-sub">${fmtEUR(mRevenue/rate)}</p></div>
@@ -1214,7 +1231,7 @@ function RiadDashboard() {
     <table><thead><tr><th>${lang==="fr"?"Date":"Date"}</th><th>${lang==="fr"?"Description":"Description"}</th><th style="text-align:right">${lang==="fr"?"Montant":"Amount"}</th></tr></thead>
     <tbody>${expenseRows}</tbody>
     <tfoot><tr><td colspan="2" style="font-weight:600;padding:10px 6px">${lang==="fr"?"Total":"Total"}</td><td style="text-align:right;font-weight:600;color:#c0392b">${fmtBoth(mExp,rate)}</td></tr></tfoot></table>
-    <div class="footer">Kasbah Blanca · ${mName} ${year} · ${lang==="fr"?"Généré le":"Generated on"} ${new Date().toLocaleDateString(locale)}</div>
+    <div class="footer">${property.name} · ${mName} ${year} · ${lang==="fr"?"Généré le":"Generated on"} ${new Date().toLocaleDateString(locale)}</div>
     <scr`+"ipt>window.onload=function(){window.print()}</scr"+"ipt></body></html>";
     const w = window.open("","_blank","width=750,height=900");
     w.document.write(html); w.document.close();
@@ -1248,13 +1265,13 @@ function RiadDashboard() {
       +".footer{margin-top:40px;font-size:11px;color:#aaa;text-align:center}"
       +"@media print{body{margin:20px}}</style></head><body>"
       +"<div style='font-size:28px'>🏡</div>"
-      +"<h1>Kasbah Blanca Marrakech</h1>"
+      +"<h1>"+property.name+" Marrakech</h1>"
       +"<p class='sub'>"+t("recapTitle")+"</p>"
       +"<table>"+rows
       +"<tr class='total'><td>"+t("recapTotal")+"</td><td>"+Math.round(netTot).toLocaleString("fr-FR")+" MAD · "+Math.round(netTot/rate).toLocaleString("fr-FR")+" €</td></tr>"
       +"</table>"
       +"<p>"+t("recapPayment")+" : <span class='badge "+(b.paid?"paid":"unpaid")+"'>"+(isEffectivelyPaid(b)?t("paidStatus"):t("unpaidStatus"))+"</span></p>"
-      +"<div class='footer'>Kasbah Blanca · "+new Date().toLocaleDateString(loc)+"</div>"
+      +"<div class='footer'>"+property.name+" · "+new Date().toLocaleDateString(loc)+"</div>"
       +"<scr"+"ipt>window.onload=function(){window.print()}</scr"+"ipt>"
       +"</body></html>";
     const w = window.open("","_blank","width=600,height=700");
@@ -1299,9 +1316,9 @@ function RiadDashboard() {
         <div className="kb-hero-in">
           <div className="kb-bar">
             <div className="kb-brand">
-              <img src="/apple-touch-icon.png" alt="" />
+              <img src={property.logo} alt="" className={property.logoRound ? "round" : undefined} />
               <div style={{minWidth:0}}>
-                <h1>{t("title")}</h1>
+                <h1>{property.name} Marrakech</h1>
                 <p className="kb-status">
                   {cloudStatus && (
                     <span><i className={"kb-dot"+(cloudStatus==="saving"?" saving":cloudStatus==="error"?" error":"")} />
@@ -1333,6 +1350,18 @@ function RiadDashboard() {
               <button className={"kb-pill kb-grow"+(showTools?" on":"")} onClick={()=>setShowTools(v=>!v)} aria-expanded={showTools} aria-label={lang==="fr"?"Réglages":"Settings"}>⚙︎<span className="kb-hide-m"> {lang==="fr"?"Réglages":"Settings"}</span></button>
             </div>
           </div>
+
+          {PROPERTIES.length > 1 && (
+            <div className="kb-props" role="tablist" aria-label={lang==="fr"?"Riad affiché":"Property"}>
+              {PROPERTIES.map(p => (
+                <button key={p.key} role="tab" aria-selected={p.key===property.key}
+                  className={p.key===property.key ? "on" : ""}
+                  onClick={()=>{ if (p.key!==property.key) onSwitchProperty(p.key); }}>
+                  <img src={p.logo} alt="" />{p.name}
+                </button>
+              ))}
+            </div>
+          )}
 
           {showTools && (
             <div className="kb-tools">
@@ -2439,6 +2468,32 @@ export default function App() {
   const [user, setUser]     = useState(undefined); // undefined = en cours, null = déconnecté
   const [access, setAccess] = useState("pending"); // pending | ok | denied | error
   const [err, setErr]       = useState("");
+  // Riad affiché, mémorisé sur l'appareil
+  // Lien direct : ?riad=dar-yallah ouvre ce riad (puis le paramètre est retiré de l'adresse)
+  const [propertyKey, setPropertyKey] = useState(() => {
+    try {
+      const fromUrl = findProperty(new URLSearchParams(window.location.search).get("riad"));
+      if (fromUrl) { localStorage.setItem(PROPERTY_KEY, fromUrl.key); return fromUrl.key; }
+      return findProperty(localStorage.getItem(PROPERTY_KEY))?.key || DEFAULT_PROPERTY.key;
+    } catch { return DEFAULT_PROPERTY.key; }
+  });
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (url.searchParams.has("riad")) { url.searchParams.delete("riad"); window.history.replaceState(null, "", url.pathname + url.search + url.hash); }
+  }, []);
+  const property = findProperty(propertyKey) || DEFAULT_PROPERTY;
+  const switchProperty = (key) => {
+    try { localStorage.setItem(PROPERTY_KEY, key); } catch {}
+    window.scrollTo(0, 0);
+    setPropertyKey(key);
+  };
+  useEffect(() => {
+    document.documentElement.setAttribute("data-property", property.key);
+    document.title = property.name;
+    // Couleur de la barre du navigateur : celle de l'en-tête du riad
+    const teal = getComputedStyle(document.documentElement).getPropertyValue("--kb-teal").trim();
+    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", teal || "#12524A");
+  }, [property.key]);
 
   useEffect(() => {
     getRedirectResult(authApi).catch((e) => setErr(e.code || e.message));
@@ -2447,7 +2502,7 @@ export default function App() {
 
   useEffect(() => {
     if (!user) return;
-    getDoc(DOC_REF)
+    getDoc(ACCESS_REF)
       .then(() => setAccess("ok"))
       .catch((e) => setAccess(e.code === "permission-denied" ? "denied" : "error"));
   }, [user]);
@@ -2464,7 +2519,7 @@ export default function App() {
     }
   };
   const logout = async () => {
-    try { localStorage.removeItem(STORAGE_KEY); localStorage.removeItem("riad_last_modified"); } catch {}
+    try { PROPERTIES.forEach(p => { const k = storageKeys(p); localStorage.removeItem(k.data); localStorage.removeItem(k.lm); }); } catch {}
     await signOut(authApi);
   };
 
@@ -2473,9 +2528,8 @@ export default function App() {
 
   if (!user) return (
     <div className="kb-gate"><div className="kb-gate-card">
-      <img src="/apple-touch-icon.png" alt="" />
-      <h1>Kasbah Blanca Marrakech</h1>
-      <p>Tableau de bord locatif</p>
+      <img src="/logo-mes-riads.png" alt="Mes riads" className="kb-gate-logo" />
+      <p>Kasbah Blanca · Dar Yallah</p>
       <button className="kb-primary" onClick={login} style={{padding:"12px 20px",fontSize:15}}>Se connecter avec Google</button>
       {err && <p style={{fontSize:12,color:"var(--color-text-danger)",margin:"16px 0 0"}}>Connexion impossible ({err})</p>}
     </div></div>
@@ -2491,7 +2545,7 @@ export default function App() {
 
   return (
     <>
-      <RiadDashboard />
+      <RiadDashboard key={property.key} property={property} onSwitchProperty={switchProperty} />
       <div className="kb-foot">
         {user.email} · <button onClick={logout}>Se déconnecter</button>
       </div>

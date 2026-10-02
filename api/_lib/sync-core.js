@@ -10,8 +10,7 @@
 //   5. Flux illisible → aucune écriture.
 // ─────────────────────────────────────────────────────────────────────────────
 import { db } from "./admin.js";
-
-const DOC = db.doc("riad/data");
+import { DEFAULT_PROPERTY } from "../../src/properties.js";
 
 const toISO = (s) => { const d = String(s).replace(/[^\d]/g, "").slice(0, 8); return `${d.slice(0,4)}-${d.slice(4,6)}-${d.slice(6,8)}`; };
 const nightsBetween = (a, b) => Math.round((new Date(b) - new Date(a)) / 86400000);
@@ -133,12 +132,14 @@ function applyFeeds(data, feeds) {
   return { bookings, blocked: [...airbnbBlocks, ...otherBlocks], stats, newOnes: bookings.filter((b) => !newIds.has(b.id)) };
 }
 
-export async function runSync({ dryRun = false } = {}) {
+// property : un riad de src/properties.js (Kasbah Blanca par défaut)
+export async function runSync({ dryRun = false, property = DEFAULT_PROPERTY } = {}) {
+  const DOC = db.doc(`riad/${property.docId}`);
   const first = await DOC.get();
-  if (!first.exists) throw new Error("Base Firestore introuvable");
+  if (!first.exists) return { success: false, property: property.key, message: "Riad pas encore configuré" };
   const cfg = first.data();
   const sources = { airbnb: cfg.icsUrl, booking: cfg.icsUrlBooking };
-  if (!sources.airbnb && !sources.booking) return { success: false, message: "Aucune URL iCal configurée" };
+  if (!sources.airbnb && !sources.booking) return { success: false, property: property.key, message: "Aucune URL iCal configurée" };
 
   const feeds = {}, errors = {};
   if (sources.airbnb)  try { feeds.airbnb  = parseIcs(await fetchIcs(sources.airbnb)); } catch (e) { errors.airbnb = e.message; }
@@ -152,7 +153,7 @@ export async function runSync({ dryRun = false } = {}) {
 
   if (dryRun) {
     const r = applyFeeds(cfg, feeds);
-    return { success: true, dryRun: true, ...summary(r), stats: r.stats, errors,
+    return { success: true, property: property.key, dryRun: true, ...summary(r), stats: r.stats, errors,
       wouldAdd: r.newOnes.map(({ id, platform, checkIn, checkOut, nights }) => ({ id, platform, checkIn, checkOut, nights })) };
   }
 
@@ -161,6 +162,6 @@ export async function runSync({ dryRun = false } = {}) {
     const r = applyFeeds(snap.data() || {}, feeds);
     const now = new Date().toISOString();
     tx.update(DOC, clean({ bookings: r.bookings, blocked: r.blocked, lastSync: now, lastModified: now }));
-    return { success: true, ...summary(r), stats: r.stats, errors, total: r.bookings.length, lastSync: now };
+    return { success: true, property: property.key, ...summary(r), stats: r.stats, errors, total: r.bookings.length, lastSync: now };
   });
 }
