@@ -99,9 +99,11 @@
 
 /* ── Base ─────────────────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; }
+/* Le fond du html est vert : sur iPhone, la zone de l'heure et de la batterie prolonge l'en-tête.
+   Le contenu garde son fond clair via body / .kb-app. */
+html { background: var(--kb-teal); }
 html, body {
   margin: 0;
-  background: var(--kb-page);
   color: var(--color-text-primary);
   font-family: var(--font-sans);
   font-size: 15px;
@@ -110,6 +112,7 @@ html, body {
   -webkit-text-size-adjust: 100%;
   -webkit-font-smoothing: antialiased;
 }
+body { background: var(--kb-page); min-height: 100%; }
 body, .kb-card, .kb-app { transition: background-color .2s, color .2s, border-color .2s; }
 ::selection { background: var(--kb-sand); color: var(--kb-teal-ink); }
 
@@ -288,7 +291,7 @@ tfoot td { border-top: 1px solid var(--color-border-secondary); }
 .kb-fig { padding: 18px 20px; border-left: 1px solid var(--color-border-secondary); min-width: 0; }
 .kb-fig:first-child { border-left: 0; padding-left: 0; }
 .kb-fig-l { margin: 0; font-size: 13px; color: var(--color-text-secondary); }
-.kb-fig-v { margin: 6px 0 2px; font-family: var(--font-sans); font-size: 28px; font-weight: 600; letter-spacing: -0.6px; line-height: 1.1; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.kb-fig-v { margin: 6px 0 2px; font-family: var(--font-sans); font-size: 28px; font-weight: 600; letter-spacing: -0.2px; line-height: 1.1; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .kb-fig-v small { font-family: var(--font-sans); font-size: 14px; font-weight: 500; letter-spacing: 0; color: var(--color-text-tertiary); margin-left: 4px; }
 .kb-fig-s { margin: 0; font-size: 12px; color: var(--color-text-tertiary); }
 .kb-fig.neg .kb-fig-v { color: var(--color-text-danger); }
@@ -307,7 +310,7 @@ tfoot td { border-top: 1px solid var(--color-border-secondary); }
 .kb-stat-l { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--color-text-secondary); font-weight: 500; }
 .kb-stat-l::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--c); flex-shrink: 0; }
 .kb-stat-l i { margin-left: auto; font-style: normal; font-size: 11px; color: var(--color-text-tertiary); }
-.kb-stat-v { margin: 6px 0 2px; font-family: var(--font-sans); font-size: 19px; font-weight: 600; letter-spacing: -0.3px; font-variant-numeric: tabular-nums; color: var(--c); }
+.kb-stat-v { margin: 6px 0 2px; font-family: var(--font-sans); font-size: 19px; font-weight: 600; letter-spacing: 0; font-variant-numeric: tabular-nums; color: var(--c); }
 .kb-stat-s { font-size: 12px; color: var(--color-text-tertiary); font-weight: 400; }
 
 /* ── Onglets ──────────────────────────────────────────────────────────────── */

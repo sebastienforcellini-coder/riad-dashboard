@@ -280,8 +280,10 @@ const C_TODAY_FG   = "var(--kb-today-fg)";
 // Bouton « Activer notifications » masqué : ne fonctionne qu'app ouverte et pas sur iPhone (à remplacer par des notifications serveur)
 const SHOW_NOTIF_BTN = false;
 
-const fmtMAD  = (n) => new Intl.NumberFormat("fr-MA",{minimumFractionDigits:0,maximumFractionDigits:0}).format(Math.round(n)) + " MAD";
-const fmtEUR  = (n) => new Intl.NumberFormat("fr-FR",{style:"currency",currency:"EUR",maximumFractionDigits:0}).format(Math.round(n));
+// Espace insécable normale entre les milliers (l'espace fine de fr-FR est quasi invisible dans la police)
+const nbsp    = (s) => s.replace(/\u202f/g, "\u00a0");
+const fmtMAD  = (n) => nbsp(new Intl.NumberFormat("fr-FR",{minimumFractionDigits:0,maximumFractionDigits:0}).format(Math.round(n))) + " MAD";
+const fmtEUR  = (n) => nbsp(new Intl.NumberFormat("fr-FR",{style:"currency",currency:"EUR",maximumFractionDigits:0}).format(Math.round(n)));
 const fmt     = (n, rate, cur) => cur === "EUR" ? fmtEUR(n / rate) : fmtMAD(n);
 const fmtBoth = (n, rate)      => fmtMAD(n) + "  ·  " + fmtEUR(n / rate);
 const fmtDate = (d, locale)    => new Date(d).toLocaleDateString(locale,{day:"2-digit",month:"short",year:"numeric"});
@@ -1232,8 +1234,8 @@ function RiadDashboard() {
       [t("recapDeparture"),new Date(b.checkOut).toLocaleDateString(loc,{weekday:"long",day:"numeric",month:"long",year:"numeric"})],
       [t("recapDuration"), `${b.nights} ${b.nights>1?t("recapNights"):t("recapNight")}`],
       ...(b.guests?[[t("recapGuests"),`${b.guests} ${b.guests>1?t("recapPersons"):t("recapPerson")}`]]:[]),
-      [t("recapRateGross"), b.amount.toLocaleString("fr-MA")+" MAD"],
-      ...(hasComm(b)?[[`${t("recapCommission")} (-${Math.round(commission*100)}%)`,"−"+Math.round(commAmt).toLocaleString("fr-MA")+" MAD"]]:[]),
+      [t("recapRateGross"), b.amount.toLocaleString("fr-FR")+" MAD"],
+      ...(hasComm(b)?[[`${t("recapCommission")} (-${Math.round(commission*100)}%)`,"−"+Math.round(commAmt).toLocaleString("fr-FR")+" MAD"]]:[]),
     ].map(([l,v])=>"<tr><td>"+l+"</td><td>"+v+"</td></tr>").join("");
     const html = "<!DOCTYPE html><html><head><meta charset='UTF-8'><title>Recap</title>"
       +"<style>body{font-family:Georgia,serif;max-width:520px;margin:40px auto;padding:0 20px}"
@@ -1249,7 +1251,7 @@ function RiadDashboard() {
       +"<h1>Kasbah Blanca Marrakech</h1>"
       +"<p class='sub'>"+t("recapTitle")+"</p>"
       +"<table>"+rows
-      +"<tr class='total'><td>"+t("recapTotal")+"</td><td>"+Math.round(netTot).toLocaleString("fr-MA")+" MAD · "+Math.round(netTot/rate).toLocaleString("fr-FR")+" €</td></tr>"
+      +"<tr class='total'><td>"+t("recapTotal")+"</td><td>"+Math.round(netTot).toLocaleString("fr-FR")+" MAD · "+Math.round(netTot/rate).toLocaleString("fr-FR")+" €</td></tr>"
       +"</table>"
       +"<p>"+t("recapPayment")+" : <span class='badge "+(b.paid?"paid":"unpaid")+"'>"+(isEffectivelyPaid(b)?t("paidStatus"):t("unpaidStatus"))+"</span></p>"
       +"<div class='footer'>Kasbah Blanca · "+new Date().toLocaleDateString(loc)+"</div>"
@@ -1450,7 +1452,7 @@ function RiadDashboard() {
       {/* ── Chiffres clés ────────────────────────────────────────────────── */}
       {(() => {
         const netProfit = pastRevenue - pastExp;
-        const num = (v) => new Intl.NumberFormat("fr-MA",{maximumFractionDigits:0}).format(Math.round(v));
+        const num = (v) => nbsp(new Intl.NumberFormat("fr-FR",{maximumFractionDigits:0}).format(Math.round(v)));
         return (
           <section className="kb-figs">
             <div className="kb-fig">
@@ -2098,22 +2100,22 @@ function RiadDashboard() {
             <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
               <div style={{...mc,flex:"1 1 160px"}}>
                 <p style={{margin:0,fontSize:11,color:"var(--color-text-secondary)"}}>{t("collected")}</p>
-                <p style={{margin:"6px 0 2px",fontSize:20,fontWeight:600,letterSpacing:"-0.3px",fontVariantNumeric:"tabular-nums",color:C_RESERVED}}>{fmtBoth(pastRevenue,rate)}</p>
+                <p style={{margin:"6px 0 2px",fontSize:20,fontWeight:600,letterSpacing:0,fontVariantNumeric:"tabular-nums",color:C_RESERVED}}>{fmtBoth(pastRevenue,rate)}</p>
                 <p style={{margin:0,fontSize:12,color:"var(--color-text-tertiary)"}}>{pastBookings_.length} {pastBookings_.length>1?t("staysDonePlural"):t("staysDone")}</p>
               </div>
               <div style={{...mc,flex:"1 1 160px"}}>
                 <p style={{margin:0,fontSize:11,color:"var(--color-text-secondary)"}}>{t("confirmed")}</p>
-                <p style={{margin:"6px 0 2px",fontSize:20,fontWeight:600,letterSpacing:"-0.3px",fontVariantNumeric:"tabular-nums",color:C_BLOCKED}}>{fmtBoth(futureRevenue,rate)}</p>
+                <p style={{margin:"6px 0 2px",fontSize:20,fontWeight:600,letterSpacing:0,fontVariantNumeric:"tabular-nums",color:C_BLOCKED}}>{fmtBoth(futureRevenue,rate)}</p>
                 <p style={{margin:0,fontSize:12,color:"var(--color-text-tertiary)"}}>{futureBookings_.length} {futureBookings_.length>1?t("staysAheadPlural"):t("staysAhead")}</p>
               </div>
               <div style={{...mc,flex:"1 1 160px"}}>
                 <p style={{margin:0,fontSize:11,color:"var(--color-text-secondary)"}}>{t("projected")}</p>
-                <p style={{margin:"6px 0 2px",fontSize:20,fontWeight:600,letterSpacing:"-0.3px",fontVariantNumeric:"tabular-nums",color:"var(--kb-profit)"}}>{fmtBoth(forecast.projectedTotal,rate)}</p>
+                <p style={{margin:"6px 0 2px",fontSize:20,fontWeight:600,letterSpacing:0,fontVariantNumeric:"tabular-nums",color:"var(--kb-profit)"}}>{fmtBoth(forecast.projectedTotal,rate)}</p>
                 <p style={{margin:0,fontSize:12,color:"var(--color-text-tertiary)"}}>{t("basedOn")} {fmtMAD(Math.round(forecast.avgMonthly))}{t("perMonth")}</p>
               </div>
               <div style={{...mc,flex:"1 1 160px"}}>
                 <p style={{margin:0,fontSize:11,color:"var(--color-text-secondary)"}}>{t("fillRate")}</p>
-                <p style={{margin:"6px 0 2px",fontSize:20,fontWeight:600,letterSpacing:"-0.3px",fontVariantNumeric:"tabular-nums",color:"var(--color-text-info)"}}>{occupancy}%</p>
+                <p style={{margin:"6px 0 2px",fontSize:20,fontWeight:600,letterSpacing:0,fontVariantNumeric:"tabular-nums",color:"var(--color-text-info)"}}>{occupancy}%</p>
                 <p style={{margin:0,fontSize:12,color:"var(--color-text-tertiary)"}}>{totalNights} {t("nightPlural")} · {lang==="fr"?"objectif 70% =":"target 70% ="} {Math.round(365*0.7)} {t("nightPlural")}</p>
               </div>
             </div>
